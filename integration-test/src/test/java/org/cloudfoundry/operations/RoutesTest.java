@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,6 +29,8 @@ import org.cloudfoundry.operations.routes.ListRoutesRequest;
 import org.cloudfoundry.operations.routes.MapRouteRequest;
 import org.cloudfoundry.operations.routes.Route;
 import org.cloudfoundry.operations.routes.UnmapRouteRequest;
+import org.cloudfoundry.operations.services.BindRouteServiceInstanceRequest;
+import org.cloudfoundry.operations.services.CreateUserProvidedServiceInstanceRequest;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
@@ -41,13 +43,11 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.Optional;
-import java.util.concurrent.TimeoutException;
 import java.util.function.Predicate;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.operations.routes.Level.ORGANIZATION;
 import static org.cloudfoundry.operations.routes.Level.SPACE;
-import static org.cloudfoundry.util.tuple.TupleUtils.function;
 
 public final class RoutesTest extends AbstractIntegrationTest {
 
@@ -63,7 +63,7 @@ public final class RoutesTest extends AbstractIntegrationTest {
     private String spaceName;
 
     @Test
-    public void checkFalse() throws TimeoutException, InterruptedException {
+    public void checkFalse() {
         String domainName = this.nameFactory.getDomainName();
         String host = this.nameFactory.getHostName();
         String path = this.nameFactory.getPath();
@@ -81,7 +81,7 @@ public final class RoutesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void checkTruePrivateDomainNoHost() throws TimeoutException, InterruptedException {
+    public void checkTruePrivateDomainNoHost() {
         String domainName = this.nameFactory.getDomainName();
         String hostName = null;
         String path = this.nameFactory.getPath();
@@ -99,7 +99,7 @@ public final class RoutesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void checkTrueSharedDomain() throws TimeoutException, InterruptedException {
+    public void checkTrueSharedDomain() {
         String domainName = this.nameFactory.getDomainName();
         String hostName = this.nameFactory.getHostName();
         String path = this.nameFactory.getPath();
@@ -118,7 +118,7 @@ public final class RoutesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void create() throws TimeoutException, InterruptedException {
+    public void create() {
         String domainName = this.nameFactory.getDomainName();
         String hostName = this.nameFactory.getHostName();
         String path = this.nameFactory.getPath();
@@ -137,9 +137,9 @@ public final class RoutesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void createRouteTcpAssignedPort() throws TimeoutException, InterruptedException {
+    public void createRouteTcpAssignedPort() {
         String domainName = this.nameFactory.getDomainName();
-        Integer port = 61002;
+        Integer port = this.nameFactory.getPort();
 
         requestCreateSharedDomain(this.cloudFoundryOperations, domainName, DEFAULT_ROUTER_GROUP)
             .then(requestCreateRoute(this.cloudFoundryOperations, this.spaceName, domainName, port))
@@ -152,7 +152,7 @@ public final class RoutesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void createRouteTcpRandomPort() throws TimeoutException, InterruptedException {
+    public void createRouteTcpRandomPort() {
         String domainName = this.nameFactory.getDomainName();
 
         requestCreateSharedDomain(this.cloudFoundryOperations, domainName, DEFAULT_ROUTER_GROUP)
@@ -166,7 +166,7 @@ public final class RoutesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void createRouteWithNonExistentDomain() throws TimeoutException, InterruptedException {
+    public void createRouteWithNonExistentDomain() {
         String domainName = this.nameFactory.getDomainName();
         String hostName = this.nameFactory.getHostName();
         String path = this.nameFactory.getPath();
@@ -184,7 +184,7 @@ public final class RoutesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void delete() throws TimeoutException, InterruptedException {
+    public void delete() {
         String domainName = this.nameFactory.getDomainName();
         String hostName = this.nameFactory.getHostName();
         String path = this.nameFactory.getPath();
@@ -209,7 +209,7 @@ public final class RoutesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void deleteInvalidDomain() throws TimeoutException, InterruptedException {
+    public void deleteInvalidDomain() {
         String domainName = this.nameFactory.getDomainName();
         String hostName = this.nameFactory.getHostName();
         String path = this.nameFactory.getPath();
@@ -226,7 +226,7 @@ public final class RoutesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void deleteOrphanedRoutes() throws TimeoutException, InterruptedException {
+    public void deleteOrphanedRoutes() {
         String domainName = this.nameFactory.getDomainName();
         String hostName = this.nameFactory.getHostName();
         String path = this.nameFactory.getPath();
@@ -248,7 +248,7 @@ public final class RoutesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void deleteTcpRoute() throws TimeoutException, InterruptedException {
+    public void deleteTcpRoute() {
         String domainName = this.nameFactory.getDomainName();
 
         requestCreateSharedDomain(this.cloudFoundryOperations, domainName, DEFAULT_ROUTER_GROUP)
@@ -266,7 +266,7 @@ public final class RoutesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void listWithOrganizationLevel() throws TimeoutException, InterruptedException {
+    public void listWithOrganizationLevel() {
         String domainName = this.nameFactory.getDomainName();
         String hostName = this.nameFactory.getHostName();
         String path = this.nameFactory.getPath();
@@ -284,7 +284,29 @@ public final class RoutesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void listWithSpaceLevel() throws TimeoutException, InterruptedException {
+    public void listWithService() {
+        String domainName = this.nameFactory.getDomainName();
+        String hostName = this.nameFactory.getHostName();
+        String path = this.nameFactory.getPath();
+        String serviceInstanceName = this.nameFactory.getServiceInstanceName();
+
+        createSharedDomainAndRoute(this.cloudFoundryOperations, this.spaceName, domainName, hostName, path)
+            .then(requestCreateUserProvidedServiceInstance(this.cloudFoundryOperations, serviceInstanceName))
+            .then(requestBindRouteServiceInstance(this.cloudFoundryOperations, domainName, hostName, path, serviceInstanceName))
+            .thenMany(this.cloudFoundryOperations.routes()
+                .list(ListRoutesRequest.builder()
+                    .level(SPACE)
+                    .build()))
+            .filter(filterRoutes(domainName, hostName, path, null))
+            .map(Route::getService)
+            .as(StepVerifier::create)
+            .expectNext(serviceInstanceName)
+            .expectComplete()
+            .verify(Duration.ofMinutes(5));
+    }
+
+    @Test
+    public void listWithSpaceLevel() {
         String domainName = this.nameFactory.getDomainName();
         String hostName = this.nameFactory.getHostName();
         String path = this.nameFactory.getPath();
@@ -302,7 +324,7 @@ public final class RoutesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void map() throws TimeoutException, InterruptedException, IOException {
+    public void map() throws IOException {
         String applicationName = this.nameFactory.getApplicationName();
         String domainName = this.nameFactory.getDomainName();
         String hostName = this.nameFactory.getHostName();
@@ -329,7 +351,7 @@ public final class RoutesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void mapNoHost() throws TimeoutException, InterruptedException, IOException {
+    public void mapNoHost() throws IOException {
         String applicationName = this.nameFactory.getApplicationName();
         String domainName = this.nameFactory.getDomainName();
         String hostName = null;
@@ -356,7 +378,7 @@ public final class RoutesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void mapNoPath() throws TimeoutException, InterruptedException, IOException {
+    public void mapNoPath() throws IOException {
         String applicationName = this.nameFactory.getApplicationName();
         String domainName = this.nameFactory.getDomainName();
         String hostName = this.nameFactory.getHostName();
@@ -383,7 +405,7 @@ public final class RoutesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void mapTcpRoute() throws TimeoutException, InterruptedException, IOException {
+    public void mapTcpRoute() throws IOException {
         String applicationName = this.nameFactory.getApplicationName();
         String domainName = this.nameFactory.getDomainName();
 
@@ -408,7 +430,7 @@ public final class RoutesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void mapTcpRouteTwice() throws TimeoutException, InterruptedException, IOException {
+    public void mapTcpRouteTwice() throws IOException {
         String applicationName = this.nameFactory.getApplicationName();
         String domainName = this.nameFactory.getDomainName();
 
@@ -438,7 +460,7 @@ public final class RoutesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void unmap() throws TimeoutException, InterruptedException, IOException {
+    public void unmap() throws IOException {
         String applicationName = this.nameFactory.getApplicationName();
         String domainName = this.nameFactory.getDomainName();
         String hostName = this.nameFactory.getHostName();
@@ -465,7 +487,7 @@ public final class RoutesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void unmapNoPath() throws TimeoutException, InterruptedException, IOException {
+    public void unmapNoPath() throws IOException {
         String applicationName = this.nameFactory.getApplicationName();
         String domainName = this.nameFactory.getDomainName();
         String hostName = this.nameFactory.getHostName();
@@ -492,16 +514,13 @@ public final class RoutesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void unmapTcpRoute() throws TimeoutException, InterruptedException, IOException {
+    public void unmapTcpRoute() throws IOException {
         String applicationName = this.nameFactory.getApplicationName();
         String domainName = this.nameFactory.getDomainName();
 
-        Mono
-            .when(
-                createSharedDomainAndTcpRoute(this.cloudFoundryOperations, domainName, this.spaceName),
-                requestCreateApplication(this.cloudFoundryOperations, new ClassPathResource("test-application.zip").getFile().toPath(), applicationName, true)
-            )
-            .flatMap(function((port, ignore) -> requestMapRoute(this.cloudFoundryOperations, applicationName, domainName, port)))
+        requestCreateApplication(this.cloudFoundryOperations, new ClassPathResource("test-application.zip").getFile().toPath(), applicationName, true)
+            .then(createSharedDomainAndTcpRoute(this.cloudFoundryOperations, domainName, this.spaceName))
+            .flatMap(port -> requestMapRoute(this.cloudFoundryOperations, applicationName, domainName, port))
             .flatMap(port -> this.cloudFoundryOperations.routes()
                 .unmap(UnmapRouteRequest.builder()
                     .applicationName(applicationName)
@@ -537,6 +556,16 @@ public final class RoutesTest extends AbstractIntegrationTest {
             && Optional.ofNullable(host).map(route.getHost()::equals).orElse(true)
             && Optional.ofNullable(applicationName).map(Collections::singletonList).map(route.getApplications()::equals).orElse(true)
             && Optional.ofNullable(path).map(route.getPath()::equals).orElse(true);
+    }
+
+    private static Mono<Void> requestBindRouteServiceInstance(CloudFoundryOperations cloudFoundryOperations, String domainName, String hostName, String path, String serviceInstanceName) {
+        return cloudFoundryOperations.services()
+            .bindRoute(BindRouteServiceInstanceRequest.builder()
+                .domainName(domainName)
+                .hostname(hostName)
+                .path(path)
+                .serviceInstanceName(serviceInstanceName)
+                .build());
     }
 
     private static Mono<Void> requestCreateApplication(CloudFoundryOperations cloudFoundryOperations, Path application, String name, Boolean noStart) {
@@ -593,6 +622,14 @@ public final class RoutesTest extends AbstractIntegrationTest {
             .createShared(CreateSharedDomainRequest.builder()
                 .domain(domainName)
                 .routerGroup(routerGroup)
+                .build());
+    }
+
+    private static Mono<Void> requestCreateUserProvidedServiceInstance(CloudFoundryOperations cloudFoundryOperations, String name) {
+        return cloudFoundryOperations.services()
+            .createUserProvidedInstance(CreateUserProvidedServiceInstanceRequest.builder()
+                .name(name)
+                .routeServiceUrl("https://test.route.service")
                 .build());
     }
 

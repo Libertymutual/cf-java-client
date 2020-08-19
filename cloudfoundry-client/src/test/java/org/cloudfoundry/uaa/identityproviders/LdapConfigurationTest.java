@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,36 +20,9 @@ import org.junit.Test;
 
 public final class LdapConfigurationTest {
 
-    @Test(expected = IllegalStateException.class)
-    public void noBaseUrl() {
-        LdapConfiguration.builder()
-            .ldapProfileFile(LdapProfileFile.SIMPLE_BIND)
-            .ldapGroupFile(LdapGroupFile.NO_GROUP)
-            .build();
-    }
-
-    @Test(expected = IllegalStateException.class)
-    public void noLdapGroupFile() {
-        LdapConfiguration.builder()
-            .ldapProfileFile(LdapProfileFile.SIMPLE_BIND)
-            .baseUrl("test-base-url")
-            .build();
-    }
-
-    @Test(expected = IllegalStateException.class)
-    public void noLdapProfileFile() {
-        LdapConfiguration.builder()
-            .ldapGroupFile(LdapGroupFile.NO_GROUP)
-            .baseUrl("test-base-url")
-            .build();
-    }
-
     @Test
     public void valid() {
         LdapConfiguration.builder()
-            .ldapProfileFile(LdapProfileFile.SIMPLE_BIND)
-            .ldapGroupFile(LdapGroupFile.NO_GROUP)
-            .baseUrl("test-base-url")
             .build();
     }
 

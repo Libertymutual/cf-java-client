@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,8 @@
 
 package org.cloudfoundry.reactor.util;
 
+import reactor.core.publisher.Mono;
+
 import javax.net.ssl.X509TrustManager;
 import java.time.Duration;
 
@@ -31,6 +33,6 @@ public interface SslCertificateTruster extends X509TrustManager {
      * @param port     the port
      * @param duration the duration to wait
      */
-    void trust(String host, int port, Duration duration);
+    Mono<Void> trust(String host, int port, Duration duration);
 
 }

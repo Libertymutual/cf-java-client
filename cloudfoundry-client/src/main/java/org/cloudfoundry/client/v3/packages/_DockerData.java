@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package org.cloudfoundry.client.v3.packages;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import org.cloudfoundry.Nullable;
 import org.immutables.value.Value;
 
 /**
@@ -37,12 +38,14 @@ abstract class _DockerData implements PackageData {
      * The password for the image's registry
      */
     @JsonProperty("password")
+    @Nullable
     abstract String getPassword();
 
     /**
      * The username for the image's registry
      */
     @JsonProperty("username")
+    @Nullable
     abstract String getUsername();
 
 }

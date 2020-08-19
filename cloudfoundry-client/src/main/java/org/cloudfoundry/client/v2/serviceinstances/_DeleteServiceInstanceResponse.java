@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,8 +27,6 @@ import org.cloudfoundry.Nullable;
 import org.cloudfoundry.client.v2.Resource;
 import org.cloudfoundry.client.v2.jobs.JobEntity;
 import org.immutables.value.Value;
-
-import java.io.IOException;
 
 /**
  * The response for the Delete Service Instance operation
@@ -64,7 +62,7 @@ abstract class _DeleteServiceInstanceResponse extends Resource<Object> {
         }
 
         @Override
-        public JavaType typeFromId(DatabindContext context, String id) throws IOException {
+        public JavaType typeFromId(DatabindContext context, String id) {
             return context.constructType(ServiceInstanceEntity.class);
         }
 

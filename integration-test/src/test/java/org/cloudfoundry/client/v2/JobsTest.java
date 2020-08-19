@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -39,7 +39,7 @@ public final class JobsTest extends AbstractIntegrationTest {
     private CloudFoundryClient cloudFoundryClient;
 
     @Test
-    public void getJob() throws TimeoutException, InterruptedException {
+    public void getJob() {
         String organizationName = this.nameFactory.getOrganizationName();
 
         this.cloudFoundryClient.organizations()
@@ -58,7 +58,7 @@ public final class JobsTest extends AbstractIntegrationTest {
                     .jobId(jobId)
                     .build())
                 .map(ResourceUtils::getId)
-                .and(Mono.just(jobId)))
+                .zipWith(Mono.just(jobId)))
             .filter(predicate((getId, deleteId) -> !"0".equals(getId)))
             .repeatWhenEmpty(5, DelayUtils.instant())
             .as(StepVerifier::create)

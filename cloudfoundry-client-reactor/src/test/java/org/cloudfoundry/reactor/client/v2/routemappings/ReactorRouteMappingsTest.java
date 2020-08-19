@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,6 +36,7 @@ import org.junit.Test;
 import reactor.test.StepVerifier;
 
 import java.time.Duration;
+import java.util.Collections;
 
 import static io.netty.handler.codec.http.HttpMethod.DELETE;
 import static io.netty.handler.codec.http.HttpMethod.GET;
@@ -47,13 +48,13 @@ import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 
 public final class ReactorRouteMappingsTest extends AbstractClientApiTest {
 
-    private final ReactorRouteMappings routeMappings = new ReactorRouteMappings(CONNECTION_CONTEXT, this.root, TOKEN_PROVIDER);
+    private final ReactorRouteMappings routeMappings = new ReactorRouteMappings(CONNECTION_CONTEXT, this.root, TOKEN_PROVIDER, Collections.emptyMap());
 
     @Test
     public void create() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(POST).path("/v2/route_mappings")
+                .method(POST).path("/route_mappings")
                 .payload("fixtures/client/v2/route_mappings/POST_request.json")
                 .build())
             .response(TestResponse.builder()
@@ -91,7 +92,7 @@ public final class ReactorRouteMappingsTest extends AbstractClientApiTest {
     public void delete() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(DELETE).path("/v2/route_mappings/random-route-mapping-id")
+                .method(DELETE).path("/route_mappings/random-route-mapping-id")
                 .build())
             .response(TestResponse.builder()
                 .status(NO_CONTENT)
@@ -111,7 +112,7 @@ public final class ReactorRouteMappingsTest extends AbstractClientApiTest {
     public void deleteAsync() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(DELETE).path("/v2/route_mappings/random-route-mapping-id?async=true")
+                .method(DELETE).path("/route_mappings/random-route-mapping-id?async=true")
                 .build())
             .response(TestResponse.builder()
                 .status(ACCEPTED)
@@ -144,7 +145,7 @@ public final class ReactorRouteMappingsTest extends AbstractClientApiTest {
     public void get() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(GET).path("/v2/route_mappings/route-mapping-id")
+                .method(GET).path("/route_mappings/route-mapping-id")
                 .build())
             .response(TestResponse.builder()
                 .status(OK)
@@ -179,7 +180,7 @@ public final class ReactorRouteMappingsTest extends AbstractClientApiTest {
     public void list() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(GET).path("/v2/route_mappings?page=-1")
+                .method(GET).path("/route_mappings?page=-1")
                 .build())
             .response(TestResponse.builder()
                 .status(OK)

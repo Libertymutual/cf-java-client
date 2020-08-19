@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -46,16 +46,15 @@ import static io.netty.handler.codec.http.HttpResponseStatus.ACCEPTED;
 import static io.netty.handler.codec.http.HttpResponseStatus.NO_CONTENT;
 import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 
-
 public final class ReactorServicesTest extends AbstractClientApiTest {
 
-    private final ReactorServices services = new ReactorServices(CONNECTION_CONTEXT, this.root, TOKEN_PROVIDER);
+    private final ReactorServices services = new ReactorServices(CONNECTION_CONTEXT, this.root, TOKEN_PROVIDER, Collections.emptyMap());
 
     @Test
     public void delete() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(DELETE).path("/v2/services/test-service-id?purge=true")
+                .method(DELETE).path("/services/test-service-id?purge=true")
                 .build())
             .response(TestResponse.builder()
                 .status(NO_CONTENT)
@@ -76,7 +75,7 @@ public final class ReactorServicesTest extends AbstractClientApiTest {
     public void deleteAsync() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(DELETE).path("/v2/services/test-service-id?async=true")
+                .method(DELETE).path("/services/test-service-id?async=true")
                 .build())
             .response(TestResponse.builder()
                 .status(ACCEPTED)
@@ -109,7 +108,7 @@ public final class ReactorServicesTest extends AbstractClientApiTest {
     public void get() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(GET).path("/v2/services/test-service-id")
+                .method(GET).path("/services/test-service-id")
                 .build())
             .response(TestResponse.builder()
                 .status(OK)
@@ -124,19 +123,22 @@ public final class ReactorServicesTest extends AbstractClientApiTest {
             .as(StepVerifier::create)
             .expectNext(GetServiceResponse.builder()
                 .metadata(Metadata.builder()
-                    .id("58eb36ad-0636-428b-b4ed-afc14e48d926")
-                    .url("/v2/services/58eb36ad-0636-428b-b4ed-afc14e48d926")
-                    .createdAt("2015-07-27T22:43:35Z")
+                    .createdAt("2016-06-08T16:41:32Z")
+                    .id("53f52780-e93c-4af7-a96c-6958311c40e5")
+                    .updatedAt("2016-06-08T16:41:26Z")
+                    .url("/v2/services/53f52780-e93c-4af7-a96c-6958311c40e5")
                     .build())
                 .entity(ServiceEntity.builder()
-                    .label("label-86")
-                    .description("desc-219")
                     .active(true)
                     .bindable(true)
-                    .uniqueId("8fbdd3bc-3eee-4b03-97a3-57929484649b")
-                    .serviceBrokerId("fe6e3f23-7b92-4855-aaa7-56f515d678c5")
+                    .bindingsRetrievable(false)
+                    .description("desc-135")
+                    .instancesRetrievable(false)
+                    .label("label-58")
                     .planUpdateable(false)
-                    .servicePlansUrl("/v2/services/58eb36ad-0636-428b-b4ed-afc14e48d926/service_plans")
+                    .serviceBrokerId("0e7250aa-364f-42c2-8fd2-808b0224376f")
+                    .servicePlansUrl("/v2/services/53f52780-e93c-4af7-a96c-6958311c40e5/service_plans")
+                    .uniqueId("c181996b-f233-43d1-8901-3a43eafcaacf")
                     .build())
                 .build())
             .expectComplete()
@@ -147,7 +149,7 @@ public final class ReactorServicesTest extends AbstractClientApiTest {
     public void list() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(GET).path("/v2/services?q=label:test-label&page=-1")
+                .method(GET).path("/services?q=label%3Atest-label&page=-1")
                 .build())
             .response(TestResponse.builder()
                 .status(OK)
@@ -192,7 +194,7 @@ public final class ReactorServicesTest extends AbstractClientApiTest {
     public void listServicePlans() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(GET).path("/v2/services/f1b0edbe-fac4-4512-9071-8b26045413bb/service_plans?page=-1")
+                .method(GET).path("/services/f1b0edbe-fac4-4512-9071-8b26045413bb/service_plans?page=-1")
                 .build())
             .response(TestResponse.builder()
                 .status(OK)

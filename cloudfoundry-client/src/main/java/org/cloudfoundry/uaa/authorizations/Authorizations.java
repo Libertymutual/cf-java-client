@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -46,6 +46,14 @@ public interface Authorizations {
      * @return the authentication redirect URI
      */
     Mono<String> authorizationCodeGrantHybrid(AuthorizeByAuthorizationCodeGrantHybridRequest request);
+
+    /**
+     * Makes the <a href="http://docs.cloudfoundry.org/api/uaa/version/4.8.0/index.html#openid-connect-flow">Get Open ID Provider Configuration</a> request
+     *
+     * @param request Get Open ID Provider Configuration request
+     * @return the Open ID Provider Configuration
+     */
+    Mono<GetOpenIdProviderConfigurationResponse> getOpenIdProviderConfiguration(GetOpenIdProviderConfigurationRequest request);
 
     /**
      * Makes the <a href="https://docs.cloudfoundry.org/api/uaa/#implicit-grant">Authorize By Implicit Grant (Browser)</a> request

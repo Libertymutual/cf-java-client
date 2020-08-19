@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,9 @@ import org.cloudfoundry.reactor.TokenProvider;
 import org.immutables.value.Value;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import java.util.Collections;
+import java.util.Map;
 
 /**
  * The Reactor-based implementation of {@link DopplerClient}
@@ -61,18 +64,22 @@ abstract class _ReactorDopplerClient implements DopplerClient {
 
     @Value.Derived
     ReactorDopplerEndpoints getDopplerEndpoints() {
-        return new ReactorDopplerEndpoints(getConnectionContext(), getRoot(), getTokenProvider());
+        return new ReactorDopplerEndpoints(getConnectionContext(), getRoot(), getTokenProvider(), getRequestTags());
+    }
+
+    @Value.Default
+    Map<String, String> getRequestTags() {
+        return Collections.emptyMap();
     }
 
     @Value.Default
     Mono<String> getRoot() {
-        return getConnectionContext().getRootProvider().getRoot("doppler_logging_endpoint", getConnectionContext());
+        return getConnectionContext().getRootProvider().getRoot("logging", getConnectionContext());
     }
 
     /**
      * The token provider
      */
     abstract TokenProvider getTokenProvider();
-
 
 }

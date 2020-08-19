@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ import org.cloudfoundry.client.v2.organizations.OrganizationResource;
 import org.cloudfoundry.client.v2.spaces.ListSpacesRequest;
 import org.cloudfoundry.client.v2.spaces.SpaceResource;
 import org.cloudfoundry.doppler.DopplerClient;
+import org.cloudfoundry.networking.NetworkingClient;
 import org.cloudfoundry.operations.advanced.Advanced;
 import org.cloudfoundry.operations.advanced.DefaultAdvanced;
 import org.cloudfoundry.operations.applications.Applications;
@@ -31,6 +32,8 @@ import org.cloudfoundry.operations.buildpacks.Buildpacks;
 import org.cloudfoundry.operations.buildpacks.DefaultBuildpacks;
 import org.cloudfoundry.operations.domains.DefaultDomains;
 import org.cloudfoundry.operations.domains.Domains;
+import org.cloudfoundry.operations.networkpolicies.DefaultNetworkPolicies;
+import org.cloudfoundry.operations.networkpolicies.NetworkPolicies;
 import org.cloudfoundry.operations.organizationadmin.DefaultOrganizationAdmin;
 import org.cloudfoundry.operations.organizationadmin.OrganizationAdmin;
 import org.cloudfoundry.operations.organizations.DefaultOrganizations;
@@ -47,6 +50,8 @@ import org.cloudfoundry.operations.spaces.DefaultSpaces;
 import org.cloudfoundry.operations.spaces.Spaces;
 import org.cloudfoundry.operations.stacks.DefaultStacks;
 import org.cloudfoundry.operations.stacks.Stacks;
+import org.cloudfoundry.operations.useradmin.DefaultUserAdmin;
+import org.cloudfoundry.operations.useradmin.UserAdmin;
 import org.cloudfoundry.routing.RoutingClient;
 import org.cloudfoundry.uaa.UaaClient;
 import org.cloudfoundry.util.ExceptionUtils;
@@ -56,6 +61,7 @@ import org.immutables.value.Value;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.time.Duration;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 
@@ -87,6 +93,12 @@ abstract class _DefaultCloudFoundryOperations implements CloudFoundryOperations 
     @Value.Derived
     public Domains domains() {
         return new DefaultDomains(getCloudFoundryClientPublisher(), getRoutingClientPublisher());
+    }
+
+    @Override
+    @Value.Derived
+    public NetworkPolicies networkPolicies() {
+        return new DefaultNetworkPolicies(getCloudFoundryClientPublisher(), getNetworkingClientPublisher(), getSpaceId());
     }
 
     @Override
@@ -137,6 +149,17 @@ abstract class _DefaultCloudFoundryOperations implements CloudFoundryOperations 
         return new DefaultStacks(getCloudFoundryClientPublisher());
     }
 
+    @Override
+    @Value.Derived
+    public UserAdmin userAdmin() {
+        return new DefaultUserAdmin(getCloudFoundryClientPublisher(), getUaaClientPublisher());
+    }
+
+    /**
+     * The duration that stable responses like the organization and space id should be cached
+     */
+    abstract Optional<Duration> getCacheDuration();
+
     /**
      * The {@link CloudFoundryClient} to use for operations functionality
      */
@@ -164,6 +187,19 @@ abstract class _DefaultCloudFoundryOperations implements CloudFoundryOperations 
     }
 
     /**
+     * The {@link NetworkingClient} to use for operations functionality
+     */
+    @Nullable
+    abstract NetworkingClient getNetworkingClient();
+
+    @Value.Derived
+    Mono<NetworkingClient> getNetworkingClientPublisher() {
+        return Optional.ofNullable(getNetworkingClient())
+            .map(Mono::just)
+            .orElse(Mono.error(new IllegalStateException("NetworkingClient must be set")));
+    }
+
+    /**
      * The organization to target
      */
     @Nullable
@@ -174,9 +210,12 @@ abstract class _DefaultCloudFoundryOperations implements CloudFoundryOperations 
         String organization = getOrganization();
 
         if (hasText(organization)) {
-            return getOrganization(getCloudFoundryClientPublisher(), organization)
-                .map(ResourceUtils::getId)
-                .cache();
+            Mono<String> cached = getOrganization(getCloudFoundryClientPublisher(), organization)
+                .map(ResourceUtils::getId);
+
+            return getCacheDuration()
+                .map(cached::cache)
+                .orElseGet(cached::cache);
         } else {
             return Mono.error(new IllegalStateException("No organization targeted"));
         }
@@ -206,10 +245,13 @@ abstract class _DefaultCloudFoundryOperations implements CloudFoundryOperations 
         String space = getSpace();
 
         if (hasText(getSpace())) {
-            return getOrganizationId()
+            Mono<String> cached = getOrganizationId()
                 .flatMap(organizationId -> getSpace(getCloudFoundryClientPublisher(), organizationId, space))
-                .map(ResourceUtils::getId)
-                .cache();
+                .map(ResourceUtils::getId);
+
+            return getCacheDuration()
+                .map(cached::cache)
+                .orElseGet(cached::cache);
         } else {
             return Mono.error(new IllegalStateException("No space targeted"));
         }

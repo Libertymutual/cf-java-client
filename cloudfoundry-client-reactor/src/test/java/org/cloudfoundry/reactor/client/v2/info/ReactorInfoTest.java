@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,20 +26,20 @@ import org.junit.Test;
 import reactor.test.StepVerifier;
 
 import java.time.Duration;
+import java.util.Collections;
 
 import static io.netty.handler.codec.http.HttpMethod.GET;
 import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 
-
 public final class ReactorInfoTest extends AbstractClientApiTest {
 
-    private final ReactorInfo info = new ReactorInfo(CONNECTION_CONTEXT, this.root, TOKEN_PROVIDER);
+    private final ReactorInfo info = new ReactorInfo(CONNECTION_CONTEXT, this.root, TOKEN_PROVIDER, Collections.emptyMap());
 
     @Test
     public void get() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(GET).path("/v2/info")
+                .method(GET).path("/info")
                 .build())
             .response(TestResponse.builder()
                 .status(OK)
@@ -64,6 +64,7 @@ public final class ReactorInfoTest extends AbstractClientApiTest {
                 .applicationSshHostKeyFingerprint("47:0d:d1:c8:c3:3d:0a:36:d1:49:2f:f2:90:27:31:d0")
                 .routingEndpoint("http://localhost:3000")
                 .loggingEndpoint("ws://loggregator.vcap.me:80")
+                .dopplerLoggingEndpoint("ws://doppler.vcap.me:80")
                 .build())
             .expectComplete()
             .verify(Duration.ofSeconds(5));

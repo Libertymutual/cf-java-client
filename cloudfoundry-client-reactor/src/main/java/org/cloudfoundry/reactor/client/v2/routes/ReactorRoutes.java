@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -41,6 +41,7 @@ import org.cloudfoundry.reactor.client.v2.AbstractClientV2Operations;
 import org.cloudfoundry.util.ExceptionUtils;
 import reactor.core.publisher.Mono;
 
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -54,28 +55,29 @@ public final class ReactorRoutes extends AbstractClientV2Operations implements R
      * Creates an instance
      *
      * @param connectionContext the {@link ConnectionContext} to use when communicating with the server
-     * @param root              the root URI of the server.  Typically something like {@code https://api.run.pivotal.io}.
+     * @param root              the root URI of the server. Typically something like {@code https://api.run.pivotal.io}.
      * @param tokenProvider     the {@link TokenProvider} to use when communicating with the server
+     * @param requestTags       map with custom http headers which will be added to web request
      */
-    public ReactorRoutes(ConnectionContext connectionContext, Mono<String> root, TokenProvider tokenProvider) {
-        super(connectionContext, root, tokenProvider);
+    public ReactorRoutes(ConnectionContext connectionContext, Mono<String> root, TokenProvider tokenProvider, Map<String, String> requestTags) {
+        super(connectionContext, root, tokenProvider, requestTags);
     }
 
     @Override
     public Mono<AssociateRouteApplicationResponse> associateApplication(AssociateRouteApplicationRequest request) {
-        return put(request, AssociateRouteApplicationResponse.class, builder -> builder.pathSegment("v2", "routes", request.getRouteId(), "apps", request.getApplicationId()))
+        return put(request, AssociateRouteApplicationResponse.class, builder -> builder.pathSegment("routes", request.getRouteId(), "apps", request.getApplicationId()))
             .checkpoint();
     }
 
     @Override
     public Mono<CreateRouteResponse> create(CreateRouteRequest request) {
-        return post(request, CreateRouteResponse.class, builder -> builder.pathSegment("v2", "routes"))
+        return post(request, CreateRouteResponse.class, builder -> builder.pathSegment("routes"))
             .checkpoint();
     }
 
     @Override
     public Mono<DeleteRouteResponse> delete(DeleteRouteRequest request) {
-        return delete(request, DeleteRouteResponse.class, builder -> builder.pathSegment("v2", "routes", request.getRouteId()))
+        return delete(request, DeleteRouteResponse.class, builder -> builder.pathSegment("routes", request.getRouteId()))
             .checkpoint();
     }
 
@@ -83,7 +85,7 @@ public final class ReactorRoutes extends AbstractClientV2Operations implements R
     public Mono<Boolean> exists(RouteExistsRequest request) {
         return get(request, Boolean.class,
             builder -> {
-                builder.pathSegment("v2", "routes", "reserved", "domain", request.getDomainId());
+                builder.pathSegment("routes", "reserved", "domain", request.getDomainId());
                 Optional.ofNullable(request.getHost()).ifPresent(host -> builder.pathSegment("host", host));
                 return builder;
             })
@@ -94,37 +96,37 @@ public final class ReactorRoutes extends AbstractClientV2Operations implements R
 
     @Override
     public Mono<GetRouteResponse> get(GetRouteRequest request) {
-        return get(request, GetRouteResponse.class, builder -> builder.pathSegment("v2", "routes", request.getRouteId()))
+        return get(request, GetRouteResponse.class, builder -> builder.pathSegment("routes", request.getRouteId()))
             .checkpoint();
     }
 
     @Override
     public Mono<ListRoutesResponse> list(ListRoutesRequest request) {
-        return get(request, ListRoutesResponse.class, builder -> builder.pathSegment("v2", "routes"))
+        return get(request, ListRoutesResponse.class, builder -> builder.pathSegment("routes"))
             .checkpoint();
     }
 
     @Override
     public Mono<ListRouteApplicationsResponse> listApplications(ListRouteApplicationsRequest request) {
-        return get(request, ListRouteApplicationsResponse.class, builder -> builder.pathSegment("v2", "routes", request.getRouteId(), "apps"))
+        return get(request, ListRouteApplicationsResponse.class, builder -> builder.pathSegment("routes", request.getRouteId(), "apps"))
             .checkpoint();
     }
 
     @Override
     public Mono<ListRouteMappingsResponse> listMappings(ListRouteMappingsRequest request) {
-        return get(request, ListRouteMappingsResponse.class, builder -> builder.pathSegment("v2", "routes", request.getRouteId(), "route_mappings"))
+        return get(request, ListRouteMappingsResponse.class, builder -> builder.pathSegment("routes", request.getRouteId(), "route_mappings"))
             .checkpoint();
     }
 
     @Override
     public Mono<Void> removeApplication(RemoveRouteApplicationRequest request) {
-        return delete(request, Void.class, builder -> builder.pathSegment("v2", "routes", request.getRouteId(), "apps", request.getApplicationId()))
+        return delete(request, Void.class, builder -> builder.pathSegment("routes", request.getRouteId(), "apps", request.getApplicationId()))
             .checkpoint();
     }
 
     @Override
     public Mono<UpdateRouteResponse> update(UpdateRouteRequest request) {
-        return put(request, UpdateRouteResponse.class, builder -> builder.pathSegment("v2", "routes", request.getRouteId()))
+        return put(request, UpdateRouteResponse.class, builder -> builder.pathSegment("routes", request.getRouteId()))
             .checkpoint();
     }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@ import reactor.core.publisher.Mono;
 public interface JobsV3 {
 
     /**
-     * Makes the <a href="http://v3-apidocs.cloudfoundry.org/version/3.27.0/index.html#get-a-job">Get Job</a> request
+     * Makes the <a href="https://v3-apidocs.cloudfoundry.org/version/3.27.0/index.html#get-a-job">Get Job</a> request
      *
      * @param request the Get Job request
      * @return the response from the Get Job request

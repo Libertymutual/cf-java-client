@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -39,11 +39,25 @@ abstract class _ServiceEntity {
     abstract Boolean getActive();
 
     /**
+     * Whether to allow context updates
+     */
+    @JsonProperty("allow_context_updates")
+    @Nullable
+    abstract Boolean getAllowContextUpdates();
+
+    /**
      * The bindable status
      */
     @JsonProperty("bindable")
     @Nullable
     abstract Boolean getBindable();
+
+    /**
+     * The bindings retrievable status
+     */
+    @JsonProperty("bindings_retrievable")
+    @Nullable
+    abstract Boolean getBindingsRetrievable();
 
     /**
      * The description
@@ -74,6 +88,13 @@ abstract class _ServiceEntity {
     @JsonProperty("info_url")
     @Nullable
     abstract String getInfoUrl();
+
+    /**
+     * The instances retrievable status
+     */
+    @JsonProperty("instances_retrievable")
+    @Nullable
+    abstract Boolean getInstancesRetrievable();
 
     /**
      * The name of the service
@@ -118,6 +139,13 @@ abstract class _ServiceEntity {
     @JsonProperty("service_broker_guid")
     @Nullable
     abstract String getServiceBrokerId();
+
+    /**
+     * The service broker name
+     */
+    @JsonProperty("service_broker_name")
+    @Nullable
+    abstract String getServiceBrokerName();
 
     /**
      * The service plans url

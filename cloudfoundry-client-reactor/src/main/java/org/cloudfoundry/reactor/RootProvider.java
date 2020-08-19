@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@ public interface RootProvider {
     /**
      * The normalized API root
      *
-     * @param connectionContext a {@link ConnectionContext} to be used if the roo needs to be retrieved via a network request
+     * @param connectionContext a {@link ConnectionContext} to be used if the root needs to be retrieved via a network request
      * @return the normalized API root
      */
     Mono<String> getRoot(ConnectionContext connectionContext);

@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -70,11 +70,10 @@ public final class SecurityGroupsTest extends AbstractIntegrationTest {
         String spaceName = this.nameFactory.getSpaceName();
 
         this.organizationId
-            .flatMap(organizationId ->
-                Mono.when(
-                    createSecurityGroupId(this.cloudFoundryClient, securityGroupName),
-                    createSpaceId(this.cloudFoundryClient, organizationId, spaceName)
-                ))
+            .flatMap(organizationId -> Mono.zip(
+                createSecurityGroupId(this.cloudFoundryClient, securityGroupName),
+                createSpaceId(this.cloudFoundryClient, organizationId, spaceName)
+            ))
             .flatMap(function((securityGroupId, spaceId) -> this.cloudFoundryClient.securityGroups()
                 .associateSpace(AssociateSecurityGroupSpaceRequest.builder()
                     .securityGroupId(securityGroupId)
@@ -132,7 +131,7 @@ public final class SecurityGroupsTest extends AbstractIntegrationTest {
         String spaceName = this.nameFactory.getSpaceName();
 
         this.organizationId
-            .flatMap(organizationId -> Mono.when(
+            .flatMap(organizationId -> Mono.zip(
                 createSecurityGroupId(this.cloudFoundryClient, securityGroupName),
                 createSpaceId(this.cloudFoundryClient, organizationId, spaceName)
             ))
@@ -207,11 +206,10 @@ public final class SecurityGroupsTest extends AbstractIntegrationTest {
         String spaceName = this.nameFactory.getSpaceName();
 
         this.organizationId
-            .flatMap(organizationId ->
-                Mono.when(
-                    createSecurityGroupId(this.cloudFoundryClient, securityGroupName),
-                    createSpaceId(this.cloudFoundryClient, organizationId, spaceName)
-                ))
+            .flatMap(organizationId -> Mono.zip(
+                createSecurityGroupId(this.cloudFoundryClient, securityGroupName),
+                createSpaceId(this.cloudFoundryClient, organizationId, spaceName)
+            ))
             .delayUntil(function((securityGroupId, spaceId) -> associateSpace(this.cloudFoundryClient, spaceId, securityGroupId)))
             .flatMapMany(function((securityGroupId, spaceId) -> PaginationUtils.
                 requestClientV2Resources(page -> this.cloudFoundryClient.securityGroups()

@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,6 +33,7 @@ import org.cloudfoundry.client.v2.applications.CopyApplicationResponse;
 import org.cloudfoundry.client.v2.applications.CreateApplicationRequest;
 import org.cloudfoundry.client.v2.applications.CreateApplicationResponse;
 import org.cloudfoundry.client.v2.applications.DeleteApplicationRequest;
+import org.cloudfoundry.client.v2.applications.DockerCredentials;
 import org.cloudfoundry.client.v2.applications.DownloadApplicationDropletRequest;
 import org.cloudfoundry.client.v2.applications.DownloadApplicationRequest;
 import org.cloudfoundry.client.v2.applications.GetApplicationPermissionsRequest;
@@ -99,14 +100,14 @@ import static org.cloudfoundry.util.tuple.TupleUtils.consumer;
 
 public final class ReactorApplicationsV2Test extends AbstractClientApiTest {
 
-    private final ReactorApplicationsV2 applications = new ReactorApplicationsV2(CONNECTION_CONTEXT, this.root, TOKEN_PROVIDER);
+    private final ReactorApplicationsV2 applications = new ReactorApplicationsV2(CONNECTION_CONTEXT, this.root, TOKEN_PROVIDER, Collections.emptyMap());
 
     @SuppressWarnings("deprecation")
     @Test
     public void associateRoute() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(PUT).path("/v2/apps/test-application-id/routes/test-route-id")
+                .method(PUT).path("/apps/test-application-id/routes/test-route-id")
                 .build())
             .response(TestResponse.builder()
                 .status(OK)
@@ -132,7 +133,7 @@ public final class ReactorApplicationsV2Test extends AbstractClientApiTest {
                     .detectedStartCommand("")
                     .diego(false)
                     .diskQuota(1024)
-                    .dockerCredentialsJson("redacted_message", "[PRIVATE DATA HIDDEN]")
+                    .dockerCredentials(DockerCredentials.builder().build())
                     .enableSsh(true)
                     .environmentJsons(Collections.emptyMap())
                     .eventsUrl("/v2/apps/638e90b6-502f-47a8-a3bf-b18fdf3fb70a/events")
@@ -163,7 +164,7 @@ public final class ReactorApplicationsV2Test extends AbstractClientApiTest {
     public void copy() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(POST).path("/v2/apps/test-application-id/copy_bits")
+                .method(POST).path("/apps/test-application-id/copy_bits")
                 .payload("fixtures/client/v2/apps/POST_{id}_copy_bits_request.json")
                 .build())
             .response(TestResponse.builder()
@@ -198,7 +199,7 @@ public final class ReactorApplicationsV2Test extends AbstractClientApiTest {
     public void create() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(POST).path("/v2/apps")
+                .method(POST).path("/apps")
                 .payload("fixtures/client/v2/apps/POST_request.json")
                 .build())
             .response(TestResponse.builder()
@@ -226,7 +227,7 @@ public final class ReactorApplicationsV2Test extends AbstractClientApiTest {
                     .detectedStartCommand("")
                     .diego(true)
                     .diskQuota(1024)
-                    .dockerCredentialsJson("redacted_message", "[PRIVATE DATA HIDDEN]")
+                    .dockerCredentials(DockerCredentials.builder().build())
                     .dockerImage("cloudfoundry/hello:latest")
                     .enableSsh(true)
                     .environmentJsons(Collections.emptyMap())
@@ -258,7 +259,7 @@ public final class ReactorApplicationsV2Test extends AbstractClientApiTest {
     public void delete() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(DELETE).path("/v2/apps/test-application-id")
+                .method(DELETE).path("/apps/test-application-id")
                 .build())
             .response(TestResponse.builder()
                 .status(NO_CONTENT)
@@ -278,7 +279,7 @@ public final class ReactorApplicationsV2Test extends AbstractClientApiTest {
     public void download() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(GET).path("/v2/apps/test-application-id/download")
+                .method(GET).path("/apps/test-application-id/download")
                 .build())
             .response(TestResponse.builder()
                 .status(OK)
@@ -301,7 +302,7 @@ public final class ReactorApplicationsV2Test extends AbstractClientApiTest {
     public void downloadDroplet() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(GET).path("/v2/apps/test-application-id/droplet/download")
+                .method(GET).path("/apps/test-application-id/droplet/download")
                 .build())
             .response(TestResponse.builder()
                 .status(OK)
@@ -324,7 +325,7 @@ public final class ReactorApplicationsV2Test extends AbstractClientApiTest {
     public void environment() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(GET).path("/v2/apps/test-application-id/env")
+                .method(GET).path("/apps/test-application-id/env")
                 .build())
             .response(TestResponse.builder()
                 .status(OK)
@@ -369,7 +370,7 @@ public final class ReactorApplicationsV2Test extends AbstractClientApiTest {
     public void get() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(GET).path("/v2/apps/test-application-id")
+                .method(GET).path("/apps/test-application-id")
                 .build())
             .response(TestResponse.builder()
                 .status(OK)
@@ -394,7 +395,7 @@ public final class ReactorApplicationsV2Test extends AbstractClientApiTest {
                     .detectedStartCommand("")
                     .diego(false)
                     .diskQuota(1024)
-                    .dockerCredentialsJson("redacted_message", "[PRIVATE DATA HIDDEN]")
+                    .dockerCredentials(DockerCredentials.builder().build())
                     .enableSsh(true)
                     .eventsUrl("/v2/apps/03f286bb-f17c-42b4-8dcd-b818b0b798af/events")
                     .healthCheckType("port")
@@ -423,7 +424,7 @@ public final class ReactorApplicationsV2Test extends AbstractClientApiTest {
     public void getPermissions() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(GET).path("/v2/apps/6fd65993-fbd8-447c-8c04-6e4fe3ac561c/permissions")
+                .method(GET).path("/apps/6fd65993-fbd8-447c-8c04-6e4fe3ac561c/permissions")
                 .build())
             .response(TestResponse.builder()
                 .status(OK)
@@ -448,7 +449,7 @@ public final class ReactorApplicationsV2Test extends AbstractClientApiTest {
     public void instances() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(GET).path("/v2/apps/test-application-id/instances")
+                .method(GET).path("/apps/test-application-id/instances")
                 .build())
             .response(TestResponse.builder()
                 .status(OK)
@@ -476,7 +477,7 @@ public final class ReactorApplicationsV2Test extends AbstractClientApiTest {
     public void list() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(GET).path("/v2/apps?q=name:test-name&page=-1")
+                .method(GET).path("/apps?q=name%3Atest-name&page=-1")
                 .build())
             .response(TestResponse.builder()
                 .status(OK)
@@ -505,7 +506,7 @@ public final class ReactorApplicationsV2Test extends AbstractClientApiTest {
                         .detectedStartCommand("")
                         .diego(false)
                         .diskQuota(1024)
-                        .dockerCredentialsJson("redacted_message", "[PRIVATE DATA HIDDEN]")
+                        .dockerCredentials(DockerCredentials.builder().build())
                         .enableSsh(true)
                         .eventsUrl("/v2/apps/3d294ed0-105c-4ccd-8f79-5605d6b7198c/events")
                         .healthCheckType("port")
@@ -539,7 +540,7 @@ public final class ReactorApplicationsV2Test extends AbstractClientApiTest {
                         .detectedStartCommand("")
                         .diego(false)
                         .diskQuota(1024)
-                        .dockerCredentialsJson("redacted_message", "[PRIVATE DATA HIDDEN]")
+                        .dockerCredentials(DockerCredentials.builder().build())
                         .enableSsh(true)
                         .eventsUrl("/v2/apps/522c5382-29e9-48aa-9db0-9f6cfa643ec1/events")
                         .healthCheckType("port")
@@ -573,7 +574,7 @@ public final class ReactorApplicationsV2Test extends AbstractClientApiTest {
                         .detectedStartCommand("")
                         .diego(false)
                         .diskQuota(1024)
-                        .dockerCredentialsJson("redacted_message", "[PRIVATE DATA HIDDEN]")
+                        .dockerCredentials(DockerCredentials.builder().build())
                         .enableSsh(true)
                         .eventsUrl("/v2/apps/ec31bfbd-ab5c-490d-8e83-3c1ea5d1bedf/events")
                         .healthCheckType("port")
@@ -604,7 +605,7 @@ public final class ReactorApplicationsV2Test extends AbstractClientApiTest {
     public void listRoutes() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(GET).path("/v2/apps/test-application-id/routes?page=-1")
+                .method(GET).path("/apps/test-application-id/routes?page=-1")
                 .build())
             .response(TestResponse.builder()
                 .status(OK)
@@ -648,7 +649,7 @@ public final class ReactorApplicationsV2Test extends AbstractClientApiTest {
     public void listServiceBindings() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(GET).path("/v2/apps/test-application-id/service_bindings?q=service_instance_guid:test-instance-id&page=-1")
+                .method(GET).path("/apps/test-application-id/service_bindings?q=service_instance_guid%3Atest-instance-id&page=-1")
                 .build())
             .response(TestResponse.builder()
                 .status(OK)
@@ -691,7 +692,7 @@ public final class ReactorApplicationsV2Test extends AbstractClientApiTest {
     public void removeRoute() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(DELETE).path("/v2/apps/test-application-id/routes/test-route-id")
+                .method(DELETE).path("/apps/test-application-id/routes/test-route-id")
                 .build())
             .response(TestResponse.builder()
                 .status(NO_CONTENT)
@@ -712,7 +713,7 @@ public final class ReactorApplicationsV2Test extends AbstractClientApiTest {
     public void removeServiceBinding() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(DELETE).path("/v2/apps/test-application-id/service_bindings/test-service-binding-id")
+                .method(DELETE).path("/apps/test-application-id/service_bindings/test-service-binding-id")
                 .build())
             .response(TestResponse.builder()
                 .status(NO_CONTENT)
@@ -734,7 +735,7 @@ public final class ReactorApplicationsV2Test extends AbstractClientApiTest {
     public void restage() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(POST).path("/v2/apps/test-application-id/restage")
+                .method(POST).path("/apps/test-application-id/restage")
                 .build())
             .response(TestResponse.builder()
                 .status(OK)
@@ -773,7 +774,7 @@ public final class ReactorApplicationsV2Test extends AbstractClientApiTest {
                     .packageUpdatedAt("2015-07-27T22:43:33Z")
                     .detectedStartCommand("")
                     .enableSsh(true)
-                    .dockerCredentialsJson("redacted_message", "[PRIVATE DATA HIDDEN]")
+                    .dockerCredentials(DockerCredentials.builder().build())
                     .build())
                 .build())
             .expectComplete()
@@ -784,7 +785,7 @@ public final class ReactorApplicationsV2Test extends AbstractClientApiTest {
     public void statistics() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(GET).path("/v2/apps/test-application-id/stats")
+                .method(GET).path("/apps/test-application-id/stats")
                 .build())
             .response(TestResponse.builder()
                 .status(OK)
@@ -800,6 +801,7 @@ public final class ReactorApplicationsV2Test extends AbstractClientApiTest {
             .expectNext(ApplicationStatisticsResponse.builder()
                 .instance("0", InstanceStatistics.builder()
                     .state("RUNNING")
+                    .isolationSegment("iso-seg-name")
                     .statistics(org.cloudfoundry.client.v2.applications.Statistics.builder()
                         .usage(Usage.builder()
                             .disk(66392064L)
@@ -827,7 +829,7 @@ public final class ReactorApplicationsV2Test extends AbstractClientApiTest {
     public void summary() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(GET).path("/v2/apps/test-application-id/summary")
+                .method(GET).path("/apps/test-application-id/summary")
                 .build())
             .response(TestResponse.builder()
                 .status(OK)
@@ -895,7 +897,7 @@ public final class ReactorApplicationsV2Test extends AbstractClientApiTest {
                 .ports(Collections.emptyList())
                 .detectedStartCommand("")
                 .enableSsh(true)
-                .dockerCredentialsJson("redacted_message", "[PRIVATE DATA HIDDEN]")
+                .dockerCredentials(DockerCredentials.builder().build())
                 .build())
             .expectComplete()
             .verify(Duration.ofSeconds(5));
@@ -905,7 +907,7 @@ public final class ReactorApplicationsV2Test extends AbstractClientApiTest {
     public void terminateInstance() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(DELETE).path("/v2/apps/test-application-id/instances/0")
+                .method(DELETE).path("/apps/test-application-id/instances/0")
                 .build())
             .response(TestResponse.builder()
                 .status(NO_CONTENT)
@@ -927,7 +929,7 @@ public final class ReactorApplicationsV2Test extends AbstractClientApiTest {
     public void update() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(PUT).path("/v2/apps/test-application-id")
+                .method(PUT).path("/apps/test-application-id")
                 .payload("fixtures/client/v2/apps/PUT_{id}_request.json")
                 .build())
             .response(TestResponse.builder()
@@ -963,7 +965,7 @@ public final class ReactorApplicationsV2Test extends AbstractClientApiTest {
                     .detectedStartCommand("")
                     .ports(Collections.emptyList())
                     .enableSsh(true)
-                    .dockerCredentialsJson("redacted_message", "[PRIVATE DATA HIDDEN]")
+                    .dockerCredentials(DockerCredentials.builder().build())
                     .spaceUrl("/v2/spaces/701aebe5-92fd-44cf-a7e6-bc54685c32ea")
                     .stackUrl("/v2/stacks/2cdc06a4-cb6e-4191-9ce8-b6bca4a16aaf")
                     .eventsUrl("/v2/apps/0c71909b-3d44-49c3-b65d-13894d70972c/events")
@@ -986,26 +988,28 @@ public final class ReactorApplicationsV2Test extends AbstractClientApiTest {
     public void upload() throws IOException {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(PUT).path("/v2/apps/test-application-id/bits")
+                .method(PUT).path("/apps/test-application-id/bits")
                 .contents(consumer((headers, body) -> {
                     String boundary = extractBoundary(headers);
 
                     assertThat(body.readString(Charset.defaultCharset()))
-                        .isEqualTo("\r\n--" + boundary + "\r\n" +
+                        .isEqualTo("--" + boundary + "\r\n" +
                             "content-disposition: form-data; name=\"resources\"\r\n" +
                             "content-length: 178\r\n" +
                             "content-type: application/json\r\n" +
+                            "content-transfer-encoding: binary\r\n" +
                             "\r\n" +
                             "[{\"sha1\":\"b907173290db6a155949ab4dc9b2d019dea0c901\",\"fn\":\"path/to/content.txt\",\"size\":123}," +
                             "{\"sha1\":\"ff84f89760317996b9dd180ab996b079f418396f\",\"fn\":\"path/to/code.jar\",\"size\":123}]" +
                             "\r\n" + "--" + boundary + "\r\n" +
-                            "content-disposition: form-data; name=\"application\"; filename=\"application.zip\"\r\n" +
-                            "content-length: 13\r\n" +
+                            "content-disposition: form-data; name=\"application\"; filename=\"test-application.zip\"\r\n" +
+                            "content-length: 12\r\n" +
                             "content-type: application/zip\r\n" +
+                            "content-transfer-encoding: binary\r\n" +
                             "\r\n" +
-                            "test-content\n" +
+                            "test-content" +
                             "\r\n" +
-                            "--" + boundary + "--");
+                            "--" + boundary + "--\r\n");
                 }))
                 .build())
             .response(TestResponse.builder()
@@ -1049,18 +1053,20 @@ public final class ReactorApplicationsV2Test extends AbstractClientApiTest {
     public void uploadDroplet() throws IOException {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(PUT).path("/v2/apps/test-application-id/droplet/upload")
+                .method(PUT).path("/apps/test-application-id/droplet/upload")
                 .contents(consumer((headers, body) -> {
                     String boundary = extractBoundary(headers);
 
                     assertThat(body.readString(Charset.defaultCharset()))
-                        .isEqualTo("\r\n" + "--" + boundary + "\r\n" +
+                        .isEqualTo("--" + boundary + "\r\n" +
                             "content-disposition: form-data; name=\"droplet\"; filename=\"test-droplet.tgz\"\r\n" +
-                            "content-length: 13\r\n" +
+                            "content-length: 12\r\n" +
+                            "content-type: application/octet-stream\r\n" +
+                            "content-transfer-encoding: binary\r\n" +
                             "\r\n" +
-                            "test-content\n" +
+                            "test-content" +
                             "\r\n" +
-                            "--" + boundary + "--");
+                            "--" + boundary + "--\r\n");
                 }))
                 .build())
             .response(TestResponse.builder()

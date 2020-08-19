@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -53,18 +53,11 @@ abstract class _UserOrganizationEntity {
     abstract String getName();
 
     /**
-     * The quota definition id
-     */
-    @JsonProperty("quota_definition_guid")
-    @Nullable
-    abstract String getQuotaDefinitionId();
-
-    /**
      * The spaces
      */
     @JsonProperty("quota_definition")
     @Nullable
-    abstract List<OrganizationQuotaDefinitionResource> getQuotaDefinitions();
+    abstract OrganizationQuotaDefinitionResource getQuotaDefinition();
 
     /**
      * The spaces

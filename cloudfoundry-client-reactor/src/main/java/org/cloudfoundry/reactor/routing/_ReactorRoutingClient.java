@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,12 +23,14 @@ import org.cloudfoundry.reactor.routing.v1.tcproutes.ReactorTcpRoutes;
 import org.cloudfoundry.routing.RoutingClient;
 import org.cloudfoundry.routing.v1.routergroups.RouterGroups;
 import org.cloudfoundry.routing.v1.tcproutes.TcpRoutes;
-import org.cloudfoundry.uaa.UaaClient;
 import org.immutables.value.Value;
 import reactor.core.publisher.Mono;
 
+import java.util.Collections;
+import java.util.Map;
+
 /**
- * The Reactor-based implementation of {@link UaaClient}
+ * The Reactor-based implementation of {@link RoutingClient}
  */
 @Value.Immutable
 abstract class _ReactorRoutingClient implements RoutingClient {
@@ -36,13 +38,13 @@ abstract class _ReactorRoutingClient implements RoutingClient {
     @Override
     @Value.Derived
     public RouterGroups routerGroups() {
-        return new ReactorRouterGroups(getConnectionContext(), getRoot(), getTokenProvider());
+        return new ReactorRouterGroups(getConnectionContext(), getRoot(), getTokenProvider(), getRequestTags());
     }
 
     @Override
     @Value.Derived
     public TcpRoutes tcpRoutes() {
-        return new ReactorTcpRoutes(getConnectionContext(), getRoot(), getTokenProvider());
+        return new ReactorTcpRoutes(getConnectionContext(), getRoot(), getTokenProvider(), getRequestTags());
     }
 
     /**
@@ -51,8 +53,13 @@ abstract class _ReactorRoutingClient implements RoutingClient {
     abstract ConnectionContext getConnectionContext();
 
     @Value.Default
+    Map<String, String> getRequestTags() {
+        return Collections.emptyMap();
+    }
+
+    @Value.Default
     Mono<String> getRoot() {
-        return getConnectionContext().getRootProvider().getRoot("routing_endpoint", getConnectionContext());
+        return getConnectionContext().getRootProvider().getRoot("routing", getConnectionContext());
     }
 
     /**

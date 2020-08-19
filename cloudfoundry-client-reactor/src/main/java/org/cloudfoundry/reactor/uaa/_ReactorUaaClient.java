@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@ import org.cloudfoundry.reactor.uaa.clients.ReactorClients;
 import org.cloudfoundry.reactor.uaa.groups.ReactorGroups;
 import org.cloudfoundry.reactor.uaa.identityproviders.ReactorIdentityProviders;
 import org.cloudfoundry.reactor.uaa.identityzones.ReactorIdentityZones;
+import org.cloudfoundry.reactor.uaa.serverinformation.ReactorServerInformation;
 import org.cloudfoundry.reactor.uaa.tokens.ReactorTokens;
 import org.cloudfoundry.reactor.uaa.users.ReactorUsers;
 import org.cloudfoundry.uaa.UaaClient;
@@ -32,12 +33,15 @@ import org.cloudfoundry.uaa.clients.Clients;
 import org.cloudfoundry.uaa.groups.Groups;
 import org.cloudfoundry.uaa.identityproviders.IdentityProviders;
 import org.cloudfoundry.uaa.identityzones.IdentityZones;
+import org.cloudfoundry.uaa.serverinformation.ServerInformation;
 import org.cloudfoundry.uaa.tokens.Tokens;
 import org.cloudfoundry.uaa.users.Users;
 import org.immutables.value.Value;
 import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Mono;
 
+import java.util.Collections;
+import java.util.Map;
 import java.util.function.Function;
 
 /**
@@ -49,13 +53,13 @@ abstract class _ReactorUaaClient implements UaaClient {
     @Override
     @Value.Derived
     public Authorizations authorizations() {
-        return new ReactorAuthorizations(getConnectionContext(), getRoot(), getTokenProvider());
+        return new ReactorAuthorizations(getConnectionContext(), getRoot(), getTokenProvider(), getRequestTags());
     }
 
     @Override
     @Value.Derived
     public Clients clients() {
-        return new ReactorClients(getConnectionContext(), getRoot(), getTokenProvider());
+        return new ReactorClients(getConnectionContext(), getRoot(), getTokenProvider(), getRequestTags());
     }
 
     @Override
@@ -67,31 +71,37 @@ abstract class _ReactorUaaClient implements UaaClient {
     @Override
     @Value.Derived
     public Groups groups() {
-        return new ReactorGroups(getConnectionContext(), getRoot(), getTokenProvider());
+        return new ReactorGroups(getConnectionContext(), getRoot(), getTokenProvider(), getRequestTags());
     }
 
     @Override
     @Value.Derived
     public IdentityProviders identityProviders() {
-        return new ReactorIdentityProviders(getConnectionContext(), getRoot(), getTokenProvider());
+        return new ReactorIdentityProviders(getConnectionContext(), getRoot(), getTokenProvider(), getRequestTags());
     }
 
     @Override
     @Value.Derived
     public IdentityZones identityZones() {
-        return new ReactorIdentityZones(getConnectionContext(), getRoot(), getTokenProvider());
+        return new ReactorIdentityZones(getConnectionContext(), getRoot(), getTokenProvider(), getRequestTags());
+    }
+
+    @Override
+    @Value.Derived
+    public ServerInformation serverInformation() {
+        return new ReactorServerInformation(getConnectionContext(), getRoot(), getTokenProvider(), getRequestTags());
     }
 
     @Override
     @Value.Derived
     public Tokens tokens() {
-        return new ReactorTokens(getConnectionContext(), getRoot(), getTokenProvider());
+        return new ReactorTokens(getConnectionContext(), getRoot(), getTokenProvider(), getRequestTags());
     }
 
     @Override
     @Value.Derived
     public Users users() {
-        return new ReactorUsers(getConnectionContext(), getRoot(), getTokenProvider());
+        return new ReactorUsers(getConnectionContext(), getRoot(), getTokenProvider(), getRequestTags());
     }
 
     /**
@@ -106,10 +116,18 @@ abstract class _ReactorUaaClient implements UaaClient {
     abstract String getIdentityZoneSubdomain();
 
     @Value.Default
+    Map<String, String> getRequestTags() {
+        return Collections.emptyMap();
+    }
+
+    @Value.Default
     Mono<String> getRoot() {
-        return getConnectionContext().getRootProvider().getRoot("token_endpoint", getConnectionContext())
-            .map(getIdentityZoneEndpoint(getIdentityZoneSubdomain()))
-            .cache();
+        Mono<String> cached = getConnectionContext().getRootProvider().getRoot("uaa", getConnectionContext())
+            .map(getIdentityZoneEndpoint(getIdentityZoneSubdomain()));
+
+        return getConnectionContext().getCacheDuration()
+            .map(cached::cache)
+            .orElseGet(cached::cache);
     }
 
     /**

@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@ import reactor.core.publisher.Mono;
 public interface SharedDomains {
 
     /**
-     * Makes the <a href="http://apidocs.cloudfoundry.org/latest-release/shared_domains/create_a_shared_domain.html">Create a Shared Domain</a> request
+     * Makes the <a href="https://apidocs.cloudfoundry.org/latest-release/shared_domains/create_a_shared_domain.html">Create a Shared Domain</a> request
      *
      * @param request the Create a Shared Domain request
      * @return the response from the Create a Shared Domain request
@@ -32,7 +32,7 @@ public interface SharedDomains {
     Mono<CreateSharedDomainResponse> create(CreateSharedDomainRequest request);
 
     /**
-     * Makes the <a href="http://apidocs.cloudfoundry.org/latest-release/shared_domains/delete_a_particular_shared_domain.html">Delete a Shared Domain</a> request
+     * Makes the <a href="https://apidocs.cloudfoundry.org/latest-release/shared_domains/delete_a_particular_shared_domain.html">Delete a Shared Domain</a> request
      *
      * @param request the Delete a Shared Domain request
      * @return the response from the Delete a Shared Domain request
@@ -50,7 +50,7 @@ public interface SharedDomains {
 
 
     /**
-     * Makes the <a href="http://apidocs.cloudfoundry.org/latest-release/shared_domains/list_all_shared_domains.html">List all Shared Domains</a> request
+     * Makes the <a href="https://apidocs.cloudfoundry.org/latest-release/shared_domains/list_all_shared_domains.html">List all Shared Domains</a> request
      *
      * @param request the List all Shared Domains request
      * @return the response from the List all Shared Domains request

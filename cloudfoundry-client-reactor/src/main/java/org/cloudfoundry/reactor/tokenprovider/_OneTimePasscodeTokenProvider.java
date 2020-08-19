@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,8 +18,8 @@ package org.cloudfoundry.reactor.tokenprovider;
 
 import org.cloudfoundry.reactor.TokenProvider;
 import org.immutables.value.Value;
-import reactor.core.publisher.Mono;
-import reactor.ipc.netty.http.client.HttpClientRequest;
+import reactor.netty.http.client.HttpClientForm;
+import reactor.netty.http.client.HttpClientRequest;
 
 /**
  * The One-time Passcode Password Grant implementation of {@link TokenProvider}
@@ -33,16 +33,12 @@ abstract class _OneTimePasscodeTokenProvider extends AbstractUaaTokenProvider {
     abstract String getPasscode();
 
     @Override
-    Mono<Void> tokenRequestTransformer(Mono<HttpClientRequest> outbound) {
-        return outbound
-            .flatMap(request -> request
-                .sendForm(form -> form
-                    .multipart(false)
-                    .attr("client_id", getClientId())
-                    .attr("client_secret", getClientSecret())
-                    .attr("grant_type", "password")
-                    .attr("passcode", getPasscode()))
-                .then());
+    void tokenRequestTransformer(HttpClientRequest request, HttpClientForm form) {
+        form.multipart(false)
+            .attr("client_id", getClientId())
+            .attr("client_secret", getClientSecret())
+            .attr("grant_type", "password")
+            .attr("passcode", getPasscode());
     }
 
 }

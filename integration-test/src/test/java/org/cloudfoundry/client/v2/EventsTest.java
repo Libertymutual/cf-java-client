@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,7 +29,6 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import java.time.Duration;
-import java.util.concurrent.TimeoutException;
 
 public final class EventsTest extends AbstractIntegrationTest {
 
@@ -37,9 +36,9 @@ public final class EventsTest extends AbstractIntegrationTest {
     private CloudFoundryClient cloudFoundryClient;
 
     @Test
-    public void get() throws TimeoutException, InterruptedException {
+    public void get() {
         getFirstEvent(this.cloudFoundryClient)
-            .flatMap(resource -> Mono.when(
+            .flatMap(resource -> Mono.zip(
                 Mono.just(resource)
                     .map(ResourceUtils::getId),
                 this.cloudFoundryClient.events()
@@ -55,9 +54,9 @@ public final class EventsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void list() throws TimeoutException, InterruptedException {
+    public void list() {
         getFirstEvent(this.cloudFoundryClient)
-            .flatMap(resource -> Mono.when(
+            .flatMap(resource -> Mono.zip(
                 Mono.just(resource),
                 this.cloudFoundryClient.events()
                     .list(ListEventsRequest.builder()
@@ -72,9 +71,9 @@ public final class EventsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void listFilterByActee() throws TimeoutException, InterruptedException {
+    public void listFilterByActee() {
         getFirstEvent(this.cloudFoundryClient)
-            .flatMap(resource -> Mono.when(
+            .flatMap(resource -> Mono.zip(
                 Mono.just(resource),
                 this.cloudFoundryClient.events()
                     .list(ListEventsRequest.builder()
@@ -90,9 +89,45 @@ public final class EventsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void listFilterByTimestamp() throws TimeoutException, InterruptedException {
+    public void listFilterByOrganizationId() {
         getFirstEvent(this.cloudFoundryClient)
-            .flatMap(resource -> Mono.when(
+            .flatMap(resource -> Mono.zip(
+                Mono.just(resource),
+                this.cloudFoundryClient.events()
+                    .list(ListEventsRequest.builder()
+                        .organizationId(ResourceUtils.getEntity(resource).getOrganizationId())
+                        .build())
+                    .flatMapMany(ResourceUtils::getResources)
+                    .next()
+            ))
+            .as(StepVerifier::create)
+            .consumeNextWith(tupleEquality())
+            .expectComplete()
+            .verify(Duration.ofMinutes(5));
+    }
+
+    @Test
+    public void listFilterBySpaceId() {
+        getFirstEvent(this.cloudFoundryClient)
+            .flatMap(resource -> Mono.zip(
+                Mono.just(resource),
+                this.cloudFoundryClient.events()
+                    .list(ListEventsRequest.builder()
+                        .spaceId(ResourceUtils.getEntity(resource).getSpaceId())
+                        .build())
+                    .flatMapMany(ResourceUtils::getResources)
+                    .next()
+            ))
+            .as(StepVerifier::create)
+            .consumeNextWith(tupleEquality())
+            .expectComplete()
+            .verify(Duration.ofMinutes(5));
+    }
+
+    @Test
+    public void listFilterByTimestamp() {
+        getFirstEvent(this.cloudFoundryClient)
+            .flatMap(resource -> Mono.zip(
                 Mono.just(resource),
                 this.cloudFoundryClient.events()
                     .list(ListEventsRequest.builder()
@@ -108,9 +143,9 @@ public final class EventsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void listFilterByType() throws TimeoutException, InterruptedException {
+    public void listFilterByType() {
         getFirstEvent(this.cloudFoundryClient)
-            .flatMap(resource -> Mono.when(
+            .flatMap(resource -> Mono.zip(
                 Mono.just(resource),
                 this.cloudFoundryClient.events()
                     .list(ListEventsRequest.builder()

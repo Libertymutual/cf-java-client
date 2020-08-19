@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,23 +27,28 @@ import org.cloudfoundry.uaa.authorizations.AuthorizeByImplicitGrantBrowserReques
 import org.cloudfoundry.uaa.authorizations.AuthorizeByOpenIdWithAuthorizationCodeGrantRequest;
 import org.cloudfoundry.uaa.authorizations.AuthorizeByOpenIdWithIdTokenRequest;
 import org.cloudfoundry.uaa.authorizations.AuthorizeByOpenIdWithImplicitGrantRequest;
+import org.cloudfoundry.uaa.authorizations.GetOpenIdProviderConfigurationRequest;
+import org.cloudfoundry.uaa.authorizations.GetOpenIdProviderConfigurationResponse;
 import org.junit.Test;
 import reactor.test.StepVerifier;
 
 import java.time.Duration;
+import java.util.Collections;
+import java.util.Locale;
 
 import static io.netty.handler.codec.http.HttpMethod.GET;
 import static io.netty.handler.codec.http.HttpResponseStatus.FOUND;
+import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 
 public final class ReactorAuthorizationsTest extends AbstractUaaApiTest {
 
-    private final ReactorAuthorizations authorizations = new ReactorAuthorizations(CONNECTION_CONTEXT, this.root, TOKEN_PROVIDER);
+    private final ReactorAuthorizations authorizations = new ReactorAuthorizations(CONNECTION_CONTEXT, this.root, TOKEN_PROVIDER, Collections.emptyMap());
 
     @Test
     public void authorizeByAuthorizationCodeGrantApi() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(GET).path("/oauth/authorize?client_id=login&redirect_uri=https://uaa.cloudfoundry.com/redirect/cf&state=v4LpFF&response_type=code")
+                .method(GET).path("/oauth/authorize?client_id=login&redirect_uri=https%3A%2F%2Fuaa.cloudfoundry.com%2Fredirect%2Fcf&state=v4LpFF&response_type=code")
                 .build())
             .response(TestResponse.builder()
                 .status(FOUND)
@@ -67,7 +72,7 @@ public final class ReactorAuthorizationsTest extends AbstractUaaApiTest {
     public void authorizeByAuthorizationCodeGrantBrowser() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(GET).path("/oauth/authorize?client_id=login&redirect_uri=https://uaa.cloudfoundry.com/redirect/cf&scope=openid%20oauth.approvals&response_type=code")
+                .method(GET).path("/oauth/authorize?client_id=login&redirect_uri=https%3A%2F%2Fuaa.cloudfoundry.com%2Fredirect%2Fcf&scope=openid%20oauth.approvals&response_type=code")
                 .build())
             .response(TestResponse.builder()
                 .status(FOUND)
@@ -92,7 +97,7 @@ public final class ReactorAuthorizationsTest extends AbstractUaaApiTest {
     public void authorizeByAuthorizationCodeGrantHybrid() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(GET).path("/oauth/authorize?client_id=app&redirect_uri=http://localhost:8080/app/&scope=openid&response_type=code%20id_token")
+                .method(GET).path("/oauth/authorize?client_id=app&redirect_uri=http%3A%2F%2Flocalhost%3A8080%2Fapp%2F&scope=openid&response_type=code%20id_token")
                 .build())
             .response(TestResponse.builder()
                 .status(FOUND)
@@ -128,7 +133,7 @@ public final class ReactorAuthorizationsTest extends AbstractUaaApiTest {
     public void authorizeByImplicitGrantBrowser() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(GET).path("/oauth/authorize?client_id=app&redirect_uri=http://localhost:8080/app/&scope=openid&response_type=token")
+                .method(GET).path("/oauth/authorize?client_id=app&redirect_uri=http%3A%2F%2Flocalhost%3A8080%2Fapp%2F&scope=openid&response_type=token")
                 .build())
             .response(TestResponse.builder()
                 .status(FOUND)
@@ -158,7 +163,7 @@ public final class ReactorAuthorizationsTest extends AbstractUaaApiTest {
     public void authorizeByOpenIdWithAuthorizationCodeGrant() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(GET).path("/oauth/authorize?client_id=app&redirect_uri=http://localhost:8080/app/&scope=openid&response_type=code%20id_token")
+                .method(GET).path("/oauth/authorize?client_id=app&redirect_uri=http%3A%2F%2Flocalhost%3A8080%2Fapp%2F&scope=openid&response_type=code%20id_token")
                 .build())
             .response(TestResponse.builder()
                 .status(FOUND)
@@ -182,7 +187,7 @@ public final class ReactorAuthorizationsTest extends AbstractUaaApiTest {
     public void authorizeByOpenIdWithToken() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(GET).path("/oauth/authorize?client_id=app&redirect_uri=http://localhost:8080/app/&scope=openid&response_type=id_token")
+                .method(GET).path("/oauth/authorize?client_id=app&redirect_uri=http%3A%2F%2Flocalhost%3A8080%2Fapp%2F&scope=openid&response_type=id_token")
                 .build())
             .response(TestResponse.builder()
                 .status(FOUND)
@@ -219,7 +224,7 @@ public final class ReactorAuthorizationsTest extends AbstractUaaApiTest {
     public void authorizeByOpenIdWithimplicitGrant() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(GET).path("/oauth/authorize?client_id=app&redirect_uri=http://localhost:8080/app/&scope=openid&response_type=token%20id_token")
+                .method(GET).path("/oauth/authorize?client_id=app&redirect_uri=http%3A%2F%2Flocalhost%3A8080%2Fapp%2F&scope=openid&response_type=token%20id_token")
                 .build())
             .response(TestResponse.builder()
                 .status(FOUND)
@@ -238,5 +243,46 @@ public final class ReactorAuthorizationsTest extends AbstractUaaApiTest {
             .expectComplete()
             .verify(Duration.ofSeconds(5));
     }
+
+    @Test
+    public void getOpenIdProviderConfigurationRequest() {
+        mockRequest(InteractionContext.builder()
+            .request(TestRequest.builder()
+                .method(GET).path("/.well-known/openid-configuration")
+                .build())
+            .response(TestResponse.builder()
+                .status(OK)
+                .payload("fixtures/uaa/authorizations/GET_response.json")
+                .build())
+            .build());
+
+        this.authorizations
+            .getOpenIdProviderConfiguration(GetOpenIdProviderConfigurationRequest.builder()
+                .build())
+            .as(StepVerifier::create)
+            .expectNext(GetOpenIdProviderConfigurationResponse.builder()
+                .authorizationEndpoint("http://localhost/oauth/authorize")
+                .supportedClaims("sub", "user_name", "origin", "iss", "auth_time", "amr", "acr", "client_id", "aud", "zid", "grant_type", "user_id", "azp", "scope", "exp", "iat", "jti", "rev_sig",
+                    "cid", "given_name", "family_name", "phone_number", "email")
+                .claimsParameterSupported(false)
+                .supportedClaimType("normal")
+                .issuer("http://localhost:8080/uaa/oauth/token")
+                .javaWebKeySetEndpoint("http://localhost/token_keys")
+                .serviceDocumentation("http://docs.cloudfoundry.org/api/uaa/")
+                .supportedIdTokenEncryptionAlgorithm("none")
+                .supportedIdTokenSigningAlgorithms("RS256", "HS256")
+                .supportedSubjectType("public")
+                .supportedResponseTypes("code", "code id_token", "id_token", "token id_token")
+                .supportedScopes("openid", "profile", "email", "phone", "roles", "user_attributes")
+                .supportedTokenEndpointAuthorizationMethods("client_secret_basic", "client_secret_post")
+                .supportedTokenEndpointAuthorizationSigningAlgorithms("RS256", "HS256")
+                .supportedUiLocale(Locale.US)
+                .tokenEndpoint("http://localhost/oauth/token")
+                .userInfoEndpoint("http://localhost/userinfo")
+                .build())
+            .expectComplete()
+            .verify(Duration.ofSeconds(5));
+    }
+
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -47,9 +47,10 @@ abstract class _ListFeatureFlagsResponse {
         }
 
         @Override
+        @SuppressWarnings("unchecked")
         public ListFeatureFlagsResponse deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
             return ListFeatureFlagsResponse.builder()
-                .featureFlags(p.readValueAs(new TypeReference<List<FeatureFlagEntity>>() {
+                .featureFlags((List<FeatureFlagEntity>) p.readValueAs(new TypeReference<List<FeatureFlagEntity>>() {
 
                 }))
                 .build();

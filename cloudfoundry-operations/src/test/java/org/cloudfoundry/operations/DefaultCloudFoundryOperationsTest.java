@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -51,6 +51,11 @@ public final class DefaultCloudFoundryOperationsTest extends AbstractOperationsT
     }
 
     @Test
+    public void networkPolicies() {
+        assertThat(this.operations.networkPolicies()).isNotNull();
+    }
+
+    @Test
     public void organizationAdmin() {
         assertThat(this.operations.organizationAdmin()).isNotNull();
     }
@@ -88,6 +93,11 @@ public final class DefaultCloudFoundryOperationsTest extends AbstractOperationsT
     @Test
     public void stacks() {
         assertThat(this.operations.stacks()).isNotNull();
+    }
+
+    @Test
+    public void userAdmin() {
+        assertThat(this.operations.userAdmin()).isNotNull();
     }
 
 }

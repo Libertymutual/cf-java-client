@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package org.cloudfoundry.operations;
 
 import org.springframework.util.ReflectionUtils;
 
+import java.lang.reflect.Array;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Parameter;
@@ -181,6 +182,8 @@ public abstract class TestObjects {
             return Collections.emptyMap();
         } else if (parameterType == String.class) {
             return getConfiguredString(configurationMethod, modifier);
+        } else if (parameterType.isArray()) {
+            return Array.newInstance(parameterType.getComponentType(), 0);
         } else {
             throw new IllegalStateException(String.format("Unable to configure %s", configurationMethod));
         }

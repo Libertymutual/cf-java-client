@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,11 @@
 package org.cloudfoundry.reactor;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import reactor.ipc.netty.http.client.HttpClient;
+import reactor.core.publisher.Mono;
+import reactor.netty.http.client.HttpClient;
+
+import java.time.Duration;
+import java.util.Optional;
 
 /**
  * Common, reusable, connection context
@@ -25,9 +29,19 @@ import reactor.ipc.netty.http.client.HttpClient;
 public interface ConnectionContext {
 
     /**
+     * The duration that stable responses like the payload of the API root should be cached
+     */
+    Optional<Duration> getCacheDuration();
+
+    /**
      * The {@link HttpClient} to use
      */
     HttpClient getHttpClient();
+
+    /**
+     * The number of retries after an unsuccessful request
+     */
+    Long getInvalidTokenRetries();
 
     /**
      * The {@link ObjectMapper} to use
@@ -45,6 +59,6 @@ public interface ConnectionContext {
      * @param host the host of the endpoint to trust
      * @param port the port of the endpoint to trust
      */
-    void trust(String host, int port);
+    Mono<Void> trust(String host, int port);
 
 }

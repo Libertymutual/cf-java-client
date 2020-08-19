@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,17 +20,30 @@ import org.cloudfoundry.AbstractIntegrationTest;
 import org.cloudfoundry.client.CloudFoundryClient;
 import org.cloudfoundry.client.v2.applications.CreateApplicationRequest;
 import org.cloudfoundry.client.v2.applications.CreateApplicationResponse;
+import org.cloudfoundry.client.v2.privatedomains.CreatePrivateDomainRequest;
+import org.cloudfoundry.client.v2.privatedomains.CreatePrivateDomainResponse;
+import org.cloudfoundry.client.v2.routes.CreateRouteRequest;
+import org.cloudfoundry.client.v2.routes.CreateRouteResponse;
 import org.cloudfoundry.client.v2.servicebindings.CreateServiceBindingRequest;
 import org.cloudfoundry.client.v2.servicebindings.ServiceBindingResource;
+import org.cloudfoundry.client.v2.shareddomains.CreateSharedDomainRequest;
+import org.cloudfoundry.client.v2.shareddomains.CreateSharedDomainResponse;
+import org.cloudfoundry.client.v2.userprovidedserviceinstances.AssociateUserProvidedServiceInstanceRouteRequest;
+import org.cloudfoundry.client.v2.userprovidedserviceinstances.AssociateUserProvidedServiceInstanceRouteResponse;
 import org.cloudfoundry.client.v2.userprovidedserviceinstances.CreateUserProvidedServiceInstanceRequest;
 import org.cloudfoundry.client.v2.userprovidedserviceinstances.CreateUserProvidedServiceInstanceResponse;
 import org.cloudfoundry.client.v2.userprovidedserviceinstances.DeleteUserProvidedServiceInstanceRequest;
 import org.cloudfoundry.client.v2.userprovidedserviceinstances.GetUserProvidedServiceInstanceRequest;
+import org.cloudfoundry.client.v2.userprovidedserviceinstances.ListUserProvidedServiceInstanceRoutesRequest;
 import org.cloudfoundry.client.v2.userprovidedserviceinstances.ListUserProvidedServiceInstanceServiceBindingsRequest;
 import org.cloudfoundry.client.v2.userprovidedserviceinstances.ListUserProvidedServiceInstancesRequest;
 import org.cloudfoundry.client.v2.userprovidedserviceinstances.UpdateUserProvidedServiceInstanceRequest;
 import org.cloudfoundry.client.v2.userprovidedserviceinstances.UpdateUserProvidedServiceInstanceResponse;
 import org.cloudfoundry.client.v2.userprovidedserviceinstances.UserProvidedServiceInstanceResource;
+import org.cloudfoundry.routing.RoutingClient;
+import org.cloudfoundry.routing.v1.routergroups.ListRouterGroupsRequest;
+import org.cloudfoundry.routing.v1.routergroups.ListRouterGroupsResponse;
+import org.cloudfoundry.routing.v1.routergroups.RouterGroup;
 import org.cloudfoundry.util.PaginationUtils;
 import org.cloudfoundry.util.ResourceUtils;
 import org.junit.Test;
@@ -39,10 +52,10 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 import reactor.util.function.Tuple3;
+import reactor.util.function.Tuples;
 
 import java.time.Duration;
 import java.util.Collections;
-import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -51,14 +64,22 @@ import static org.cloudfoundry.util.tuple.TupleUtils.function;
 
 public final class UserProvidedServicesTest extends AbstractIntegrationTest {
 
+    private static final String DEFAULT_ROUTER_GROUP = "default-tcp";
+
     @Autowired
     private CloudFoundryClient cloudFoundryClient;
+
+    @Autowired
+    private Mono<String> organizationId;
+
+    @Autowired
+    private RoutingClient routingClient;
 
     @Autowired
     private Mono<String> spaceId;
 
     @Test
-    public void create() throws TimeoutException, InterruptedException {
+    public void create() {
         String instanceName = this.nameFactory.getServiceInstanceName();
 
         this.spaceId
@@ -75,11 +96,11 @@ public final class UserProvidedServicesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void delete() throws TimeoutException, InterruptedException {
+    public void delete() {
         String instanceName = this.nameFactory.getServiceInstanceName();
 
         this.spaceId
-            .flatMap(spaceId -> getCreateUserProvidedServiceInstanceId(this.cloudFoundryClient, instanceName, spaceId))
+            .flatMap(spaceId -> createUserProvidedServiceInstanceId(this.cloudFoundryClient, instanceName, spaceId))
             .flatMap(instanceId -> this.cloudFoundryClient.userProvidedServiceInstances()
                 .delete(DeleteUserProvidedServiceInstanceRequest.builder()
                     .userProvidedServiceInstanceId(instanceId)
@@ -91,11 +112,11 @@ public final class UserProvidedServicesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void get() throws TimeoutException, InterruptedException {
+    public void get() {
         String instanceName = this.nameFactory.getServiceInstanceName();
 
         this.spaceId
-            .flatMap(spaceId -> getCreateUserProvidedServiceInstanceId(this.cloudFoundryClient, instanceName, spaceId))
+            .flatMap(spaceId -> createUserProvidedServiceInstanceId(this.cloudFoundryClient, instanceName, spaceId))
             .flatMap(instanceId -> this.cloudFoundryClient.userProvidedServiceInstances()
                 .get(GetUserProvidedServiceInstanceRequest.builder()
                     .userProvidedServiceInstanceId(instanceId)
@@ -108,7 +129,7 @@ public final class UserProvidedServicesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void list() throws TimeoutException, InterruptedException {
+    public void list() {
         String instanceName = this.nameFactory.getServiceInstanceName();
 
         this.spaceId
@@ -128,32 +149,194 @@ public final class UserProvidedServicesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void listServiceBindings() throws TimeoutException, InterruptedException {
+    public void listRoutes() {
+        String domainName = this.nameFactory.getDomainName();
+        String instanceName = this.nameFactory.getServiceInstanceName();
+
+        Mono.zip(
+            this.organizationId
+                .flatMap(organizationId -> createPrivateDomainId(this.cloudFoundryClient, domainName, organizationId)),
+            this.spaceId
+        )
+            .flatMap(function((domainId, spaceId) -> Mono.zip(
+                createUserProvidedServiceInstanceId(this.cloudFoundryClient, instanceName, spaceId),
+                createRouteId(this.cloudFoundryClient, domainId, null, null, spaceId))
+            ))
+            .flatMap(function((instanceId, routeId) -> requestAssociateRoute(this.cloudFoundryClient, instanceId, routeId)
+                .thenReturn(instanceId)))
+            .flatMapMany(instanceId -> Mono.zip(
+                Mono.just(instanceId),
+                PaginationUtils.requestClientV2Resources(page -> this.cloudFoundryClient.userProvidedServiceInstances()
+                    .listRoutes(ListUserProvidedServiceInstanceRoutesRequest.builder()
+                        .page(page)
+                        .userProvidedServiceInstanceId(instanceId)
+                        .build()))
+                    .map(resource -> ResourceUtils.getEntity(resource).getServiceInstanceId())
+                    .single()))
+            .as(StepVerifier::create)
+            .consumeNextWith(tupleEquality())
+            .expectComplete()
+            .verify(Duration.ofMinutes(5));
+    }
+
+    @Test
+    public void listRoutesFilterByDomainId() {
+        String domainName = this.nameFactory.getDomainName();
+        String instanceName = this.nameFactory.getServiceInstanceName();
+
+        Mono.zip(
+            this.organizationId
+                .flatMap(organizationId -> createPrivateDomainId(this.cloudFoundryClient, domainName, organizationId)),
+            this.spaceId
+        )
+            .flatMap(function((domainId, spaceId) -> Mono.zip(
+                Mono.just(domainId),
+                createUserProvidedServiceInstanceId(this.cloudFoundryClient, instanceName, spaceId),
+                createRouteId(this.cloudFoundryClient, domainId, null, null, spaceId))
+            ))
+            .flatMap(function((domainId, instanceId, routeId) -> requestAssociateRoute(this.cloudFoundryClient, instanceId, routeId)
+                .thenReturn(Tuples.of(domainId, instanceId))))
+            .flatMapMany(function((domainId, instanceId) -> Mono.zip(
+                Mono.just(instanceId),
+                PaginationUtils.requestClientV2Resources(page -> this.cloudFoundryClient.userProvidedServiceInstances()
+                    .listRoutes(ListUserProvidedServiceInstanceRoutesRequest.builder()
+                        .domainId(domainId)
+                        .page(page)
+                        .userProvidedServiceInstanceId(instanceId)
+                        .build()))
+                    .map(resource -> ResourceUtils.getEntity(resource).getServiceInstanceId())
+                    .single())))
+            .as(StepVerifier::create)
+            .consumeNextWith(tupleEquality())
+            .expectComplete()
+            .verify(Duration.ofMinutes(5));
+    }
+
+    @Test
+    public void listRoutesFilterByHost() {
+        String domainName = this.nameFactory.getDomainName();
+        String hostName = this.nameFactory.getHostName();
+        String instanceName = this.nameFactory.getServiceInstanceName();
+
+        Mono.zip(
+            this.organizationId
+                .flatMap(organizationId -> createPrivateDomainId(this.cloudFoundryClient, domainName, organizationId)),
+            this.spaceId
+        )
+            .flatMap(function((domainId, spaceId) -> Mono.zip(
+                createUserProvidedServiceInstanceId(this.cloudFoundryClient, instanceName, spaceId),
+                createRouteId(this.cloudFoundryClient, domainId, hostName, null, spaceId))
+            ))
+            .flatMap(function((instanceId, routeId) -> requestAssociateRoute(this.cloudFoundryClient, instanceId, routeId)
+                .thenReturn(instanceId)))
+            .flatMapMany(instanceId -> Mono.zip(
+                Mono.just(instanceId),
+                PaginationUtils.requestClientV2Resources(page -> this.cloudFoundryClient.userProvidedServiceInstances()
+                    .listRoutes(ListUserProvidedServiceInstanceRoutesRequest.builder()
+                        .host(hostName)
+                        .page(page)
+                        .userProvidedServiceInstanceId(instanceId)
+                        .build()))
+                    .map(resource -> ResourceUtils.getEntity(resource).getServiceInstanceId())
+                    .single()))
+            .as(StepVerifier::create)
+            .consumeNextWith(tupleEquality())
+            .expectComplete()
+            .verify(Duration.ofMinutes(5));
+    }
+
+    @Test
+    public void listRoutesFilterByPath() {
+        String domainName = this.nameFactory.getDomainName();
+        String instanceName = this.nameFactory.getServiceInstanceName();
+        String path = this.nameFactory.getPath();
+
+        Mono.zip(
+            this.organizationId
+                .flatMap(organizationId -> createPrivateDomainId(this.cloudFoundryClient, domainName, organizationId)),
+            this.spaceId
+        )
+            .flatMap(function((domainId, spaceId) -> Mono.zip(
+                createUserProvidedServiceInstanceId(this.cloudFoundryClient, instanceName, spaceId),
+                createRouteId(this.cloudFoundryClient, domainId, null, path, spaceId))
+            ))
+            .flatMap(function((instanceId, routeId) -> requestAssociateRoute(this.cloudFoundryClient, instanceId, routeId)
+                .thenReturn(instanceId)))
+            .flatMapMany(instanceId -> Mono.zip(
+                Mono.just(instanceId),
+                PaginationUtils.requestClientV2Resources(page -> this.cloudFoundryClient.userProvidedServiceInstances()
+                    .listRoutes(ListUserProvidedServiceInstanceRoutesRequest.builder()
+                        .page(page)
+                        .path(path)
+                        .userProvidedServiceInstanceId(instanceId)
+                        .build()))
+                    .map(resource -> ResourceUtils.getEntity(resource).getServiceInstanceId())
+                    .single()))
+            .as(StepVerifier::create)
+            .consumeNextWith(tupleEquality())
+            .expectComplete()
+            .verify(Duration.ofMinutes(5));
+    }
+
+    @Test
+    public void listRoutesFilterByPort() {
+        String domainName = this.nameFactory.getDomainName();
+        String instanceName = this.nameFactory.getServiceInstanceName();
+        Integer port = this.nameFactory.getPort();
+
+        Mono.zip(
+            getRouterGroupId(this.routingClient, DEFAULT_ROUTER_GROUP)
+                .flatMap(routerGroupId -> createTcpDomainId(this.cloudFoundryClient, domainName, routerGroupId)),
+            this.spaceId
+        )
+            .flatMap(function((domainId, spaceId) -> Mono.zip(
+                createUserProvidedServiceInstanceId(this.cloudFoundryClient, instanceName, spaceId),
+                createRouteId(this.cloudFoundryClient, domainId, port, spaceId))
+            ))
+            .flatMap(function((instanceId, routeId) -> requestAssociateRoute(this.cloudFoundryClient, instanceId, routeId)
+                .thenReturn(instanceId)))
+            .flatMapMany(instanceId -> Mono.zip(
+                Mono.just(instanceId),
+                PaginationUtils.requestClientV2Resources(page -> this.cloudFoundryClient.userProvidedServiceInstances()
+                    .listRoutes(ListUserProvidedServiceInstanceRoutesRequest.builder()
+                        .page(page)
+                        .port(port.toString())
+                        .userProvidedServiceInstanceId(instanceId)
+                        .build()))
+                    .map(resource -> ResourceUtils.getEntity(resource).getServiceInstanceId())
+                    .single()))
+            .as(StepVerifier::create)
+            .consumeNextWith(tupleEquality())
+            .expectComplete()
+            .verify(Duration.ofMinutes(5));
+    }
+
+    @Test
+    public void listServiceBindings() {
         String applicationName = this.nameFactory.getApplicationName();
         String instanceName = this.nameFactory.getServiceInstanceName();
 
         this.spaceId
-            .flatMap(spaceId -> Mono.when(
-                getCreateApplicationId(this.cloudFoundryClient, applicationName, spaceId),
-                getCreateUserProvidedServiceInstanceId(this.cloudFoundryClient, instanceName, spaceId)
+            .flatMap(spaceId -> Mono.zip(
+                createApplicationId(this.cloudFoundryClient, applicationName, spaceId),
+                createUserProvidedServiceInstanceId(this.cloudFoundryClient, instanceName, spaceId)
             ))
             .delayUntil(function((applicationId, instanceId) -> this.cloudFoundryClient.serviceBindingsV2()
                 .create(CreateServiceBindingRequest.builder()
                     .applicationId(applicationId)
                     .serviceInstanceId(instanceId)
                     .build())))
-            .flatMap(function((applicationId, instanceId) -> Mono
-                .when(
-                    Mono.just(applicationId),
-                    Mono.just(instanceId),
-                    PaginationUtils
-                        .requestClientV2Resources(page -> this.cloudFoundryClient.userProvidedServiceInstances()
-                            .listServiceBindings(ListUserProvidedServiceInstanceServiceBindingsRequest.builder()
-                                .applicationId(applicationId)
-                                .page(page)
-                                .userProvidedServiceInstanceId(instanceId)
-                                .build()))
-                        .single())))
+            .flatMap(function((applicationId, instanceId) -> Mono.zip(
+                Mono.just(applicationId),
+                Mono.just(instanceId),
+                PaginationUtils
+                    .requestClientV2Resources(page -> this.cloudFoundryClient.userProvidedServiceInstances()
+                        .listServiceBindings(ListUserProvidedServiceInstanceServiceBindingsRequest.builder()
+                            .applicationId(applicationId)
+                            .page(page)
+                            .userProvidedServiceInstanceId(instanceId)
+                            .build()))
+                    .single())))
             .as(StepVerifier::create)
             .consumeNextWith(serviceBindingEquality())
             .expectComplete()
@@ -161,33 +344,31 @@ public final class UserProvidedServicesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void update() throws TimeoutException, InterruptedException {
+    public void update() {
         String instanceName = this.nameFactory.getServiceInstanceName();
         String newInstanceName = this.nameFactory.getServiceInstanceName();
 
         this.spaceId
-            .flatMap(spaceId -> getCreateUserProvidedServiceInstanceId(this.cloudFoundryClient, instanceName, spaceId))
-            .flatMap(instanceId -> Mono
-                .when(
-                    Mono.just(instanceId),
-                    this.cloudFoundryClient.userProvidedServiceInstances()
-                        .update(UpdateUserProvidedServiceInstanceRequest.builder()
-                            .userProvidedServiceInstanceId(instanceId)
-                            .name(newInstanceName)
-                            .credential("test-cred", "some value")
-                            .build())
-                        .map(UpdateUserProvidedServiceInstanceResponse::getEntity)
-                ))
-            .flatMap(function((instanceId, entity1) -> Mono
-                .when(
-                    Mono.just(entity1),
-                    this.cloudFoundryClient.userProvidedServiceInstances()
-                        .update(UpdateUserProvidedServiceInstanceRequest.builder()
-                            .userProvidedServiceInstanceId(instanceId)
-                            .credentials(Collections.emptyMap())
-                            .build())
-                        .map(UpdateUserProvidedServiceInstanceResponse::getEntity)
-                )))
+            .flatMap(spaceId -> createUserProvidedServiceInstanceId(this.cloudFoundryClient, instanceName, spaceId))
+            .flatMap(instanceId -> Mono.zip(
+                Mono.just(instanceId),
+                this.cloudFoundryClient.userProvidedServiceInstances()
+                    .update(UpdateUserProvidedServiceInstanceRequest.builder()
+                        .userProvidedServiceInstanceId(instanceId)
+                        .name(newInstanceName)
+                        .credential("test-cred", "some value")
+                        .build())
+                    .map(UpdateUserProvidedServiceInstanceResponse::getEntity)
+            ))
+            .flatMap(function((instanceId, entity1) -> Mono.zip(
+                Mono.just(entity1),
+                this.cloudFoundryClient.userProvidedServiceInstances()
+                    .update(UpdateUserProvidedServiceInstanceRequest.builder()
+                        .userProvidedServiceInstanceId(instanceId)
+                        .credentials(Collections.emptyMap())
+                        .build())
+                    .map(UpdateUserProvidedServiceInstanceResponse::getEntity)
+            )))
             .as(StepVerifier::create)
             .consumeNextWith(consumer((entity1, entity2) -> {
                 assertThat(entity1.getName()).isEqualTo(newInstanceName);
@@ -198,14 +379,50 @@ public final class UserProvidedServicesTest extends AbstractIntegrationTest {
             .verify(Duration.ofMinutes(5));
     }
 
-    private static Mono<String> getCreateApplicationId(CloudFoundryClient cloudFoundryClient, String applicationName, String spaceId) {
+    private static Mono<String> createApplicationId(CloudFoundryClient cloudFoundryClient, String applicationName, String spaceId) {
         return requestCreateApplication(cloudFoundryClient, spaceId, applicationName)
             .map(ResourceUtils::getId);
     }
 
-    private static Mono<String> getCreateUserProvidedServiceInstanceId(CloudFoundryClient cloudFoundryClient, String instanceName, String spaceId) {
+    private static Mono<String> createPrivateDomainId(CloudFoundryClient cloudFoundryClient, String name, String organizationId) {
+        return requestCreatePrivateDomain(cloudFoundryClient, name, organizationId)
+            .map(ResourceUtils::getId);
+    }
+
+    private static Mono<String> createRouteId(CloudFoundryClient cloudFoundryClient, String domainId, String hostName, String path, String spaceId) {
+        return requestCreateRoute(cloudFoundryClient, domainId, hostName, path, spaceId)
+            .map(ResourceUtils::getId);
+    }
+
+    private static Mono<String> createRouteId(CloudFoundryClient cloudFoundryClient, String domainId, Integer port, String spaceId) {
+        return requestCreateRoute(cloudFoundryClient, domainId, port, spaceId)
+            .map(ResourceUtils::getId);
+    }
+
+    private static Mono<String> createTcpDomainId(CloudFoundryClient cloudFoundryClient, String name, String routerGroupId) {
+        return requestCreateTcpDomain(cloudFoundryClient, name, routerGroupId)
+            .map(ResourceUtils::getId);
+    }
+
+    private static Mono<String> createUserProvidedServiceInstanceId(CloudFoundryClient cloudFoundryClient, String instanceName, String spaceId) {
         return requestCreateUserProvidedServiceInstance(cloudFoundryClient, instanceName, spaceId)
             .map(ResourceUtils::getId);
+    }
+
+    private static Mono<String> getRouterGroupId(RoutingClient routingClient, String routerGroupName) {
+        return requestListRouterGroups(routingClient)
+            .flatMapIterable(ListRouterGroupsResponse::getRouterGroups)
+            .filter(group -> routerGroupName.equals(group.getName()))
+            .single()
+            .map(RouterGroup::getRouterGroupId);
+    }
+
+    private static Mono<AssociateUserProvidedServiceInstanceRouteResponse> requestAssociateRoute(CloudFoundryClient cloudFoundryClient, String instanceId, String routeId) {
+        return cloudFoundryClient.userProvidedServiceInstances()
+            .associateRoute(AssociateUserProvidedServiceInstanceRouteRequest.builder()
+                .routeId(routeId)
+                .userProvidedServiceInstanceId(instanceId)
+                .build());
     }
 
     private static Mono<CreateApplicationResponse> requestCreateApplication(CloudFoundryClient cloudFoundryClient, String spaceId, String applicationName) {
@@ -216,11 +433,53 @@ public final class UserProvidedServicesTest extends AbstractIntegrationTest {
                 .build());
     }
 
+    private static Mono<CreatePrivateDomainResponse> requestCreatePrivateDomain(CloudFoundryClient cloudFoundryClient, String name, String organizationId) {
+        return cloudFoundryClient.privateDomains()
+            .create(CreatePrivateDomainRequest.builder()
+                .name(name)
+                .owningOrganizationId(organizationId)
+                .build());
+    }
+
+    private static Mono<CreateRouteResponse> requestCreateRoute(CloudFoundryClient cloudFoundryClient, String domainId, String hostName, String path, String spaceId) {
+        return cloudFoundryClient.routes()
+            .create(CreateRouteRequest.builder()
+                .domainId(domainId)
+                .host(hostName)
+                .path(path)
+                .spaceId(spaceId)
+                .build());
+    }
+
+    private static Mono<CreateRouteResponse> requestCreateRoute(CloudFoundryClient cloudFoundryClient, String domainId, Integer port, String spaceId) {
+        return cloudFoundryClient.routes()
+            .create(CreateRouteRequest.builder()
+                .domainId(domainId)
+                .port(port)
+                .spaceId(spaceId)
+                .build());
+    }
+
+    private static Mono<CreateSharedDomainResponse> requestCreateTcpDomain(CloudFoundryClient cloudFoundryClient, String name, String routerGroupId) {
+        return cloudFoundryClient.sharedDomains()
+            .create(CreateSharedDomainRequest.builder()
+                .name(name)
+                .routerGroupId(routerGroupId)
+                .build());
+    }
+
     private static Mono<CreateUserProvidedServiceInstanceResponse> requestCreateUserProvidedServiceInstance(CloudFoundryClient cloudFoundryClient, String instanceName, String spaceId) {
         return cloudFoundryClient.userProvidedServiceInstances()
             .create(CreateUserProvidedServiceInstanceRequest.builder()
                 .name(instanceName)
+                .routeServiceUrl("https://test.url")
                 .spaceId(spaceId)
+                .build());
+    }
+
+    private static Mono<ListRouterGroupsResponse> requestListRouterGroups(RoutingClient routingClient) {
+        return routingClient.routerGroups()
+            .list(ListRouterGroupsRequest.builder()
                 .build());
     }
 

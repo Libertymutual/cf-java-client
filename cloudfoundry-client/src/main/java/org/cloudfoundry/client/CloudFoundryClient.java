@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -48,12 +48,20 @@ import org.cloudfoundry.client.v2.stacks.Stacks;
 import org.cloudfoundry.client.v2.userprovidedserviceinstances.UserProvidedServiceInstances;
 import org.cloudfoundry.client.v2.users.Users;
 import org.cloudfoundry.client.v3.applications.ApplicationsV3;
+import org.cloudfoundry.client.v3.auditevents.AuditEventsV3;
 import org.cloudfoundry.client.v3.builds.Builds;
+import org.cloudfoundry.client.v3.deployments.DeploymentsV3;
+import org.cloudfoundry.client.v3.domains.DomainsV3;
 import org.cloudfoundry.client.v3.droplets.Droplets;
+import org.cloudfoundry.client.v3.isolationsegments.IsolationSegments;
 import org.cloudfoundry.client.v3.jobs.JobsV3;
+import org.cloudfoundry.client.v3.organizations.OrganizationsV3;
 import org.cloudfoundry.client.v3.packages.Packages;
 import org.cloudfoundry.client.v3.processes.Processes;
+import org.cloudfoundry.client.v3.routes.RoutesV3;
+import org.cloudfoundry.client.v3.serviceInstances.ServiceInstancesV3;
 import org.cloudfoundry.client.v3.servicebindings.ServiceBindingsV3;
+import org.cloudfoundry.client.v3.spaces.SpacesV3;
 import org.cloudfoundry.client.v3.tasks.Tasks;
 
 /**
@@ -64,7 +72,7 @@ public interface CloudFoundryClient {
     /**
      * The currently supported Cloud Controller API version
      */
-    String SUPPORTED_API_VERSION = "2.82.0";
+    String SUPPORTED_API_VERSION = "2.145.0";
 
     /**
      * Main entry point to the Cloud Foundry Application Usage Events Client API
@@ -82,12 +90,17 @@ public interface CloudFoundryClient {
     ApplicationsV3 applicationsV3();
 
     /**
-     * Main entry point to the Cloud Foundry Blobstores V2 Client API
+     * Main entry point to the Cloud Foundry Audit Events V3 Client API
+     */
+    AuditEventsV3 auditEventsV3();
+
+    /**
+     * Main entry point to the Cloud Foundry Blobstores Client API
      */
     Blobstores blobstores();
 
     /**
-     * Main entry point to the Cloud Foundry Buildpacks V2 Client API
+     * Main entry point to the Cloud Foundry Buildpacks Client API
      */
     Buildpacks buildpacks();
 
@@ -97,9 +110,19 @@ public interface CloudFoundryClient {
     Builds builds();
 
     /**
+     * Main entry point to the Cloud Foundry Deployments V3 Client API
+     */
+    DeploymentsV3 deploymentsV3();
+
+    /**
      * Main entry point to the Cloud Foundry Domains Client API
      */
     Domains domains();
+
+    /**
+     * Main entry point to the Cloud Foundry Domains V3 Client API
+     */
+    DomainsV3 domainsV3();
 
     /**
      * Main entry point to the Cloud Foundry Droplets Client API
@@ -127,6 +150,11 @@ public interface CloudFoundryClient {
     Info info();
 
     /**
+     * Main entry point to the Cloud Foundry Isolation Segments API
+     */
+    IsolationSegments isolationSegments();
+
+    /**
      * Main entry point to the Cloud Foundry Jobs Client API
      */
     Jobs jobs();
@@ -142,9 +170,14 @@ public interface CloudFoundryClient {
     OrganizationQuotaDefinitions organizationQuotaDefinitions();
 
     /**
-     * Main entry point to the Cloud Foundry Organizations Client API
+     * Main entry point to the Cloud Foundry Organizations V2 Client API
      */
     Organizations organizations();
+
+    /**
+     * Main entry point to the Cloud Foundry Organizations V3 Client API
+     */
+    OrganizationsV3 organizationsV3();
 
     /**
      * Main entry point to the Cloud Foundry Packages Client API
@@ -177,6 +210,11 @@ public interface CloudFoundryClient {
     Routes routes();
 
     /**
+     * Main entry point to the Cloud Foundry Routes V3 Client API
+     */
+    RoutesV3 routesV3();
+
+    /**
      * Main entry point to the Cloud Foundry Security Groups Client API
      */
     SecurityGroups securityGroups();
@@ -200,6 +238,11 @@ public interface CloudFoundryClient {
      * Main entry point to the Cloud Foundry Service Instances Client API
      */
     ServiceInstances serviceInstances();
+
+    /**
+     * Main entry point to the Cloud Foundry Service Instances V3 Client API
+     */
+    ServiceInstancesV3 serviceInstancesV3();
 
     /**
      * Main entry point to the Cloud Foundry Service Keys Client API
@@ -237,9 +280,14 @@ public interface CloudFoundryClient {
     SpaceQuotaDefinitions spaceQuotaDefinitions();
 
     /**
-     * Main entry point to the Cloud Foundry Spaces Client API
+     * Main entry point to the Cloud Foundry Spaces V2 Client API
      */
     Spaces spaces();
+
+    /**
+     * Main entry point to the Cloud Foundry Spaces V3 Client API
+     */
+    SpacesV3 spacesV3();
 
     /**
      * Main entry point to the Cloud Foundry Stacks Client API

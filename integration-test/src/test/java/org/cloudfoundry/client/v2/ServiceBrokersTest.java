@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -41,6 +41,7 @@ import reactor.test.StepVerifier;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.ServiceBrokerUtils.createServiceBroker;
@@ -76,11 +77,10 @@ public final class ServiceBrokersTest extends AbstractIntegrationTest {
         }
 
         ServiceBrokerUtils.ApplicationMetadata applicationMetadata = this.organizationId
-            .flatMap(organizationId -> Mono
-                .when(
-                    createSpaceId(this.cloudFoundryClient, organizationId, spaceName),
-                    getSharedDomain(this.cloudFoundryClient)
-                ))
+            .flatMap(organizationId -> Mono.zip(
+                createSpaceId(this.cloudFoundryClient, organizationId, spaceName),
+                getSharedDomain(this.cloudFoundryClient)
+            ))
             .flatMap(function((spaceId, domain) -> ServiceBrokerUtils.pushServiceBrokerApplication(this.cloudFoundryClient, application, domain, this.nameFactory, planName, serviceName, spaceId)))
             .block(Duration.ofMinutes(5));
 
@@ -204,6 +204,7 @@ public final class ServiceBrokersTest extends AbstractIntegrationTest {
 
     private static Mono<SharedDomainResource> getSharedDomain(CloudFoundryClient cloudFoundryClient) {
         return requestListSharedDomains(cloudFoundryClient)
+            .filter(resource -> !Optional.ofNullable(ResourceUtils.getEntity(resource).getInternal()).orElse(false))
             .next();
     }
 

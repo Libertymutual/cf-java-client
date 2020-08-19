@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -47,9 +47,10 @@ abstract class _ListMatchingResourcesResponse {
         }
 
         @Override
+        @SuppressWarnings("unchecked")
         public ListMatchingResourcesResponse deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
             return ListMatchingResourcesResponse.builder()
-                .resources(p.readValueAs(new TypeReference<List<Resource>>() {
+                .resources((List<Resource>) p.readValueAs(new TypeReference<List<Resource>>() {
 
                 }))
                 .build();

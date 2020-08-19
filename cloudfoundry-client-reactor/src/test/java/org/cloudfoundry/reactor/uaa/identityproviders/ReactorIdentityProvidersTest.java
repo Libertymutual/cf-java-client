@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,7 +15,6 @@
  */
 
 package org.cloudfoundry.reactor.uaa.identityproviders;
-
 
 import org.cloudfoundry.reactor.InteractionContext;
 import org.cloudfoundry.reactor.TestRequest;
@@ -57,7 +56,7 @@ import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 
 public final class ReactorIdentityProvidersTest extends AbstractUaaApiTest {
 
-    private final ReactorIdentityProviders identityProviders = new ReactorIdentityProviders(CONNECTION_CONTEXT, this.root, TOKEN_PROVIDER);
+    private final ReactorIdentityProviders identityProviders = new ReactorIdentityProviders(CONNECTION_CONTEXT, this.root, TOKEN_PROVIDER, Collections.emptyMap());
 
     @Test
     public void createLdap() {

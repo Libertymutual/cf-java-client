@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -46,6 +46,7 @@ abstract class _LdapConfiguration extends AbstractExternalIdentityProviderConfig
      * The URL to the ldap server, must start with ldap:// or ldaps://
      */
     @JsonProperty("baseUrl")
+    @Nullable
     abstract String getBaseUrl();
 
     /**
@@ -108,12 +109,14 @@ abstract class _LdapConfiguration extends AbstractExternalIdentityProviderConfig
      * The file to be used for group integration.
      */
     @JsonProperty("ldapGroupFile")
+    @Nullable
     abstract LdapGroupFile getLdapGroupFile();
 
     /**
      * The file to be used for configuring the LDAP authentication.
      */
     @JsonProperty("ldapProfileFile")
+    @Nullable
     abstract LdapProfileFile getLdapProfileFile();
 
     /**

@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package org.cloudfoundry.operations.services;
 
 import org.cloudfoundry.client.CloudFoundryClient;
 import org.cloudfoundry.client.v2.ClientV2Exception;
+import org.cloudfoundry.client.v2.MaintenanceInfo;
 import org.cloudfoundry.client.v2.Metadata;
 import org.cloudfoundry.client.v2.applications.ApplicationEntity;
 import org.cloudfoundry.client.v2.applications.ApplicationResource;
@@ -89,12 +90,14 @@ import org.cloudfoundry.client.v2.userprovidedserviceinstances.AssociateUserProv
 import org.cloudfoundry.client.v2.userprovidedserviceinstances.AssociateUserProvidedServiceInstanceRouteResponse;
 import org.cloudfoundry.client.v2.userprovidedserviceinstances.CreateUserProvidedServiceInstanceResponse;
 import org.cloudfoundry.client.v2.userprovidedserviceinstances.DeleteUserProvidedServiceInstanceRequest;
+import org.cloudfoundry.client.v2.userprovidedserviceinstances.RemoveUserProvidedServiceInstanceRouteRequest;
 import org.cloudfoundry.client.v2.userprovidedserviceinstances.UpdateUserProvidedServiceInstanceResponse;
 import org.cloudfoundry.client.v2.userprovidedserviceinstances.UserProvidedServiceInstanceEntity;
 import org.cloudfoundry.operations.AbstractOperationsTest;
 import org.junit.Test;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
+import reactor.test.scheduler.VirtualTimeScheduler;
 
 import java.time.Duration;
 import java.util.Arrays;
@@ -344,7 +347,7 @@ public final class DefaultServicesTest extends AbstractOperationsTest {
     @Test
     public void createUserProvidedServiceInstance() {
         requestCreateUserProvidedServiceInstance(this.cloudFoundryClient, TEST_SPACE_ID, "test-user-provided-service-instance",
-            Collections.singletonMap("test-credential-key", "test-credential-value"), "test-route-url", "test-syslog-url", "test-user-provided-service-instance-id");
+            Collections.singletonMap("test-credential-key", "test-credential-value"), "test-route-url", "test-syslog-url", "test-tag", "test-user-provided-service-instance-id");
 
         this.services
             .createUserProvidedInstance(CreateUserProvidedServiceInstanceRequest.builder()
@@ -352,6 +355,7 @@ public final class DefaultServicesTest extends AbstractOperationsTest {
                 .name("test-user-provided-service-instance")
                 .routeServiceUrl("test-route-url")
                 .syslogDrainUrl("test-syslog-url")
+                .tags("test-tag")
                 .build())
             .as(StepVerifier::create)
             .expectComplete()
@@ -364,11 +368,11 @@ public final class DefaultServicesTest extends AbstractOperationsTest {
         requestDeleteServiceInstance(this.cloudFoundryClient, "test-service-instance-id");
         requestJobSuccess(this.cloudFoundryClient, "test-job-entity-id");
 
-        this.services
+        StepVerifier.withVirtualTime(() -> this.services
             .deleteInstance(DeleteServiceInstanceRequest.builder()
                 .name("test-service-instance-name")
-                .build())
-            .as(StepVerifier::create)
+                .build()))
+            .then(() -> VirtualTimeScheduler.get().advanceTimeBy(Duration.ofSeconds(3)))
             .expectComplete()
             .verify(Duration.ofSeconds(5));
     }
@@ -477,6 +481,10 @@ public final class DefaultServicesTest extends AbstractOperationsTest {
                 .documentationUrl("test-documentation-url")
                 .id("test-service-instance-id")
                 .lastOperation("test-type")
+                .maintenanceInfo(MaintenanceInfo.builder()
+                    .description("test-description")
+                    .version("test-version")
+                    .build())
                 .name("test-service-instance-name")
                 .plan("test-service-plan")
                 .tag("test-tag")
@@ -563,7 +571,7 @@ public final class DefaultServicesTest extends AbstractOperationsTest {
             .listInstances()
             .as(StepVerifier::create)
             .expectNext(ServiceInstanceSummary.builder()
-                .application("test-application-name-1", "test-application-name-2")
+                .applications("test-application-name-1", "test-application-name-2")
                 .id("test-service-id-2")
                 .lastOperation("test-last-operation-description-2")
                 .name("test-service-name-2")
@@ -633,7 +641,7 @@ public final class DefaultServicesTest extends AbstractOperationsTest {
             .listInstances()
             .as(StepVerifier::create)
             .expectNext(ServiceInstanceSummary.builder()
-                .application("test-application-name-1", "test-application-name-2")
+                .applications("test-application-name-1", "test-application-name-2")
                 .id("test-service-id-2")
                 .name("test-service-name-2")
                 .type(ServiceInstanceType.USER_PROVIDED)
@@ -765,6 +773,55 @@ public final class DefaultServicesTest extends AbstractOperationsTest {
     }
 
     @Test
+    public void unbindRoute() {
+        requestListOrganizationPrivateDomains(this.cloudFoundryClient, "test-domain-name", TEST_ORGANIZATION_ID);
+        requestListRoutes(this.cloudFoundryClient, "test-private-domain-id");
+        requestListSpaceServiceInstancesUserProvided(this.cloudFoundryClient, "test-service-instance-name", TEST_SPACE_ID);
+        requestRemoveUserProvidedServiceInstanceRoute(this.cloudFoundryClient, "test-route-id", "test-service-instance-id");
+
+        this.services
+            .unbindRoute(UnbindRouteServiceInstanceRequest.builder()
+                .domainName("test-domain-name")
+                .serviceInstanceName("test-service-instance-name")
+                .build())
+            .as(StepVerifier::create)
+            .expectComplete()
+            .verify(Duration.ofSeconds(5));
+    }
+
+    @Test
+    public void unbindRouteServiceInstanceRouteNotFound() {
+        requestListOrganizationPrivateDomains(this.cloudFoundryClient, "test-domain-name", TEST_ORGANIZATION_ID);
+        requestListRoutesEmpty(this.cloudFoundryClient, "test-private-domain-id");
+        requestListSpaceServiceInstances(this.cloudFoundryClient, "test-service-instance-name", TEST_SPACE_ID);
+
+        this.services
+            .unbindRoute(UnbindRouteServiceInstanceRequest.builder()
+                .domainName("test-domain-name")
+                .serviceInstanceName("test-service-instance-name")
+                .build())
+            .as(StepVerifier::create)
+            .consumeErrorWith(t -> assertThat(t).isInstanceOf(IllegalArgumentException.class).hasMessage("Route test-domain-name does not exist"))
+            .verify(Duration.ofSeconds(5));
+    }
+
+    @Test
+    public void unbindRouteServiceInstanceServiceInstanceNotFound() {
+        requestListOrganizationPrivateDomains(this.cloudFoundryClient, "test-domain-name", TEST_ORGANIZATION_ID);
+        requestListRoutes(this.cloudFoundryClient, "test-private-domain-id");
+        requestListSpaceServiceInstancesEmpty(this.cloudFoundryClient, "test-service-instance-name", TEST_SPACE_ID);
+
+        this.services
+            .unbindRoute(UnbindRouteServiceInstanceRequest.builder()
+                .domainName("test-domain-name")
+                .serviceInstanceName("test-service-instance-name")
+                .build())
+            .as(StepVerifier::create)
+            .consumeErrorWith(t -> assertThat(t).isInstanceOf(IllegalArgumentException.class).hasMessage("Service instance test-service-instance-name does not exist"))
+            .verify(Duration.ofSeconds(5));
+    }
+
+    @Test
     public void unbindServiceInstance() {
         requestApplications(this.cloudFoundryClient, "test-application-name", TEST_SPACE_ID);
         requestListSpaceServiceInstances(this.cloudFoundryClient, "test-service-instance-name", TEST_SPACE_ID);
@@ -772,12 +829,12 @@ public final class DefaultServicesTest extends AbstractOperationsTest {
         requestDeleteServiceBinding(this.cloudFoundryClient, "test-service-binding-id");
         requestJobSuccess(this.cloudFoundryClient, "test-job-entity-id");
 
-        this.services
+        StepVerifier.withVirtualTime(() -> this.services
             .unbind(UnbindServiceInstanceRequest.builder()
                 .applicationName("test-application-name")
                 .serviceInstanceName("test-service-instance-name")
-                .build())
-            .as(StepVerifier::create)
+                .build()))
+            .then(() -> VirtualTimeScheduler.get().advanceTimeBy(Duration.ofSeconds(3)))
             .expectComplete()
             .verify(Duration.ofSeconds(5));
     }
@@ -790,12 +847,12 @@ public final class DefaultServicesTest extends AbstractOperationsTest {
         requestDeleteServiceBinding(this.cloudFoundryClient, "test-service-binding-id");
         requestJobFailure(this.cloudFoundryClient, "test-job-entity-id");
 
-        this.services
+        StepVerifier.withVirtualTime(() -> this.services
             .unbind(UnbindServiceInstanceRequest.builder()
                 .applicationName("test-application-name")
                 .serviceInstanceName("test-service-instance-name")
-                .build())
-            .as(StepVerifier::create)
+                .build()))
+            .then(() -> VirtualTimeScheduler.get().advanceTimeBy(Duration.ofSeconds(3)))
             .consumeErrorWith(t -> assertThat(t).isInstanceOf(ClientV2Exception.class).hasMessage("test-error-details-errorCode(1): test-error-details-description"))
             .verify(Duration.ofSeconds(5));
     }
@@ -808,6 +865,7 @@ public final class DefaultServicesTest extends AbstractOperationsTest {
         requestListSpaceServicePlans(this.cloudFoundryClient, "test-service-id", "test-plan", "test-plan-id");
         requestUpdateServiceInstance(this.cloudFoundryClient, Collections.singletonMap("test-parameter-key", "test-parameter-value"), "test-service-instance-id", "test-plan-id",
             Collections.singletonList("test-tag"));
+        requestGetServiceInstance(this.cloudFoundryClient, "test-id", "successful");
 
         this.services
             .updateInstance(UpdateServiceInstanceRequest.builder()
@@ -847,6 +905,7 @@ public final class DefaultServicesTest extends AbstractOperationsTest {
         requestGetService(this.cloudFoundryClient, "test-service-id", "test-service");
         requestListSpaceServicePlans(this.cloudFoundryClient, "test-service-id", "test-plan", "test-service-plan-id");
         requestUpdateServiceInstance(this.cloudFoundryClient, null, "test-service-instance-id", "test-service-plan-id", Collections.singletonList("test-tag"));
+        requestGetServiceInstance(this.cloudFoundryClient, "test-id", "successful");
 
         this.services
             .updateInstance(UpdateServiceInstanceRequest.builder()
@@ -864,6 +923,7 @@ public final class DefaultServicesTest extends AbstractOperationsTest {
         requestListSpaceServiceInstances(this.cloudFoundryClient, "test-service", TEST_SPACE_ID);
         requestUpdateServiceInstance(this.cloudFoundryClient, Collections.singletonMap("test-parameter-key", "test-parameter-value"), "test-service-instance-id", null,
             Collections.singletonList("test-tag"));
+        requestGetServiceInstance(this.cloudFoundryClient, "test-id", "successful");
 
         this.services
             .updateInstance(UpdateServiceInstanceRequest.builder()
@@ -899,6 +959,7 @@ public final class DefaultServicesTest extends AbstractOperationsTest {
         requestGetService(this.cloudFoundryClient, "test-service-id", "test-service");
         requestListSpaceServicePlans(this.cloudFoundryClient, "test-service-id", "test-plan", "test-plan-id");
         requestUpdateServiceInstance(this.cloudFoundryClient, Collections.singletonMap("test-parameter-key", "test-parameter-value"), "test-service-instance-id", "test-plan-id", null);
+        requestGetServiceInstance(this.cloudFoundryClient, "test-id", "successful");
 
         this.services
             .updateInstance(UpdateServiceInstanceRequest.builder()
@@ -920,6 +981,7 @@ public final class DefaultServicesTest extends AbstractOperationsTest {
         requestListSpaceServicePlanVisibilities(this.cloudFoundryClient, "test-organization-id", "test-plan-id");
         requestUpdateServiceInstance(this.cloudFoundryClient, Collections.singletonMap("test-parameter-key", "test-parameter-value"), "test-service-instance-id", "test-plan-id",
             Collections.singletonList("test-tag"));
+        requestGetServiceInstance(this.cloudFoundryClient, "test-id", "successful");
 
         this.services
             .updateInstance(UpdateServiceInstanceRequest.builder()
@@ -974,13 +1036,14 @@ public final class DefaultServicesTest extends AbstractOperationsTest {
     @Test
     public void updateUserProvidedService() {
         requestListSpaceServiceInstancesUserProvided(this.cloudFoundryClient, "test-service", TEST_SPACE_ID);
-        requestUpdateUserProvidedServiceInstance(this.cloudFoundryClient, Collections.singletonMap("test-credential-key", "test-credential-value"), "syslog-url",
-            "test-service-instance-id");
+        requestUpdateUserProvidedServiceInstance(this.cloudFoundryClient, Collections.singletonMap("test-credential-key", "test-credential-value"),
+            "syslog-url", Collections.singletonList("tag1"), "test-service-instance-id");
 
         this.services
             .updateUserProvidedInstance(UpdateUserProvidedServiceInstanceRequest.builder()
                 .credential("test-credential-key", "test-credential-value")
                 .syslogDrainUrl("syslog-url")
+                .tags("tag1")
                 .userProvidedServiceInstanceName("test-service")
                 .build())
             .as(StepVerifier::create)
@@ -1129,7 +1192,7 @@ public final class DefaultServicesTest extends AbstractOperationsTest {
     }
 
     private static void requestCreateUserProvidedServiceInstance(CloudFoundryClient cloudFoundryClient, String spaceId, String name, Map<String, Object> credentials, String routeServiceUrl,
-                                                                 String syslogDrainUrl, String userProvidedServiceInstanceId) {
+                                                                 String syslogDrainUrl, String tag, String userProvidedServiceInstanceId) {
         when(cloudFoundryClient.userProvidedServiceInstances()
             .create(org.cloudfoundry.client.v2.userprovidedserviceinstances.CreateUserProvidedServiceInstanceRequest.builder()
                 .credentials(credentials)
@@ -1137,6 +1200,7 @@ public final class DefaultServicesTest extends AbstractOperationsTest {
                 .routeServiceUrl(routeServiceUrl)
                 .spaceId(spaceId)
                 .syslogDrainUrl(syslogDrainUrl)
+                .tag(tag)
                 .build()))
             .thenReturn(Mono
                 .just(fill(CreateUserProvidedServiceInstanceResponse.builder())
@@ -1324,13 +1388,13 @@ public final class DefaultServicesTest extends AbstractOperationsTest {
                     .application(SpaceApplicationSummary.builder()
                         .id("test-application-id-1")
                         .name("test-application-name-1")
-                        .serviceName("test-service-name-1", "test-service-name-2")
+                        .serviceNames("test-service-name-1", "test-service-name-2")
                         .spaceId(spaceId)
                         .build())
                     .application(SpaceApplicationSummary.builder()
                         .id("test-application-id-2")
                         .name("test-application-name-2")
-                        .serviceName("test-service-name-2", "test-service-name-3")
+                        .serviceNames("test-service-name-2", "test-service-name-3")
                         .spaceId(spaceId)
                         .build())
                     .service(org.cloudfoundry.client.v2.serviceinstances.ServiceInstance.builder()
@@ -1388,7 +1452,7 @@ public final class DefaultServicesTest extends AbstractOperationsTest {
                     .application(SpaceApplicationSummary.builder()
                         .id("test-application-id")
                         .name("test-application-name")
-                        .serviceName("test-service-name-1", "test-service-name-2")
+                        .serviceNames("test-service-name-1", "test-service-name-2")
                         .spaceId(spaceId)
                         .build())
                     .service(org.cloudfoundry.client.v2.serviceinstances.ServiceInstance.builder()
@@ -1420,13 +1484,13 @@ public final class DefaultServicesTest extends AbstractOperationsTest {
                     .application(SpaceApplicationSummary.builder()
                         .id("test-application-id-1")
                         .name("test-application-name-1")
-                        .serviceName("test-service-name-1", "test-service-name-2")
+                        .serviceNames("test-service-name-1", "test-service-name-2")
                         .spaceId(spaceId)
                         .build())
                     .application(SpaceApplicationSummary.builder()
                         .id("test-application-id-2")
                         .name("test-application-name-2")
-                        .serviceName("test-service-name-2", "test-service-name-3")
+                        .serviceNames("test-service-name-2", "test-service-name-3")
                         .spaceId(spaceId)
                         .build())
                     .service(org.cloudfoundry.client.v2.serviceinstances.ServiceInstance.builder()
@@ -1559,6 +1623,17 @@ public final class DefaultServicesTest extends AbstractOperationsTest {
                             .serviceInstanceId("test-service-instance-id")
                             .build())
                         .build())
+                    .build()));
+    }
+
+    private static void requestListRoutesEmpty(CloudFoundryClient cloudFoundryClient, String domainId) {
+        when(cloudFoundryClient.routes()
+            .list(ListRoutesRequest.builder()
+                .domainId(domainId)
+                .page(1)
+                .build()))
+            .thenReturn(Mono
+                .just(fill(ListRoutesResponse.builder())
                     .build()));
     }
 
@@ -1860,6 +1935,15 @@ public final class DefaultServicesTest extends AbstractOperationsTest {
                     .build()));
     }
 
+    private static void requestRemoveUserProvidedServiceInstanceRoute(CloudFoundryClient cloudFoundryClient, String routeId, String serviceInstanceId) {
+        when(cloudFoundryClient.userProvidedServiceInstances()
+            .removeRoute(RemoveUserProvidedServiceInstanceRouteRequest.builder()
+                .routeId(routeId)
+                .userProvidedServiceInstanceId(serviceInstanceId)
+                .build()))
+            .thenReturn(Mono.empty());
+    }
+
     private static void requestRenameServiceInstance(CloudFoundryClient cloudFoundryClient, String serviceInstanceId, String newName) {
         when(cloudFoundryClient.serviceInstances()
             .update(org.cloudfoundry.client.v2.serviceinstances.UpdateServiceInstanceRequest.builder()
@@ -1885,11 +1969,13 @@ public final class DefaultServicesTest extends AbstractOperationsTest {
                     .build()));
     }
 
-    private static void requestUpdateUserProvidedServiceInstance(CloudFoundryClient cloudFoundryClient, Map<String, Object> credentials, String syslogDrainUrl, String userProvidedServiceInstanceId) {
+    private static void requestUpdateUserProvidedServiceInstance(CloudFoundryClient cloudFoundryClient, Map<String, Object> credentials, String syslogDrainUrl, List<String> tags,
+                                                                 String userProvidedServiceInstanceId) {
         when(cloudFoundryClient.userProvidedServiceInstances()
             .update(org.cloudfoundry.client.v2.userprovidedserviceinstances.UpdateUserProvidedServiceInstanceRequest.builder()
                 .credentials(credentials)
                 .syslogDrainUrl(syslogDrainUrl)
+                .tags(tags)
                 .userProvidedServiceInstanceId(userProvidedServiceInstanceId)
                 .build()))
             .thenReturn(Mono

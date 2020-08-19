@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,6 +25,8 @@ import org.cloudfoundry.reactor.ConnectionContext;
 import org.cloudfoundry.reactor.TokenProvider;
 import org.cloudfoundry.uaa.tokens.Tokens;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
+import reactor.util.retry.Retry;
 
 import java.util.Optional;
 
@@ -49,14 +51,9 @@ final class UsernameProvider {
     Mono<String> get() {
         return getToken(this.connectionContext, this.tokenProvider)
             .map(this::getUsername)
-            .retry(1, t -> {
-                if (t instanceof ExpiredJwtException) {
-                    this.tokenProvider.invalidate(this.connectionContext);
-                    return true;
-                }
-
-                return false;
-            });
+            .subscribeOn(Schedulers.elastic())
+            .retryWhen(Retry.max(1).filter(ExpiredJwtException.class::isInstance)
+                .doAfterRetry(r -> this.tokenProvider.invalidate(this.connectionContext)));
     }
 
     private static Mono<String> getToken(ConnectionContext connectionContext, TokenProvider tokenProvider) {

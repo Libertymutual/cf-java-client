@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,9 +36,8 @@ import java.sql.Date;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
-import java.util.concurrent.TimeoutException;
 
-import static org.mockito.Matchers.any;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -55,7 +54,7 @@ public final class UsernameProviderTest {
 
     @SuppressWarnings("unchecked")
     @Test
-    public void getInvalidToken() throws InterruptedException, TimeoutException, NoSuchAlgorithmException {
+    public void getInvalidToken() throws NoSuchAlgorithmException {
         KeyPair keyPair = getKeyPair();
         when(this.signingKeyResolver.resolveSigningKey(any(JwsHeader.class), any(Claims.class))).thenReturn(keyPair.getPublic());
 

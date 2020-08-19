@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 package org.cloudfoundry.reactor.uaa.tokens;
 
+import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.util.AsciiString;
 import org.cloudfoundry.reactor.ConnectionContext;
 import org.cloudfoundry.reactor.TokenProvider;
@@ -41,9 +42,9 @@ import org.cloudfoundry.uaa.tokens.RefreshTokenRequest;
 import org.cloudfoundry.uaa.tokens.RefreshTokenResponse;
 import org.cloudfoundry.uaa.tokens.Tokens;
 import reactor.core.publisher.Mono;
-import reactor.ipc.netty.http.client.HttpClientRequest;
 
 import java.util.Base64;
+import java.util.Map;
 
 import static io.netty.handler.codec.http.HttpHeaderNames.AUTHORIZATION;
 import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
@@ -53,7 +54,6 @@ import static org.cloudfoundry.uaa.tokens.GrantType.CLIENT_CREDENTIALS;
 import static org.cloudfoundry.uaa.tokens.GrantType.PASSWORD;
 import static org.cloudfoundry.uaa.tokens.GrantType.REFRESH_TOKEN;
 
-
 public final class ReactorTokens extends AbstractUaaOperations implements Tokens {
 
     private static final AsciiString BASIC_PREAMBLE = new AsciiString("Basic ");
@@ -62,71 +62,73 @@ public final class ReactorTokens extends AbstractUaaOperations implements Tokens
      * Creates an instance
      *
      * @param connectionContext the {@link ConnectionContext} to use when communicating with the server
-     * @param root              the root URI of the server.  Typically something like {@code https://uaa.run.pivotal.io}.
+     * @param root              the root URI of the server. Typically something like {@code https://uaa.run.pivotal.io}.
      * @param tokenProvider     the {@link TokenProvider} to use when communicating with the server
+     * @param requestTags       map with custom http headers which will be added to web request
      */
-    public ReactorTokens(ConnectionContext connectionContext, Mono<String> root, TokenProvider tokenProvider) {
-        super(connectionContext, root, tokenProvider);
+    public ReactorTokens(ConnectionContext connectionContext, Mono<String> root, TokenProvider tokenProvider, Map<String, String> requestTags) {
+        super(connectionContext, root, tokenProvider, requestTags);
     }
 
     @Override
     public Mono<CheckTokenResponse> check(CheckTokenRequest request) {
         return post(request, CheckTokenResponse.class, builder -> builder.pathSegment("check_token"),
-            outbound -> outbound
-                .map(r -> {
-                    String encoded = Base64.getEncoder().encodeToString(new AsciiString(request.getClientId()).concat(":").concat(request.getClientSecret()).toByteArray());
-                    r.requestHeaders().set(AUTHORIZATION, BASIC_PREAMBLE + encoded);
-                    return r;
-                }))
+            outbound -> {
+            },
+            outbound -> {
+                String encoded = Base64.getEncoder().encodeToString(new AsciiString(request.getClientId()).concat(":").concat(request.getClientSecret()).toByteArray());
+                return Mono.just(outbound.set(AUTHORIZATION, BASIC_PREAMBLE + encoded));
+            })
             .checkpoint();
     }
 
     @Override
     public Mono<GetTokenByAuthorizationCodeResponse> getByAuthorizationCode(GetTokenByAuthorizationCodeRequest request) {
-        return post(request, GetTokenByAuthorizationCodeResponse.class,
-            builder -> builder.pathSegment("oauth", "token").queryParam("grant_type", AUTHORIZATION_CODE).queryParam("response_type", ResponseType.TOKEN),
-            outbound -> outbound
-                .map(ReactorTokens::removeAuthorization)
-                .map(ReactorTokens::setUrlEncoded))
+        return post(request, GetTokenByAuthorizationCodeResponse.class, builder -> builder.pathSegment("oauth", "token")
+                .queryParam("grant_type", AUTHORIZATION_CODE)
+                .queryParam("response_type", ResponseType.TOKEN),
+            ReactorTokens::setUrlEncoded,
+            ReactorTokens::removeAuthorization)
             .checkpoint();
     }
 
     @Override
     public Mono<GetTokenByClientCredentialsResponse> getByClientCredentials(GetTokenByClientCredentialsRequest request) {
-        return post(request, GetTokenByClientCredentialsResponse.class,
-            builder -> builder.pathSegment("oauth", "token").queryParam("grant_type", CLIENT_CREDENTIALS).queryParam("response_type", ResponseType.TOKEN),
-            outbound -> outbound
-                .map(ReactorTokens::removeAuthorization)
-                .map(ReactorTokens::setUrlEncoded))
+        return post(request, GetTokenByClientCredentialsResponse.class, builder -> builder.pathSegment("oauth", "token")
+                .queryParam("grant_type", CLIENT_CREDENTIALS)
+                .queryParam("response_type", ResponseType.TOKEN),
+            ReactorTokens::setUrlEncoded,
+            ReactorTokens::removeAuthorization)
             .checkpoint();
     }
 
     @Override
     public Mono<GetTokenByOneTimePasscodeResponse> getByOneTimePasscode(GetTokenByOneTimePasscodeRequest request) {
-        return post(request, GetTokenByOneTimePasscodeResponse.class,
-            builder -> builder.pathSegment("oauth", "token").queryParam("grant_type", PASSWORD).queryParam("response_type", ResponseType.TOKEN),
-            outbound -> outbound
-                .map(ReactorTokens::removeAuthorization)
-                .map(ReactorTokens::setUrlEncoded))
+        return post(request, GetTokenByOneTimePasscodeResponse.class, builder -> builder.pathSegment("oauth", "token")
+                .queryParam("grant_type", PASSWORD)
+                .queryParam("response_type", ResponseType.TOKEN),
+            ReactorTokens::setUrlEncoded,
+            ReactorTokens::removeAuthorization)
             .checkpoint();
     }
 
     @Override
     public Mono<GetTokenByOpenIdResponse> getByOpenId(GetTokenByOpenIdRequest request) {
-        return post(request, GetTokenByOpenIdResponse.class,
-            builder -> builder.pathSegment("oauth", "token").queryParam("grant_type", AUTHORIZATION_CODE).queryParam("response_type", ResponseType.ID_TOKEN),
-            outbound -> outbound
-                .map(ReactorTokens::removeAuthorization)
-                .map(ReactorTokens::setUrlEncoded))
+        return post(request, GetTokenByOpenIdResponse.class, builder -> builder.pathSegment("oauth", "token")
+                .queryParam("grant_type", AUTHORIZATION_CODE)
+                .queryParam("response_type", ResponseType.ID_TOKEN),
+            ReactorTokens::setUrlEncoded,
+            ReactorTokens::removeAuthorization)
             .checkpoint();
     }
 
     @Override
     public Mono<GetTokenByPasswordResponse> getByPassword(GetTokenByPasswordRequest request) {
-        return post(request, GetTokenByPasswordResponse.class, builder -> builder.pathSegment("oauth", "token").queryParam("grant_type", PASSWORD).queryParam("response_type", ResponseType.TOKEN),
-            outbound -> outbound
-                .map(ReactorTokens::removeAuthorization)
-                .map(ReactorTokens::setUrlEncoded))
+        return post(request, GetTokenByPasswordResponse.class, builder -> builder.pathSegment("oauth", "token")
+                .queryParam("grant_type", PASSWORD)
+                .queryParam("response_type", ResponseType.TOKEN),
+            ReactorTokens::setUrlEncoded,
+            ReactorTokens::removeAuthorization)
             .checkpoint();
     }
 
@@ -144,22 +146,19 @@ public final class ReactorTokens extends AbstractUaaOperations implements Tokens
 
     @Override
     public Mono<RefreshTokenResponse> refresh(RefreshTokenRequest request) {
-        return post(request, RefreshTokenResponse.class, builder -> builder.pathSegment("oauth", "token").queryParam("grant_type", REFRESH_TOKEN),
-            outbound -> outbound
-                .map(ReactorTokens::removeAuthorization)
-                .map(ReactorTokens::setUrlEncoded))
+        return post(request, RefreshTokenResponse.class, builder -> builder.pathSegment("oauth", "token")
+                .queryParam("grant_type", REFRESH_TOKEN),
+            ReactorTokens::setUrlEncoded,
+            ReactorTokens::removeAuthorization)
             .checkpoint();
     }
 
-    private static HttpClientRequest removeAuthorization(HttpClientRequest request) {
-        request.requestHeaders().remove(AUTHORIZATION);
-        return request;
+    private static Mono<HttpHeaders> removeAuthorization(HttpHeaders request) {
+        return Mono.just(request.remove(AUTHORIZATION));
     }
 
-    private static HttpClientRequest setUrlEncoded(HttpClientRequest request) {
-        return request
-            .chunkedTransfer(false)
-            .header(CONTENT_TYPE, APPLICATION_X_WWW_FORM_URLENCODED);
+    private static void setUrlEncoded(HttpHeaders request) {
+        request.set(CONTENT_TYPE, APPLICATION_X_WWW_FORM_URLENCODED);
     }
 
 }

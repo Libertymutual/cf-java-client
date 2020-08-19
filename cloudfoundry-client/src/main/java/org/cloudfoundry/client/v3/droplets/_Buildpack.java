@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,16 +26,30 @@ import org.immutables.value.Value;
 abstract class _Buildpack {
 
     /**
-     * The detect output from staging
+     * The name reported by buildpack
+     */
+    @JsonProperty("buildpack_name")
+    @Nullable
+    abstract String getBuildpackName();
+
+    /**
+     * The output during buildpack detect process
      */
     @JsonProperty("detect_output")
     @Nullable
     abstract String getDetectOutput();
 
     /**
-     * The name of the buildpack
+     * The system buildpack name
      */
     @JsonProperty("name")
     abstract String getName();
+
+    /**
+     * The version of the buildpack
+     */
+    @JsonProperty("version")
+    @Nullable
+    abstract String getVersion();
 
 }

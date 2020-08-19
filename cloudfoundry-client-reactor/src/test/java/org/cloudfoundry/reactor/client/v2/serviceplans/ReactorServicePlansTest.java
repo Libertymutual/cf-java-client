@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,6 +28,11 @@ import org.cloudfoundry.client.v2.serviceplans.ListServicePlanServiceInstancesRe
 import org.cloudfoundry.client.v2.serviceplans.ListServicePlanServiceInstancesResponse;
 import org.cloudfoundry.client.v2.serviceplans.ListServicePlansRequest;
 import org.cloudfoundry.client.v2.serviceplans.ListServicePlansResponse;
+import org.cloudfoundry.client.v2.serviceplans.Parameters;
+import org.cloudfoundry.client.v2.serviceplans.Schema;
+import org.cloudfoundry.client.v2.serviceplans.Schemas;
+import org.cloudfoundry.client.v2.serviceplans.ServiceBindingSchema;
+import org.cloudfoundry.client.v2.serviceplans.ServiceInstanceSchema;
 import org.cloudfoundry.client.v2.serviceplans.ServicePlanEntity;
 import org.cloudfoundry.client.v2.serviceplans.ServicePlanResource;
 import org.cloudfoundry.client.v2.serviceplans.UpdateServicePlanRequest;
@@ -41,6 +46,8 @@ import reactor.test.StepVerifier;
 
 import java.time.Duration;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 import static io.netty.handler.codec.http.HttpMethod.DELETE;
 import static io.netty.handler.codec.http.HttpMethod.GET;
@@ -50,16 +57,15 @@ import static io.netty.handler.codec.http.HttpResponseStatus.CREATED;
 import static io.netty.handler.codec.http.HttpResponseStatus.NO_CONTENT;
 import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 
-
 public final class ReactorServicePlansTest extends AbstractClientApiTest {
 
-    private final ReactorServicePlans servicePlans = new ReactorServicePlans(CONNECTION_CONTEXT, this.root, TOKEN_PROVIDER);
+    private final ReactorServicePlans servicePlans = new ReactorServicePlans(CONNECTION_CONTEXT, this.root, TOKEN_PROVIDER, Collections.emptyMap());
 
     @Test
     public void delete() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(DELETE).path("/v2/service_plans/test-service-plan-id")
+                .method(DELETE).path("/service_plans/test-service-plan-id")
                 .build())
             .response(TestResponse.builder()
                 .status(NO_CONTENT)
@@ -79,7 +85,7 @@ public final class ReactorServicePlansTest extends AbstractClientApiTest {
     public void deleteAsync() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(DELETE).path("/v2/service_plans/test-service-plan-id?async=true")
+                .method(DELETE).path("/service_plans/test-service-plan-id?async=true")
                 .build())
             .response(TestResponse.builder()
                 .status(ACCEPTED)
@@ -110,9 +116,21 @@ public final class ReactorServicePlansTest extends AbstractClientApiTest {
 
     @Test
     public void get() {
+        Map<String, String> details = new HashMap<>();
+        details.put("description", "Billing account number used to charge use of shared fake server.");
+        details.put("type", "string");
+
+        Schema testSchema = Schema.builder()
+            .parameters(Parameters.builder()
+                .jsonSchema("http://json-schema.org/draft-04/schema#")
+                .properties(Collections.singletonMap("billing-account", details))
+                .type("object")
+                .build())
+            .build();
+
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(GET).path("/v2/service_plans/test-service-plan-id")
+                .method(GET).path("/service_plans/test-service-plan-id")
                 .build())
             .response(TestResponse.builder()
                 .status(OK)
@@ -139,6 +157,15 @@ public final class ReactorServicePlansTest extends AbstractClientApiTest {
                     .uniqueId("2aa0162c-9c88-4084-ad1d-566a09e8d316")
                     .publiclyVisible(true)
                     .active(true)
+                    .schemas(Schemas.builder()
+                        .serviceBinding(ServiceBindingSchema.builder()
+                            .create(testSchema)
+                            .build())
+                        .serviceInstance(ServiceInstanceSchema.builder()
+                            .create(testSchema)
+                            .update(testSchema)
+                            .build())
+                        .build())
                     .serviceUrl("/v2/services/8ac39757-0f9d-4295-9b6f-e626f7ee3cd4")
                     .serviceInstancesUrl("/v2/service_plans/f6ceb8a2-e6fc-43d5-a11b-7ced9e1b47c7/service_instances")
                     .build())
@@ -151,7 +178,7 @@ public final class ReactorServicePlansTest extends AbstractClientApiTest {
     public void list() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(GET).path("/v2/service_plans?q=service_guid:test-service-id&page=-1")
+                .method(GET).path("/service_plans?q=service_guid%3Atest-service-id&page=-1")
                 .build())
             .response(TestResponse.builder()
                 .status(OK)
@@ -195,7 +222,7 @@ public final class ReactorServicePlansTest extends AbstractClientApiTest {
     public void listServiceInstances() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(GET).path("/v2/service_plans/test-service-plan-id/service_instances?q=space_guid:test-space-id&page=-1")
+                .method(GET).path("/service_plans/test-service-plan-id/service_instances?q=space_guid%3Atest-space-id&page=-1")
                 .build())
             .response(TestResponse.builder()
                 .status(OK)
@@ -241,7 +268,7 @@ public final class ReactorServicePlansTest extends AbstractClientApiTest {
     public void update() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(PUT).path("/v2/service_plans/test-service-plan-id")
+                .method(PUT).path("/service_plans/test-service-plan-id")
                 .payload("fixtures/client/v2/service_plans/PUT_{id}_request.json")
                 .build())
             .response(TestResponse.builder()

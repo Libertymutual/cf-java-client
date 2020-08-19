@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -76,11 +76,11 @@ public final class DomainsTest extends AbstractIntegrationTest {
     private Mono<String> userId;
 
     @Test
-    public void create() throws TimeoutException, InterruptedException {
+    public void create() {
         String domainName = this.nameFactory.getDomainName();
 
         this.organizationId
-            .flatMap(organizationId -> Mono.when(
+            .flatMap(organizationId -> Mono.zip(
                 createDomainEntity(this.cloudFoundryClient, organizationId, domainName),
                 Mono.just(organizationId)
             ))
@@ -91,7 +91,7 @@ public final class DomainsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void delete() throws TimeoutException, InterruptedException {
+    public void delete() {
         String domainName = this.nameFactory.getDomainName();
 
         this.organizationId
@@ -105,7 +105,7 @@ public final class DomainsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void deleteNotAsync() throws TimeoutException, InterruptedException {
+    public void deleteNotAsync() {
         String domainName = this.nameFactory.getDomainName();
 
         this.organizationId
@@ -118,15 +118,15 @@ public final class DomainsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void get() throws TimeoutException, InterruptedException {
+    public void get() {
         String domainName = this.nameFactory.getDomainName();
 
         this.organizationId
-            .flatMap(organizationId -> Mono.when(
+            .flatMap(organizationId -> Mono.zip(
                 Mono.just(organizationId),
                 createDomainId(this.cloudFoundryClient, domainName, organizationId)
             ))
-            .flatMap(function((organizationId, domainId) -> Mono.when(
+            .flatMap(function((organizationId, domainId) -> Mono.zip(
                 getDomainEntity(this.cloudFoundryClient, domainId),
                 Mono.just(organizationId)
             )))
@@ -137,15 +137,15 @@ public final class DomainsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void list() throws TimeoutException, InterruptedException {
+    public void list() {
         String domainName = this.nameFactory.getDomainName();
 
         this.organizationId
-            .flatMap(organizationId -> Mono.when(
+            .flatMap(organizationId -> Mono.zip(
                 Mono.just(organizationId),
                 createDomainId(this.cloudFoundryClient, domainName, organizationId)
             ))
-            .flatMap(function((organizationId, domainId) -> Mono.when(
+            .flatMap(function((organizationId, domainId) -> Mono.zip(
                 requestListDomains(this.cloudFoundryClient)
                     .filter(resource -> domainId.equals(ResourceUtils.getId(resource)))
                     .single()
@@ -159,15 +159,15 @@ public final class DomainsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void listDomainSpaces() throws TimeoutException, InterruptedException {
+    public void listDomainSpaces() {
         String domainName = this.nameFactory.getDomainName();
 
-        Mono.when(this.organizationId, this.spaceId)
-            .flatMap(function((organizationId, spaceId) -> Mono.when(
+        Mono.zip(this.organizationId, this.spaceId)
+            .flatMap(function((organizationId, spaceId) -> Mono.zip(
                 createDomainId(this.cloudFoundryClient, domainName, organizationId),
                 Mono.just(spaceId)
             )))
-            .flatMap(function((domainId, spaceId) -> Mono.when(
+            .flatMap(function((domainId, spaceId) -> Mono.zip(
                 requestListDomainSpaces(this.cloudFoundryClient, domainId)
                     .filter(resource -> spaceId.equals(ResourceUtils.getId(resource)))
                     .single()
@@ -181,21 +181,21 @@ public final class DomainsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void listDomainSpacesFilterByApplicationId() throws TimeoutException, InterruptedException {
+    public void listDomainSpacesFilterByApplicationId() {
         String applicationName = this.nameFactory.getApplicationName();
         String domainName = this.nameFactory.getDomainName();
 
         this.organizationId
             .flatMap(organizationId -> createDomainId(this.cloudFoundryClient, domainName, organizationId))
-            .and(this.spaceId)
-            .flatMap(function((domainId, spaceId) -> Mono.when(
+            .zipWith(this.spaceId)
+            .flatMap(function((domainId, spaceId) -> Mono.zip(
                 Mono.just(domainId),
                 Mono.just(spaceId),
                 getApplicationId(this.cloudFoundryClient, applicationName, spaceId),
                 getRouteId(this.cloudFoundryClient, domainId, spaceId)
             )))
             .delayUntil(function((domainId, spaceId, applicationId, routeId) -> requestAssociateRouteApplication(this.cloudFoundryClient, applicationId, routeId)))
-            .flatMap(function((domainId, spaceId, applicationId, routeId) -> Mono.when(
+            .flatMap(function((domainId, spaceId, applicationId, routeId) -> Mono.zip(
                 requestListDomainSpacesByApplicationId(this.cloudFoundryClient, applicationId, domainId)
                     .filter(resource -> spaceId.equals(ResourceUtils.getId(resource)))
                     .single()
@@ -209,11 +209,11 @@ public final class DomainsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void listDomainSpacesFilterByDeveloperId() throws TimeoutException, InterruptedException {
+    public void listDomainSpacesFilterByDeveloperId() {
         String domainName = this.nameFactory.getDomainName();
 
-        Mono.when(this.spaceId, this.organizationId, this.userId)
-            .flatMap(function((spaceId, organizationId, userId) -> Mono.when(
+        Mono.zip(this.spaceId, this.organizationId, this.userId)
+            .flatMap(function((spaceId, organizationId, userId) -> Mono.zip(
                 createDomainId(this.cloudFoundryClient, domainName, organizationId),
                 requestAssociateOrganizationUser(this.cloudFoundryClient, organizationId, userId),
                 Mono.just(spaceId),
@@ -224,7 +224,7 @@ public final class DomainsTest extends AbstractIntegrationTest {
                 .filter(resource -> spaceId.equals(ResourceUtils.getId(resource)))
                 .single()
                 .map(ResourceUtils::getId)
-                .and(Mono.just(spaceId))))
+                .zipWith(Mono.just(spaceId))))
             .as(StepVerifier::create)
             .consumeNextWith(tupleEquality())
             .expectComplete()
@@ -232,17 +232,16 @@ public final class DomainsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void listDomainSpacesFilterByName() throws TimeoutException, InterruptedException {
+    public void listDomainSpacesFilterByName() {
         String domainName = this.nameFactory.getDomainName();
 
-        Mono.when(this.organizationId, this.spaceId)
-            .flatMap(function((organizationId, spaceId) ->
-                Mono.when(
-                    Mono.just(spaceId),
-                    getSpaceName(this.cloudFoundryClient, spaceId),
-                    createDomainId(this.cloudFoundryClient, domainName, organizationId)
-                )))
-            .flatMap(function((spaceId, spaceName, domainId) -> Mono.when(
+        Mono.zip(this.organizationId, this.spaceId)
+            .flatMap(function((organizationId, spaceId) -> Mono.zip(
+                Mono.just(spaceId),
+                getSpaceName(this.cloudFoundryClient, spaceId),
+                createDomainId(this.cloudFoundryClient, domainName, organizationId)
+            )))
+            .flatMap(function((spaceId, spaceName, domainId) -> Mono.zip(
                 requestListDomainSpacesBySpaceName(this.cloudFoundryClient, domainId, spaceName)
                     .filter(resource -> spaceId.equals(ResourceUtils.getId(resource)))
                     .single()
@@ -256,17 +255,16 @@ public final class DomainsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void listDomainSpacesFilterByOrganizationId() throws TimeoutException, InterruptedException {
+    public void listDomainSpacesFilterByOrganizationId() {
         String domainName = this.nameFactory.getDomainName();
 
-        Mono
-            .when(this.organizationId, this.spaceId)
-            .flatMap(function((organizationId, spaceId) -> Mono.when(
+        Mono.zip(this.organizationId, this.spaceId)
+            .flatMap(function((organizationId, spaceId) -> Mono.zip(
                 createDomainId(this.cloudFoundryClient, domainName, organizationId),
                 Mono.just(organizationId),
                 Mono.just(spaceId)
             )))
-            .flatMap(function((domainId, organizationId, spaceId) -> Mono.when(
+            .flatMap(function((domainId, organizationId, spaceId) -> Mono.zip(
                 requestListDomainSpacesByOrganizationId(this.cloudFoundryClient, domainId, organizationId)
                     .filter(resource -> spaceId.equals(ResourceUtils.getId(resource)))
                     .single()
@@ -280,15 +278,15 @@ public final class DomainsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void listFilterByName() throws TimeoutException, InterruptedException {
+    public void listFilterByName() {
         String domainName = this.nameFactory.getDomainName();
 
         this.organizationId
-            .flatMap(organizationId -> Mono.when(
+            .flatMap(organizationId -> Mono.zip(
                 Mono.just(organizationId),
                 createDomainId(this.cloudFoundryClient, domainName, organizationId)
             ))
-            .flatMap(function((organizationId, domainId) -> Mono.when(
+            .flatMap(function((organizationId, domainId) -> Mono.zip(
                 requestListDomains(this.cloudFoundryClient, domainName)
                     .filter(resource -> domainId.equals(ResourceUtils.getId(resource)))
                     .single()
@@ -302,15 +300,15 @@ public final class DomainsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void listFilterByOwningOrganizationId() throws TimeoutException, InterruptedException {
+    public void listFilterByOwningOrganizationId() {
         String domainName = this.nameFactory.getDomainName();
 
         this.organizationId
-            .flatMap(organizationId -> Mono.when(
+            .flatMap(organizationId -> Mono.zip(
                 Mono.just(organizationId),
                 createDomainId(this.cloudFoundryClient, domainName, organizationId)
             ))
-            .flatMap(function((organizationId, domainId) -> Mono.when(
+            .flatMap(function((organizationId, domainId) -> Mono.zip(
                 requestListDomainsByOwningOrganization(this.cloudFoundryClient, organizationId)
                     .filter(resource -> domainId.equals(ResourceUtils.getId(resource)))
                     .single()

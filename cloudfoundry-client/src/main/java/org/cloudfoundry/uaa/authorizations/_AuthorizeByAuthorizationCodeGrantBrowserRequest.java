@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,8 @@
 
 package org.cloudfoundry.uaa.authorizations;
 
+import org.cloudfoundry.Nullable;
+import org.cloudfoundry.QueryParameter;
 import org.immutables.value.Value;
 
 /**
@@ -23,5 +25,12 @@ import org.immutables.value.Value;
  */
 @Value.Immutable
 abstract class _AuthorizeByAuthorizationCodeGrantBrowserRequest extends AbstractAuthorizationRequest {
+
+    /**
+     * The login hint
+     */
+    @Nullable
+    @QueryParameter("login_hint")
+    abstract String getLoginHint();
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,6 +28,8 @@ import org.cloudfoundry.reactor.TokenProvider;
 import org.cloudfoundry.reactor.client.v2.AbstractClientV2Operations;
 import reactor.core.publisher.Mono;
 
+import java.util.Map;
+
 /**
  * The Reactor-based implementation of {@link FeatureFlags}
  */
@@ -37,28 +39,29 @@ public final class ReactorFeatureFlags extends AbstractClientV2Operations implem
      * Creates an instance
      *
      * @param connectionContext the {@link ConnectionContext} to use when communicating with the server
-     * @param root              the root URI of the server.  Typically something like {@code https://api.run.pivotal.io}.
+     * @param root              the root URI of the server. Typically something like {@code https://api.run.pivotal.io}.
      * @param tokenProvider     the {@link TokenProvider} to use when communicating with the server
+     * @param requestTags       map with custom http headers which will be added to web request
      */
-    public ReactorFeatureFlags(ConnectionContext connectionContext, Mono<String> root, TokenProvider tokenProvider) {
-        super(connectionContext, root, tokenProvider);
+    public ReactorFeatureFlags(ConnectionContext connectionContext, Mono<String> root, TokenProvider tokenProvider, Map<String, String> requestTags) {
+        super(connectionContext, root, tokenProvider, requestTags);
     }
 
     @Override
     public Mono<GetFeatureFlagResponse> get(GetFeatureFlagRequest request) {
-        return get(request, GetFeatureFlagResponse.class, builder -> builder.pathSegment("v2", "config", "feature_flags", request.getName()))
+        return get(request, GetFeatureFlagResponse.class, builder -> builder.pathSegment("config", "feature_flags", request.getName()))
             .checkpoint();
     }
 
     @Override
     public Mono<ListFeatureFlagsResponse> list(ListFeatureFlagsRequest request) {
-        return get(request, ListFeatureFlagsResponse.class, builder -> builder.pathSegment("v2", "config", "feature_flags"))
+        return get(request, ListFeatureFlagsResponse.class, builder -> builder.pathSegment("config", "feature_flags"))
             .checkpoint();
     }
 
     @Override
     public Mono<SetFeatureFlagResponse> set(SetFeatureFlagRequest request) {
-        return put(request, SetFeatureFlagResponse.class, builder -> builder.pathSegment("v2", "config", "feature_flags", request.getName()))
+        return put(request, SetFeatureFlagResponse.class, builder -> builder.pathSegment("config", "feature_flags", request.getName()))
             .checkpoint();
     }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,18 +20,10 @@ import org.junit.Test;
 
 public final class ToOneRelationshipTest {
 
-    @Test(expected = IllegalStateException.class)
-    public void noData() {
+    @Test
+    public void valid() {
         ToOneRelationship.builder()
             .build();
     }
 
-    @Test
-    public void valid() {
-        ToOneRelationship.builder()
-            .data(Relationship.builder()
-                .id("test-id")
-                .build())
-            .build();
-    }
 }

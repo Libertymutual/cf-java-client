@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -39,6 +39,8 @@ public interface NameFactory {
 
     String IDENTITY_ZONE_PREFIX = "test-identity-zone-";
 
+    String ISOLATION_SEGMENT_PREFIX = "test-isolation-segment-";
+
     String ORGANIZATION_PREFIX = "test-organization-";
 
     String PASSWORD_PREFIX = "test-password-";
@@ -62,6 +64,8 @@ public interface NameFactory {
     String SPACE_PREFIX = "test-space-";
 
     String STACK_PREFIX = "test-stack-";
+
+    String TASK_PREFIX = "test-task-";
 
     String USER_ID_PREFIX = "test-user-id-";
 
@@ -144,7 +148,7 @@ public interface NameFactory {
     }
 
     /**
-     * Creates a identity zone name
+     * Creates an identity zone name
      *
      * @return the identity zone name
      */
@@ -160,6 +164,15 @@ public interface NameFactory {
     String getIpAddress();
 
     /**
+     * Creates an isolation segment name
+     *
+     * @return the isolation segment name
+     */
+    default String getIsolationSegmentName() {
+        return getName(ISOLATION_SEGMENT_PREFIX);
+    }
+
+    /**
      * Creates a name
      *
      * @param prefix the prefix to the name
@@ -168,7 +181,7 @@ public interface NameFactory {
     String getName(String prefix);
 
     /**
-     * Creates a organization name
+     * Creates an organization name
      *
      * @return the organization name
      */
@@ -280,6 +293,15 @@ public interface NameFactory {
      */
     default String getStackName() {
         return getName(STACK_PREFIX);
+    }
+
+    /**
+     * Creates a task name
+     *
+     * @return the task name
+     */
+    default String getTaskName() {
+        return getName(TASK_PREFIX);
     }
 
     /**
@@ -417,6 +439,16 @@ public interface NameFactory {
     boolean isIpAddress(String candidate);
 
     /**
+     * Tests a name to determine if it is an isolation segment name
+     *
+     * @param candidate the candidate name
+     * @return {@code true} if the name is an isolation segment name, {@code false} otherwise
+     */
+    default boolean isIsolationSegmentName(String candidate) {
+        return isName(ISOLATION_SEGMENT_PREFIX, candidate);
+    }
+
+    /**
      * Tests a name to determine if it starts with a prefix
      *
      * @param prefix    the prefix to the name
@@ -551,6 +583,16 @@ public interface NameFactory {
      */
     default boolean isStackName(String candidate) {
         return isName(STACK_PREFIX, candidate);
+    }
+
+    /**
+     * Tests a name to determine if it is a task name
+     *
+     * @param candidate the candidate name
+     * @return {@code true} if the name is a task name, {@code false} otherwise
+     */
+    default boolean isTaskName(String candidate) {
+        return isName(TASK_PREFIX, candidate);
     }
 
     /**

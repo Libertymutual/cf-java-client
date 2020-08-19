@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  ~ Copyright 2013-2017 the original author or authors.
+  ~ Copyright 2013-2020 the original author or authors.
   ~
   ~ Licensed under the Apache License, Version 2.0 (the "License");
   ~ you may not use this file except in compliance with the License.
@@ -18,15 +18,14 @@
 <project
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xmlns="http://maven.apache.org/POM/4.0.0"
-        xsi:schemaLocation="
-                http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+        xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
         <groupId>org.cloudfoundry</groupId>
         <artifactId>cloudfoundry-java-client</artifactId>
-        <version>3.0.0.BUILD-SNAPSHOT</version>
+        <version>4.10.0.BUILD-SNAPSHOT</version>
     </parent>
 
     <artifactId>cloudfoundry-operations</artifactId>
@@ -42,10 +41,6 @@
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.dataformat</groupId>
-            <artifactId>jackson-dataformat-yaml</artifactId>
         </dependency>
         <dependency>
             <groupId>io.projectreactor</groupId>
@@ -91,6 +86,15 @@
             <artifactId>spring-boot-starter-logging</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.yaml</groupId>
+            <artifactId>snakeyaml</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -107,7 +111,7 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <configuration>
-                    <additionalparam>-Xdoclint:-missing</additionalparam>
+                    <doclint>-missing</doclint>
                     <sourceFileExcludes>
                         <exclude>**\/Default*.java,org.cloudfoundry.operations.util</exclude>
                     </sourceFileExcludes>

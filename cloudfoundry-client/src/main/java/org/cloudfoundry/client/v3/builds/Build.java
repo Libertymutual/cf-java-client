@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,7 +38,7 @@ public abstract class Build extends Resource {
      */
     @JsonProperty("droplet")
     @Nullable
-    public abstract Relationship getDroplet();
+    public abstract Droplet getDroplet();
 
     /**
      * Describes errors during the build process

@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -50,7 +50,7 @@ import static org.mockito.Mockito.when;
 public final class PaginationUtilsTest {
 
     @Test
-    public void requestClientV2Resources() throws InterruptedException, TimeoutException {
+    public void requestClientV2Resources() {
         Spaces spaces = mock(Spaces.class, RETURNS_SMART_NULLS);
 
         requestListSpaces(spaces, 1, 3);
@@ -69,7 +69,7 @@ public final class PaginationUtilsTest {
     }
 
     @Test
-    public void requestClientV2ResourcesEmpty() throws InterruptedException, TimeoutException {
+    public void requestClientV2ResourcesEmpty() {
         Spaces spaces = mock(Spaces.class, RETURNS_SMART_NULLS);
 
         requestListSpacesEmpty(spaces);
@@ -85,7 +85,7 @@ public final class PaginationUtilsTest {
     }
 
     @Test
-    public void requestClientV3Empty() throws InterruptedException, TimeoutException {
+    public void requestClientV3Empty() {
         Packages packages = mock(Packages.class, RETURNS_SMART_NULLS);
 
         requestListPackagesEmpty(packages);
@@ -101,7 +101,7 @@ public final class PaginationUtilsTest {
     }
 
     @Test
-    public void requestClientV3Resources() throws InterruptedException, TimeoutException {
+    public void requestClientV3Resources() {
         Packages packages = mock(Packages.class, RETURNS_SMART_NULLS);
 
         requestListPackages(packages, 1, 3);
@@ -120,7 +120,7 @@ public final class PaginationUtilsTest {
     }
 
     @Test
-    public void requestUaaResources() throws InterruptedException, TimeoutException {
+    public void requestUaaResources() {
         Users users = mock(Users.class, RETURNS_SMART_NULLS);
 
         requestListUsers(users, 1, 100, 250);
@@ -139,7 +139,7 @@ public final class PaginationUtilsTest {
     }
 
     @Test
-    public void requestUaaResourcesEmpty() throws InterruptedException, TimeoutException {
+    public void requestUaaResourcesEmpty() {
         Users users = mock(Users.class, RETURNS_SMART_NULLS);
 
         requestListUsersEmpty(users, 1, 100);

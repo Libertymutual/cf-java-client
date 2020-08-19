@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -41,9 +41,8 @@ final class CloudFoundryClientCompatibilityChecker {
             .get(GetInfoRequest.builder()
                 .build())
             .map(response -> Version.valueOf(response.getApiVersion()))
-            .and(Mono.just(Version.valueOf(CloudFoundryClient.SUPPORTED_API_VERSION)))
-            .doOnNext(consumer((server, supported) -> logCompatibility(server, supported, this.logger)))
-            .subscribe();
+            .zipWith(Mono.just(Version.valueOf(CloudFoundryClient.SUPPORTED_API_VERSION)))
+            .subscribe(consumer((server, supported) -> logCompatibility(server, supported, this.logger)), t -> this.logger.error("An error occurred while checking version compatibility:", t));
     }
 
     private static void logCompatibility(Version server, Version supported, Logger logger) {

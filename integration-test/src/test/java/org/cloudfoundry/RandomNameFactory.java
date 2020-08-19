@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,14 +22,17 @@ import java.math.BigInteger;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Random;
+import java.util.concurrent.atomic.AtomicInteger;
 
 final class RandomNameFactory implements NameFactory {
 
-    private static final int PORT_MAXIMUM = 65_535;
+    private static final int PORT_MAXIMUM = 61_099;
 
-    private static final int PORT_MINIMUM = 1_024;
+    private static final int PORT_MINIMUM = 61_001;
 
     private final Random random;
+
+    private AtomicInteger port = new AtomicInteger(PORT_MINIMUM);
 
     RandomNameFactory(Random random) {
         this.random = random;
@@ -51,7 +54,13 @@ final class RandomNameFactory implements NameFactory {
 
     @Override
     public int getPort() {
-        return PORT_MINIMUM + this.random.nextInt(PORT_MAXIMUM - PORT_MINIMUM);
+        int candidate = this.port.getAndIncrement();
+
+        if (candidate <= PORT_MAXIMUM) {
+            return candidate;
+        } else {
+            throw new IllegalStateException("All suitable ports have been allocated");
+        }
     }
 
     @Override

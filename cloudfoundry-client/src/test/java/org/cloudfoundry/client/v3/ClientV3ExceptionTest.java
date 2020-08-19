@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -42,7 +42,7 @@ public final class ClientV3ExceptionTest {
         assertThat(exception)
             .hasNoCause()
             .hasMessage("test-title-1(-2): test-detail-1, test-title-2(-3): test-detail-2")
-            .extracting("statusCode").containsExactly(-1);
+            .extracting("statusCode").isEqualTo(-1);
 
         assertThat(exception.getErrors())
             .flatExtracting(Error::getCode, Error::getDetail, Error::getTitle)

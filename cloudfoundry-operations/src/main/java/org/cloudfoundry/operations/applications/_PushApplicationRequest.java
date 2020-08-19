@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ import org.immutables.value.Value;
 
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.List;
 
 /**
  * The request options for the push application operation
@@ -38,6 +39,18 @@ abstract class _PushApplicationRequest {
         if ((getApplication() != null || getPath() != null) && getDockerImage() != null) {
             throw new IllegalStateException("Only one of path or dockerImage can be supplied");
         }
+
+        if (getDockerImage() == null && (getDockerPassword() != null || getDockerUsername() != null)) {
+            throw new IllegalStateException("Docker credentials require docker image to be set");
+        }
+
+        if (getDockerPassword() != null && getDockerUsername() == null) {
+            throw new IllegalStateException("Docker password requires username");
+        }
+
+        if (getDockerPassword() == null && getDockerUsername() != null) {
+            throw new IllegalStateException("Docker username requires password");
+        }
     }
 
     /**
@@ -52,10 +65,10 @@ abstract class _PushApplicationRequest {
     abstract Path getApplication();
 
     /**
-     * The buildpack for the application
+     * The buildpacks for the application
      */
     @Nullable
-    abstract String getBuildpack();
+    abstract List<String> getBuildpacks();
 
     /**
      * The custom start command for the application
@@ -64,7 +77,7 @@ abstract class _PushApplicationRequest {
     abstract String getCommand();
 
     /**
-     * The disk quota for the application
+     * The disk quota in megabytes for the application
      */
     @Nullable
     abstract Integer getDiskQuota();
@@ -76,10 +89,28 @@ abstract class _PushApplicationRequest {
     abstract String getDockerImage();
 
     /**
+     * The Docker repository password
+     */
+    @Nullable
+    abstract String getDockerPassword();
+
+    /**
+     * The Docker repository username
+     */
+    @Nullable
+    abstract String getDockerUsername();
+
+    /**
      * The domain for the application
      */
     @Nullable
     abstract String getDomain();
+
+    /**
+     * The HTTP health check endpoint
+     */
+    @Nullable
+    abstract String getHealthCheckHttpEndpoint();
 
     /**
      * The health check type for the application
@@ -100,7 +131,7 @@ abstract class _PushApplicationRequest {
     abstract Integer getInstances();
 
     /**
-     * The memory in MB for the application
+     * The memory in megabytes for the application
      */
     @Nullable
     abstract Integer getMemory();

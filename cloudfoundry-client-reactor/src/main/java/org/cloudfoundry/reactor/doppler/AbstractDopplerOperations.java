@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,27 +16,39 @@
 
 package org.cloudfoundry.reactor.doppler;
 
+import io.netty.channel.ChannelHandler;
 import org.cloudfoundry.reactor.ConnectionContext;
 import org.cloudfoundry.reactor.TokenProvider;
 import org.cloudfoundry.reactor.util.AbstractReactorOperations;
 import org.springframework.web.util.UriComponentsBuilder;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.ipc.netty.http.client.HttpClientResponse;
+import reactor.netty.ByteBufFlux;
+import reactor.netty.http.client.HttpClientResponse;
 
+import java.io.InputStream;
+import java.util.Map;
 import java.util.function.Function;
 
 abstract class AbstractDopplerOperations extends AbstractReactorOperations {
 
-    AbstractDopplerOperations(ConnectionContext connectionContext, Mono<String> root, TokenProvider tokenProvider) {
-        super(connectionContext, root, tokenProvider);
+    AbstractDopplerOperations(ConnectionContext connectionContext, Mono<String> root, TokenProvider tokenProvider, Map<String, String> requestTags) {
+        super(connectionContext, root, tokenProvider, requestTags);
     }
 
-    final Mono<HttpClientResponse> get(Function<UriComponentsBuilder, UriComponentsBuilder> uriTransformer) {
-        return doGet(uriTransformer, outbound -> outbound, inbound -> inbound);
+    final <T> Flux<T> get(Function<UriComponentsBuilder, UriComponentsBuilder> uriTransformer, Function<HttpClientResponse, ChannelHandler> channelHandlerBuilder,
+                          Function<ByteBufFlux, Flux<T>> bodyTransformer) {
+        return createOperator().flatMapMany(operator -> operator.get()
+            .uri(uriTransformer)
+            .response()
+            .addChannelHandler(channelHandlerBuilder)
+            .parseBodyToFlux(responseWithBody -> bodyTransformer.apply(responseWithBody.getBody())));
     }
 
-    final Mono<HttpClientResponse> ws(Function<UriComponentsBuilder, UriComponentsBuilder> uriTransformer) {
-        return doWs(uriTransformer, outbound -> outbound, inbound -> inbound);
+    final Flux<InputStream> ws(Function<UriComponentsBuilder, UriComponentsBuilder> uriTransformer) {
+        return createOperator().flatMapMany(operator -> operator.websocket()
+            .uri(uriTransformer)
+            .get());
     }
 
 }

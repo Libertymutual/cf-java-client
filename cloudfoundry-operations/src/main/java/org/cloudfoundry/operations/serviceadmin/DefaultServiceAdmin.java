@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,6 +25,7 @@ import org.cloudfoundry.client.v2.servicebrokers.CreateServiceBrokerResponse;
 import org.cloudfoundry.client.v2.servicebrokers.ListServiceBrokersRequest;
 import org.cloudfoundry.client.v2.servicebrokers.ServiceBrokerEntity;
 import org.cloudfoundry.client.v2.servicebrokers.ServiceBrokerResource;
+import org.cloudfoundry.client.v2.servicebrokers.UpdateServiceBrokerResponse;
 import org.cloudfoundry.client.v2.serviceplans.ListServicePlansRequest;
 import org.cloudfoundry.client.v2.serviceplans.ServicePlanResource;
 import org.cloudfoundry.client.v2.serviceplans.UpdateServicePlanRequest;
@@ -70,7 +71,7 @@ public final class DefaultServiceAdmin implements ServiceAdmin {
     @Override
     public Mono<Void> create(CreateServiceBrokerRequest request) {
         return Mono
-            .when(this.cloudFoundryClient, this.spaceId)
+            .zip(this.cloudFoundryClient, this.spaceId)
             .flatMap(function((cloudFoundryClient, spaceId) -> requestCreateServiceBroker(cloudFoundryClient, request.getName(), request.getUrl(), request.getUsername(), request.getPassword(),
                 request.getSpaceScoped(), spaceId)))
             .then()
@@ -81,7 +82,7 @@ public final class DefaultServiceAdmin implements ServiceAdmin {
     @Override
     public Mono<Void> delete(DeleteServiceBrokerRequest request) {
         return this.cloudFoundryClient
-            .flatMap(cloudFoundryClient -> Mono.when(
+            .flatMap(cloudFoundryClient -> Mono.zip(
                 Mono.just(cloudFoundryClient),
                 getServiceBrokerId(cloudFoundryClient, request.getName())
             ))
@@ -93,20 +94,17 @@ public final class DefaultServiceAdmin implements ServiceAdmin {
     @Override
     public Mono<Void> disableServiceAccess(DisableServiceAccessRequest request) {
         return this.cloudFoundryClient
-            .flatMap(cloudFoundryClient -> Mono
-                .when(
-                    Mono.just(cloudFoundryClient),
-                    getServiceId(cloudFoundryClient, request.getServiceName())))
-            .flatMap(function((cloudFoundryClient, serviceId) -> Mono
-                .when(
-                    Mono.just(cloudFoundryClient),
-                    getServicePlans(cloudFoundryClient, serviceId)
-                )))
-            .flatMap(function((cloudFoundryClient, servicePlans) -> Mono
-                .when(
-                    updateServicePlanVisibilities(cloudFoundryClient, request, servicePlans),
-                    updateServicePlansPublicStatus(cloudFoundryClient, request, servicePlans)
-                )))
+            .flatMap(cloudFoundryClient -> Mono.zip(
+                Mono.just(cloudFoundryClient),
+                getServiceId(cloudFoundryClient, request.getServiceName())))
+            .flatMap(function((cloudFoundryClient, serviceId) -> Mono.zip(
+                Mono.just(cloudFoundryClient),
+                getServicePlans(cloudFoundryClient, serviceId)
+            )))
+            .flatMap(function((cloudFoundryClient, servicePlans) -> Mono.when(
+                updateServicePlanVisibilities(cloudFoundryClient, request, servicePlans),
+                updateServicePlansPublicStatus(cloudFoundryClient, request, servicePlans)
+            )))
             .then()
             .transform(OperationsLogging.log("Disable Service Access"))
             .checkpoint();
@@ -115,20 +113,17 @@ public final class DefaultServiceAdmin implements ServiceAdmin {
     @Override
     public Mono<Void> enableServiceAccess(EnableServiceAccessRequest request) {
         return this.cloudFoundryClient
-            .flatMap(cloudFoundryClient -> Mono
-                .when(
-                    Mono.just(cloudFoundryClient),
-                    getServiceId(cloudFoundryClient, request.getServiceName())))
-            .flatMap(function((cloudFoundryClient, serviceId) -> Mono
-                .when(
-                    Mono.just(cloudFoundryClient),
-                    getServicePlans(cloudFoundryClient, serviceId)
-                )))
-            .flatMap(function((cloudFoundryClient, servicePlans) -> Mono
-                .when(
-                    updateServicePlanVisibilities(cloudFoundryClient, request, servicePlans),
-                    updateServicePlansPublicStatus(cloudFoundryClient, request, servicePlans)
-                )))
+            .flatMap(cloudFoundryClient -> Mono.zip(
+                Mono.just(cloudFoundryClient),
+                getServiceId(cloudFoundryClient, request.getServiceName())))
+            .flatMap(function((cloudFoundryClient, serviceId) -> Mono.zip(
+                Mono.just(cloudFoundryClient),
+                getServicePlans(cloudFoundryClient, serviceId)
+            )))
+            .flatMap(function((cloudFoundryClient, servicePlans) -> Mono.when(
+                updateServicePlanVisibilities(cloudFoundryClient, request, servicePlans),
+                updateServicePlansPublicStatus(cloudFoundryClient, request, servicePlans)
+            )))
             .then()
             .transform(OperationsLogging.log("Enable Service Access"))
             .checkpoint();
@@ -146,15 +141,27 @@ public final class DefaultServiceAdmin implements ServiceAdmin {
     @Override
     public Flux<ServiceAccess> listServiceAccessSettings(ListServiceAccessSettingsRequest request) {
         return this.cloudFoundryClient
-            .flatMap(cloudFoundryClient -> Mono
-                .when(
-                    Mono.just(cloudFoundryClient),
-                    listServiceBrokers(cloudFoundryClient),
-                    Mono.just(request),
-                    requestListServicePlanVisibilities(cloudFoundryClient)
-                ))
+            .flatMap(cloudFoundryClient -> Mono.zip(
+                Mono.just(cloudFoundryClient),
+                listServiceBrokers(cloudFoundryClient),
+                Mono.just(request),
+                requestListServicePlanVisibilities(cloudFoundryClient)
+            ))
             .flatMapMany(function(DefaultServiceAdmin::collectServiceAccessSettings))
             .transform(OperationsLogging.log("List Service Access Settings"))
+            .checkpoint();
+    }
+
+    @Override
+    public Mono<Void> update(UpdateServiceBrokerRequest request) {
+        return this.cloudFoundryClient
+            .flatMap(cloudFoundryClient -> Mono.zip(
+                Mono.just(cloudFoundryClient),
+                getServiceBrokerId(cloudFoundryClient, request.getName())
+            ))
+            .flatMap(function((cloudFoundryClient, serviceBrokerId) -> requestUpdateServiceBroker(cloudFoundryClient, request, serviceBrokerId)))
+            .then()
+            .transform(OperationsLogging.log("Update Service Broker"))
             .checkpoint();
     }
 
@@ -395,6 +402,17 @@ public final class DefaultServiceAdmin implements ServiceAdmin {
                     .page(page)
                     .label(serviceName)
                     .build()));
+    }
+
+    private static Mono<UpdateServiceBrokerResponse> requestUpdateServiceBroker(CloudFoundryClient cloudFoundryClient, UpdateServiceBrokerRequest request, String serviceBrokerId) {
+        return cloudFoundryClient.serviceBrokers()
+            .update(org.cloudfoundry.client.v2.servicebrokers.UpdateServiceBrokerRequest.builder()
+                .serviceBrokerId(serviceBrokerId)
+                .name(request.getName())
+                .brokerUrl(request.getUrl())
+                .authenticationUsername(request.getUsername())
+                .authenticationPassword(request.getPassword())
+                .build());
     }
 
     private static Mono<UpdateServicePlanResponse> requestUpdateServicePlanPublicStatus(CloudFoundryClient cloudFoundryClient, boolean publiclyVisible, String servicePlanId) {

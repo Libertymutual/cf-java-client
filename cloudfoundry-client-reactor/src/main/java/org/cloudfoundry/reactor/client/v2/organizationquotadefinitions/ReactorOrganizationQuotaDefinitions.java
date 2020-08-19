@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,6 +32,8 @@ import org.cloudfoundry.reactor.TokenProvider;
 import org.cloudfoundry.reactor.client.v2.AbstractClientV2Operations;
 import reactor.core.publisher.Mono;
 
+import java.util.Map;
+
 /**
  * The Reactor-based implementation of {@link OrganizationQuotaDefinitions}
  */
@@ -41,40 +43,41 @@ public final class ReactorOrganizationQuotaDefinitions extends AbstractClientV2O
      * Creates an instance
      *
      * @param connectionContext the {@link ConnectionContext} to use when communicating with the server
-     * @param root              the root URI of the server.  Typically something like {@code https://api.run.pivotal.io}.
+     * @param root              the root URI of the server. Typically something like {@code https://api.run.pivotal.io}.
      * @param tokenProvider     the {@link TokenProvider} to use when communicating with the server
+     * @param requestTags       map with custom http headers which will be added to web request
      */
-    public ReactorOrganizationQuotaDefinitions(ConnectionContext connectionContext, Mono<String> root, TokenProvider tokenProvider) {
-        super(connectionContext, root, tokenProvider);
+    public ReactorOrganizationQuotaDefinitions(ConnectionContext connectionContext, Mono<String> root, TokenProvider tokenProvider, Map<String, String> requestTags) {
+        super(connectionContext, root, tokenProvider, requestTags);
     }
 
     @Override
     public Mono<CreateOrganizationQuotaDefinitionResponse> create(CreateOrganizationQuotaDefinitionRequest request) {
-        return post(request, CreateOrganizationQuotaDefinitionResponse.class, builder -> builder.pathSegment("v2", "quota_definitions"))
+        return post(request, CreateOrganizationQuotaDefinitionResponse.class, builder -> builder.pathSegment("quota_definitions"))
             .checkpoint();
     }
 
     @Override
     public Mono<DeleteOrganizationQuotaDefinitionResponse> delete(DeleteOrganizationQuotaDefinitionRequest request) {
-        return delete(request, DeleteOrganizationQuotaDefinitionResponse.class, builder -> builder.pathSegment("v2", "quota_definitions", request.getOrganizationQuotaDefinitionId()))
+        return delete(request, DeleteOrganizationQuotaDefinitionResponse.class, builder -> builder.pathSegment("quota_definitions", request.getOrganizationQuotaDefinitionId()))
             .checkpoint();
     }
 
     @Override
     public Mono<GetOrganizationQuotaDefinitionResponse> get(GetOrganizationQuotaDefinitionRequest request) {
-        return get(request, GetOrganizationQuotaDefinitionResponse.class, builder -> builder.pathSegment("v2", "quota_definitions", request.getOrganizationQuotaDefinitionId()))
+        return get(request, GetOrganizationQuotaDefinitionResponse.class, builder -> builder.pathSegment("quota_definitions", request.getOrganizationQuotaDefinitionId()))
             .checkpoint();
     }
 
     @Override
     public Mono<ListOrganizationQuotaDefinitionsResponse> list(ListOrganizationQuotaDefinitionsRequest request) {
-        return get(request, ListOrganizationQuotaDefinitionsResponse.class, builder -> builder.pathSegment("v2", "quota_definitions"))
+        return get(request, ListOrganizationQuotaDefinitionsResponse.class, builder -> builder.pathSegment("quota_definitions"))
             .checkpoint();
     }
 
     @Override
     public Mono<UpdateOrganizationQuotaDefinitionResponse> update(UpdateOrganizationQuotaDefinitionRequest request) {
-        return put(request, UpdateOrganizationQuotaDefinitionResponse.class, builder -> builder.pathSegment("v2", "quota_definitions", request.getOrganizationQuotaDefinitionId()))
+        return put(request, UpdateOrganizationQuotaDefinitionResponse.class, builder -> builder.pathSegment("quota_definitions", request.getOrganizationQuotaDefinitionId()))
             .checkpoint();
     }
 

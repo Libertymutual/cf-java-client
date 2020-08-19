@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -46,7 +46,6 @@ import reactor.test.StepVerifier;
 import reactor.util.function.Tuples;
 
 import java.time.Duration;
-import java.util.concurrent.TimeoutException;
 
 import static org.cloudfoundry.util.tuple.TupleUtils.function;
 
@@ -64,7 +63,7 @@ public final class SpaceQuotaDefinitionsTest extends AbstractIntegrationTest {
         String spaceName = this.nameFactory.getSpaceName();
 
         this.organizationId
-            .flatMap(organizationId -> Mono.when(
+            .flatMap(organizationId -> Mono.zip(
                 createSpaceId(this.cloudFoundryClient, organizationId, spaceName),
                 createSpaceQuotaDefinitionId(this.cloudFoundryClient, organizationId, quotaName)
             ))
@@ -140,7 +139,7 @@ public final class SpaceQuotaDefinitionsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void list() throws TimeoutException, InterruptedException {
+    public void list() {
         String quotaName = this.nameFactory.getQuotaDefinitionName();
 
         this.organizationId
@@ -164,12 +163,12 @@ public final class SpaceQuotaDefinitionsTest extends AbstractIntegrationTest {
         String spaceName = this.nameFactory.getSpaceName();
 
         this.organizationId
-            .flatMap(organizationId -> Mono.when(
+            .flatMap(organizationId -> Mono.zip(
                 createSpaceId(this.cloudFoundryClient, organizationId, spaceName),
                 createSpaceQuotaDefinitionId(this.cloudFoundryClient, organizationId, quotaName)
             ))
             .flatMap(function((spaceId, quotaId) -> requestAssociateSpace(this.cloudFoundryClient, quotaId, spaceId)
-                .then(Mono.just(quotaId))))
+                .thenReturn(quotaId)))
             .flatMapMany(quotaId -> PaginationUtils
                 .requestClientV2Resources(page -> this.cloudFoundryClient.spaceQuotaDefinitions()
                     .listSpaces(ListSpaceQuotaDefinitionSpacesRequest.builder()
@@ -191,13 +190,13 @@ public final class SpaceQuotaDefinitionsTest extends AbstractIntegrationTest {
         String spaceName = this.nameFactory.getSpaceName();
 
         this.organizationId
-            .flatMap(organizationId -> Mono.when(
+            .flatMap(organizationId -> Mono.zip(
                 createSpaceQuotaDefinitionId(this.cloudFoundryClient, organizationId, quotaName),
                 createSpaceId(this.cloudFoundryClient, organizationId, spaceName)
             ))
-            .flatMap(function((quotaId, spaceId) -> Mono.when(
+            .flatMap(function((quotaId, spaceId) -> Mono.zip(
                 requestAssociateSpace(this.cloudFoundryClient, quotaId, spaceId)
-                    .then(Mono.just(quotaId)),
+                    .thenReturn(quotaId),
                 createApplicationId(this.cloudFoundryClient, spaceId, applicationName))
             ))
             .flatMapMany(function((quotaId, applicationId) -> PaginationUtils
@@ -228,12 +227,12 @@ public final class SpaceQuotaDefinitionsTest extends AbstractIntegrationTest {
         String spaceName = this.nameFactory.getSpaceName();
 
         this.organizationId
-            .flatMap(organizationId -> Mono.when(
+            .flatMap(organizationId -> Mono.zip(
                 createSpaceId(this.cloudFoundryClient, organizationId, spaceName),
                 createSpaceQuotaDefinitionId(this.cloudFoundryClient, organizationId, quotaName)
             ))
             .flatMap(function((spaceId, quotaId) -> requestAssociateSpace(this.cloudFoundryClient, quotaId, spaceId)
-                .then(Mono.just(quotaId))))
+                .thenReturn(quotaId)))
             .flatMapMany(quotaId -> PaginationUtils
                 .requestClientV2Resources(page -> this.cloudFoundryClient.spaceQuotaDefinitions()
                     .listSpaces(ListSpaceQuotaDefinitionSpacesRequest.builder()
@@ -255,13 +254,13 @@ public final class SpaceQuotaDefinitionsTest extends AbstractIntegrationTest {
         String spaceName = this.nameFactory.getSpaceName();
 
         this.organizationId
-            .flatMap(organizationId -> Mono.when(
+            .flatMap(organizationId -> Mono.zip(
                 Mono.just(organizationId),
                 createSpaceId(this.cloudFoundryClient, organizationId, spaceName),
                 createSpaceQuotaDefinitionId(this.cloudFoundryClient, organizationId, quotaName)
             ))
             .flatMap(function((organizationId, spaceId, quotaId) -> requestAssociateSpace(this.cloudFoundryClient, quotaId, spaceId)
-                .then(Mono.just(Tuples.of(organizationId, quotaId)))))
+                .thenReturn(Tuples.of(organizationId, quotaId))))
             .flatMapMany(function((organizationId, quotaId) -> PaginationUtils
                 .requestClientV2Resources(page -> this.cloudFoundryClient.spaceQuotaDefinitions()
                     .listSpaces(ListSpaceQuotaDefinitionSpacesRequest.builder()
@@ -299,12 +298,12 @@ public final class SpaceQuotaDefinitionsTest extends AbstractIntegrationTest {
         String spaceName = this.nameFactory.getSpaceName();
 
         this.organizationId
-            .flatMap(organizationId -> Mono.when(
+            .flatMap(organizationId -> Mono.zip(
                 createSpaceId(this.cloudFoundryClient, organizationId, spaceName),
                 createSpaceQuotaDefinitionId(this.cloudFoundryClient, organizationId, quotaName)
             ))
             .flatMap(function((spaceId, quotaId) -> requestAssociateSpace(this.cloudFoundryClient, quotaId, spaceId)
-                .then(Mono.just(quotaId))))
+                .thenReturn(quotaId)))
             .flatMapMany(quotaId -> PaginationUtils
                 .requestClientV2Resources(page -> this.cloudFoundryClient.spaceQuotaDefinitions()
                     .listSpaces(ListSpaceQuotaDefinitionSpacesRequest.builder()
@@ -325,7 +324,7 @@ public final class SpaceQuotaDefinitionsTest extends AbstractIntegrationTest {
         String spaceName = this.nameFactory.getSpaceName();
 
         this.organizationId
-            .flatMap(organizationId -> Mono.when(
+            .flatMap(organizationId -> Mono.zip(
                 createSpaceId(this.cloudFoundryClient, organizationId, spaceName),
                 createSpaceQuotaDefinitionId(this.cloudFoundryClient, organizationId, quotaName)
             ))

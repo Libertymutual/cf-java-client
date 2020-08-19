@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ import org.cloudfoundry.uaa.clients.Clients;
 import org.cloudfoundry.uaa.groups.Groups;
 import org.cloudfoundry.uaa.identityproviders.IdentityProviders;
 import org.cloudfoundry.uaa.identityzones.IdentityZones;
+import org.cloudfoundry.uaa.serverinformation.ServerInformation;
 import org.cloudfoundry.uaa.tokens.Tokens;
 import org.cloudfoundry.uaa.users.Users;
 import reactor.core.publisher.Mono;
@@ -33,7 +34,7 @@ public interface UaaClient {
     /**
      * The currently supported UAA API version
      */
-    String SUPPORTED_API_VERSION = "4.3.0";
+    String SUPPORTED_API_VERSION = "74.5.2";
 
     /**
      * Main entry point to the UAA Authorizations Client API
@@ -64,6 +65,11 @@ public interface UaaClient {
      * Main entry point to the UAA Identity Zone Client API
      */
     IdentityZones identityZones();
+
+    /**
+     * Main entry point to the UAA Server Information API
+     */
+    ServerInformation serverInformation();
 
     /**
      * Main entry point to the UAA Token Client API

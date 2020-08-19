@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,6 +32,7 @@ import org.junit.Test;
 import reactor.test.StepVerifier;
 
 import java.time.Duration;
+import java.util.Collections;
 
 import static io.netty.handler.codec.http.HttpMethod.GET;
 import static io.netty.handler.codec.http.HttpMethod.POST;
@@ -40,13 +41,13 @@ import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 
 public final class ReactorServiceUsageEventsTest extends AbstractClientApiTest {
 
-    private final ReactorServiceUsageEvents serviceUsageEvents = new ReactorServiceUsageEvents(CONNECTION_CONTEXT, this.root, TOKEN_PROVIDER);
+    private final ReactorServiceUsageEvents serviceUsageEvents = new ReactorServiceUsageEvents(CONNECTION_CONTEXT, this.root, TOKEN_PROVIDER, Collections.emptyMap());
 
     @Test
     public void get() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(GET).path("/v2/service_usage_events/9470627d-0488-4d9a-8564-f97571487893")
+                .method(GET).path("/service_usage_events/9470627d-0488-4d9a-8564-f97571487893")
                 .build())
             .response(TestResponse.builder()
                 .status(OK)
@@ -87,7 +88,7 @@ public final class ReactorServiceUsageEventsTest extends AbstractClientApiTest {
     public void list() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(GET).path("/v2/service_usage_events?after_guid=e5defac2-4ae1-44ac-a3d0-1684ae657453&page=-1")
+                .method(GET).path("/service_usage_events?after_guid=e5defac2-4ae1-44ac-a3d0-1684ae657453&page=-1")
                 .build())
             .response(TestResponse.builder()
                 .status(OK)
@@ -133,7 +134,7 @@ public final class ReactorServiceUsageEventsTest extends AbstractClientApiTest {
     public void purgeAndReseed() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(POST).path("/v2/service_usage_events/destructively_purge_all_and_reseed_existing_instances")
+                .method(POST).path("/service_usage_events/destructively_purge_all_and_reseed_existing_instances")
                 .build())
             .response(TestResponse.builder()
                 .status(NO_CONTENT)

@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,6 +34,13 @@ abstract class _OAuth2Configuration extends AbstractAuthenticationConfiguration 
     @JsonProperty("checkTokenUrl")
     @Nullable
     abstract String getCheckTokenUrl();
+
+    /**
+     * Send the client credentials in the token retrieval call as body parameters instead of a Basic Authorization header.
+     */
+    @JsonProperty("clientAuthInBody")
+    @Nullable
+    abstract Boolean getClientAuthInBody();
 
     /**
      * The OAuth 2.0 token issuer.

@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,7 +15,6 @@
  */
 
 package org.cloudfoundry.reactor.client.v2.serviceplanvisibilities;
-
 
 import org.cloudfoundry.client.v2.serviceplanvisibilities.CreateServicePlanVisibilityRequest;
 import org.cloudfoundry.client.v2.serviceplanvisibilities.CreateServicePlanVisibilityResponse;
@@ -33,6 +32,8 @@ import org.cloudfoundry.reactor.TokenProvider;
 import org.cloudfoundry.reactor.client.v2.AbstractClientV2Operations;
 import reactor.core.publisher.Mono;
 
+import java.util.Map;
+
 /**
  * The Reactor-based implementation of {@link ServicePlanVisibilities}
  */
@@ -42,40 +43,41 @@ public final class ReactorServicePlanVisibilities extends AbstractClientV2Operat
      * Creates an instance
      *
      * @param connectionContext the {@link ConnectionContext} to use when communicating with the server
-     * @param root              the root URI of the server.  Typically something like {@code https://api.run.pivotal.io}.
+     * @param root              the root URI of the server. Typically something like {@code https://api.run.pivotal.io}.
      * @param tokenProvider     the {@link TokenProvider} to use when communicating with the server
+     * @param requestTags       map with custom http headers which will be added to web request
      */
-    public ReactorServicePlanVisibilities(ConnectionContext connectionContext, Mono<String> root, TokenProvider tokenProvider) {
-        super(connectionContext, root, tokenProvider);
+    public ReactorServicePlanVisibilities(ConnectionContext connectionContext, Mono<String> root, TokenProvider tokenProvider, Map<String, String> requestTags) {
+        super(connectionContext, root, tokenProvider, requestTags);
     }
 
     @Override
     public Mono<CreateServicePlanVisibilityResponse> create(CreateServicePlanVisibilityRequest request) {
-        return post(request, CreateServicePlanVisibilityResponse.class, builder -> builder.pathSegment("v2", "service_plan_visibilities"))
+        return post(request, CreateServicePlanVisibilityResponse.class, builder -> builder.pathSegment("service_plan_visibilities"))
             .checkpoint();
     }
 
     @Override
     public Mono<DeleteServicePlanVisibilityResponse> delete(DeleteServicePlanVisibilityRequest request) {
-        return delete(request, DeleteServicePlanVisibilityResponse.class, builder -> builder.pathSegment("v2", "service_plan_visibilities", request.getServicePlanVisibilityId()))
+        return delete(request, DeleteServicePlanVisibilityResponse.class, builder -> builder.pathSegment("service_plan_visibilities", request.getServicePlanVisibilityId()))
             .checkpoint();
     }
 
     @Override
     public Mono<GetServicePlanVisibilityResponse> get(GetServicePlanVisibilityRequest request) {
-        return get(request, GetServicePlanVisibilityResponse.class, builder -> builder.pathSegment("v2", "service_plan_visibilities", request.getServicePlanVisibilityId()))
+        return get(request, GetServicePlanVisibilityResponse.class, builder -> builder.pathSegment("service_plan_visibilities", request.getServicePlanVisibilityId()))
             .checkpoint();
     }
 
     @Override
     public Mono<ListServicePlanVisibilitiesResponse> list(ListServicePlanVisibilitiesRequest request) {
-        return get(request, ListServicePlanVisibilitiesResponse.class, builder -> builder.pathSegment("v2", "service_plan_visibilities"))
+        return get(request, ListServicePlanVisibilitiesResponse.class, builder -> builder.pathSegment("service_plan_visibilities"))
             .checkpoint();
     }
 
     @Override
     public Mono<UpdateServicePlanVisibilityResponse> update(UpdateServicePlanVisibilityRequest request) {
-        return put(request, UpdateServicePlanVisibilityResponse.class, builder -> builder.pathSegment("v2", "service_plan_visibilities", request.getServicePlanVisibilityId()))
+        return put(request, UpdateServicePlanVisibilityResponse.class, builder -> builder.pathSegment("service_plan_visibilities", request.getServicePlanVisibilityId()))
             .checkpoint();
     }
 

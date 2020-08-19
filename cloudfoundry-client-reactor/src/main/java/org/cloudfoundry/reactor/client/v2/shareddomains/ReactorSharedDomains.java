@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,6 +30,8 @@ import org.cloudfoundry.reactor.TokenProvider;
 import org.cloudfoundry.reactor.client.v2.AbstractClientV2Operations;
 import reactor.core.publisher.Mono;
 
+import java.util.Map;
+
 /**
  * The Reactor-based implementation of {@link SharedDomains}
  */
@@ -39,35 +41,36 @@ public final class ReactorSharedDomains extends AbstractClientV2Operations imple
      * Creates an instance
      *
      * @param connectionContext the {@link ConnectionContext} to use when communicating with the server
-     * @param root              the root URI of the server.  Typically something like {@code https://api.run.pivotal.io}.
+     * @param root              the root URI of the server. Typically something like {@code https://api.run.pivotal.io}.
      * @param tokenProvider     the {@link TokenProvider} to use when communicating with the server
+     * @param requestTags       map with custom http headers which will be added to web request
      */
-    public ReactorSharedDomains(ConnectionContext connectionContext, Mono<String> root, TokenProvider tokenProvider) {
-        super(connectionContext, root, tokenProvider);
+    public ReactorSharedDomains(ConnectionContext connectionContext, Mono<String> root, TokenProvider tokenProvider, Map<String, String> requestTags) {
+        super(connectionContext, root, tokenProvider, requestTags);
     }
 
     @Override
     public Mono<CreateSharedDomainResponse> create(CreateSharedDomainRequest request) {
-        return post(request, CreateSharedDomainResponse.class, builder -> builder.pathSegment("v2", "shared_domains"))
+        return post(request, CreateSharedDomainResponse.class, builder -> builder.pathSegment("shared_domains"))
             .checkpoint();
     }
 
     @Override
     public Mono<DeleteSharedDomainResponse> delete(DeleteSharedDomainRequest request) {
-        return delete(request, DeleteSharedDomainResponse.class, builder -> builder.pathSegment("v2", "shared_domains", request.getSharedDomainId()))
+        return delete(request, DeleteSharedDomainResponse.class, builder -> builder.pathSegment("shared_domains", request.getSharedDomainId()))
             .checkpoint();
     }
 
     @Override
     public Mono<GetSharedDomainResponse> get(GetSharedDomainRequest request) {
-        return get(request, GetSharedDomainResponse.class, builder -> builder.pathSegment("v2", "shared_domains", request.getSharedDomainId()))
+        return get(request, GetSharedDomainResponse.class, builder -> builder.pathSegment("shared_domains", request.getSharedDomainId()))
             .checkpoint();
 
     }
 
     @Override
     public Mono<ListSharedDomainsResponse> list(ListSharedDomainsRequest request) {
-        return get(request, ListSharedDomainsResponse.class, builder -> builder.pathSegment("v2", "shared_domains"))
+        return get(request, ListSharedDomainsResponse.class, builder -> builder.pathSegment("shared_domains"))
             .checkpoint();
     }
 

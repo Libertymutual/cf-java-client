@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 package org.cloudfoundry.reactor.uaa.authorizations;
 
+import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.util.AsciiString;
 import org.cloudfoundry.reactor.ConnectionContext;
 import org.cloudfoundry.reactor.TokenProvider;
@@ -29,11 +30,13 @@ import org.cloudfoundry.uaa.authorizations.AuthorizeByImplicitGrantBrowserReques
 import org.cloudfoundry.uaa.authorizations.AuthorizeByOpenIdWithAuthorizationCodeGrantRequest;
 import org.cloudfoundry.uaa.authorizations.AuthorizeByOpenIdWithIdTokenRequest;
 import org.cloudfoundry.uaa.authorizations.AuthorizeByOpenIdWithImplicitGrantRequest;
+import org.cloudfoundry.uaa.authorizations.GetOpenIdProviderConfigurationRequest;
+import org.cloudfoundry.uaa.authorizations.GetOpenIdProviderConfigurationResponse;
 import org.cloudfoundry.util.ExceptionUtils;
 import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Mono;
-import reactor.ipc.netty.http.client.HttpClientRequest;
 
+import java.util.Map;
 import java.util.Optional;
 
 import static io.netty.handler.codec.http.HttpHeaderNames.AUTHORIZATION;
@@ -49,11 +52,12 @@ public final class ReactorAuthorizations extends AbstractUaaOperations implement
      * Creates an instance
      *
      * @param connectionContext the {@link ConnectionContext} to use when communicating with the server
-     * @param root              the root URI of the server.  Typically something like {@code https://uaa.run.pivotal.io}.
+     * @param root              the root URI of the server. Typically something like {@code https://uaa.run.pivotal.io}.
      * @param tokenProvider     the {@link TokenProvider} to use when communicating with the server
+     * @param requestTags       map with custom http headers which will be added to web request
      */
-    public ReactorAuthorizations(ConnectionContext connectionContext, Mono<String> root, TokenProvider tokenProvider) {
-        super(connectionContext, root, tokenProvider);
+    public ReactorAuthorizations(ConnectionContext connectionContext, Mono<String> root, TokenProvider tokenProvider, Map<String, String> requestTags) {
+        super(connectionContext, root, tokenProvider, requestTags);
     }
 
     @Override
@@ -73,8 +77,8 @@ public final class ReactorAuthorizations extends AbstractUaaOperations implement
     @Override
     public Mono<String> authorizationCodeGrantBrowser(AuthorizeByAuthorizationCodeGrantBrowserRequest request) {
         return get(request, builder -> builder.pathSegment("oauth", "authorize").queryParam("response_type", ResponseType.CODE),
-            outbound -> outbound
-                .map(ReactorAuthorizations::removeAuthorization))
+            outbound -> {},
+            ReactorAuthorizations::removeAuthorization)
             .map(inbound -> inbound.responseHeaders().get(LOCATION))
             .checkpoint();
     }
@@ -82,17 +86,23 @@ public final class ReactorAuthorizations extends AbstractUaaOperations implement
     @Override
     public Mono<String> authorizationCodeGrantHybrid(AuthorizeByAuthorizationCodeGrantHybridRequest request) {
         return get(request, builder -> builder.pathSegment("oauth", "authorize").queryParam("response_type", ResponseType.CODE_AND_ID_TOKEN),
-            outbound -> outbound
-                .map(ReactorAuthorizations::removeAuthorization))
+            outbound -> {},
+            ReactorAuthorizations::removeAuthorization)
             .map(inbound -> inbound.responseHeaders().get(LOCATION))
+            .checkpoint();
+    }
+
+    @Override
+    public Mono<GetOpenIdProviderConfigurationResponse> getOpenIdProviderConfiguration(GetOpenIdProviderConfigurationRequest request) {
+        return get(request, GetOpenIdProviderConfigurationResponse.class, builder -> builder.pathSegment(".well-known", "openid-configuration"))
             .checkpoint();
     }
 
     @Override
     public Mono<String> implicitGrantBrowser(AuthorizeByImplicitGrantBrowserRequest request) {
         return get(request, builder -> builder.pathSegment("oauth", "authorize").queryParam("response_type", ResponseType.TOKEN),
-            outbound -> outbound
-                .map(ReactorAuthorizations::removeAuthorization))
+            outbound -> {},
+            ReactorAuthorizations::removeAuthorization)
             .map(inbound -> inbound.responseHeaders().get(LOCATION))
             .checkpoint();
     }
@@ -100,8 +110,8 @@ public final class ReactorAuthorizations extends AbstractUaaOperations implement
     @Override
     public Mono<String> openIdWithAuthorizationCodeAndIdToken(AuthorizeByOpenIdWithAuthorizationCodeGrantRequest request) {
         return get(request, builder -> builder.pathSegment("oauth", "authorize").queryParam("response_type", ResponseType.CODE_AND_ID_TOKEN),
-            outbound -> outbound
-                .map(ReactorAuthorizations::removeAuthorization))
+            outbound -> {},
+            ReactorAuthorizations::removeAuthorization)
             .map(inbound -> inbound.responseHeaders().get(LOCATION))
             .checkpoint();
     }
@@ -120,9 +130,9 @@ public final class ReactorAuthorizations extends AbstractUaaOperations implement
             .checkpoint();
     }
 
-    private static HttpClientRequest removeAuthorization(HttpClientRequest request) {
-        request.requestHeaders().remove(AUTHORIZATION);
-        return request;
+    private static Mono<HttpHeaders> removeAuthorization(HttpHeaders request) {
+        return Mono.just(request.remove(AUTHORIZATION));
     }
+
 
 }

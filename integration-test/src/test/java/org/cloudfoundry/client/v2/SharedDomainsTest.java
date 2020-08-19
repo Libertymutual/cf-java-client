@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -45,7 +45,7 @@ public final class SharedDomainsTest extends AbstractIntegrationTest {
     private CloudFoundryClient cloudFoundryClient;
 
     @Test
-    public void create() throws TimeoutException, InterruptedException {
+    public void create() {
         String domainName = this.nameFactory.getDomainName();
 
         this.cloudFoundryClient.sharedDomains()
@@ -62,7 +62,7 @@ public final class SharedDomainsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void deleteAsyncFalse() throws TimeoutException, InterruptedException {
+    public void deleteAsyncFalse() {
         String domainName = this.nameFactory.getDomainName();
 
         getSharedDomainId(this.cloudFoundryClient, domainName)
@@ -79,7 +79,7 @@ public final class SharedDomainsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void deleteAsyncTrue() throws TimeoutException, InterruptedException {
+    public void deleteAsyncTrue() {
         String domainName = this.nameFactory.getDomainName();
 
         getSharedDomainId(this.cloudFoundryClient, domainName)
@@ -97,7 +97,7 @@ public final class SharedDomainsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void get() throws TimeoutException, InterruptedException {
+    public void get() {
         String domainName = this.nameFactory.getDomainName();
 
         getSharedDomainId(this.cloudFoundryClient, domainName)
@@ -114,7 +114,7 @@ public final class SharedDomainsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void list() throws TimeoutException, InterruptedException {
+    public void list() {
         String domainName = this.nameFactory.getDomainName();
 
         getSharedDomainId(this.cloudFoundryClient, domainName)
@@ -129,11 +129,11 @@ public final class SharedDomainsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void listFilterByName() throws TimeoutException, InterruptedException {
+    public void listFilterByName() {
         String domainName = this.nameFactory.getDomainName();
 
         getSharedDomainId(this.cloudFoundryClient, domainName)
-            .flatMap(sharedDomainId -> Mono.when(
+            .flatMap(sharedDomainId -> Mono.zip(
                 Mono.just(sharedDomainId),
                 requestListSharedDomains(this.cloudFoundryClient, domainName)
                     .single()

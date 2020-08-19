@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@ final class UuidUtils {
 
     static UUID from(org.cloudfoundry.dropsonde.events.UUID dropsonde) {
         return Optional.ofNullable(dropsonde)
-            .map(d -> new UUID(d.high, d.low))
+            .map(d -> new UUID(Long.reverseBytes(d.low), Long.reverseBytes(d.high)))
             .orElse(null);
     }
 

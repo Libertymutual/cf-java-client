@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ import org.cloudfoundry.client.v3.DockerData;
 import org.cloudfoundry.client.v3.Lifecycle;
 import org.cloudfoundry.client.v3.LifecycleType;
 import org.cloudfoundry.client.v3.Link;
+import org.cloudfoundry.client.v3.Metadata;
 import org.cloudfoundry.client.v3.Pagination;
 import org.cloudfoundry.client.v3.Relationship;
 import org.cloudfoundry.client.v3.ToOneRelationship;
@@ -46,12 +47,16 @@ import org.cloudfoundry.client.v3.applications.GetApplicationProcessStatisticsRe
 import org.cloudfoundry.client.v3.applications.GetApplicationProcessStatisticsResponse;
 import org.cloudfoundry.client.v3.applications.GetApplicationRequest;
 import org.cloudfoundry.client.v3.applications.GetApplicationResponse;
+import org.cloudfoundry.client.v3.applications.ListApplicationBuildsRequest;
+import org.cloudfoundry.client.v3.applications.ListApplicationBuildsResponse;
 import org.cloudfoundry.client.v3.applications.ListApplicationDropletsRequest;
 import org.cloudfoundry.client.v3.applications.ListApplicationDropletsResponse;
 import org.cloudfoundry.client.v3.applications.ListApplicationPackagesRequest;
 import org.cloudfoundry.client.v3.applications.ListApplicationPackagesResponse;
 import org.cloudfoundry.client.v3.applications.ListApplicationProcessesRequest;
 import org.cloudfoundry.client.v3.applications.ListApplicationProcessesResponse;
+import org.cloudfoundry.client.v3.applications.ListApplicationRoutesRequest;
+import org.cloudfoundry.client.v3.applications.ListApplicationRoutesResponse;
 import org.cloudfoundry.client.v3.applications.ListApplicationTasksRequest;
 import org.cloudfoundry.client.v3.applications.ListApplicationTasksResponse;
 import org.cloudfoundry.client.v3.applications.ListApplicationsRequest;
@@ -69,6 +74,9 @@ import org.cloudfoundry.client.v3.applications.UpdateApplicationEnvironmentVaria
 import org.cloudfoundry.client.v3.applications.UpdateApplicationEnvironmentVariablesResponse;
 import org.cloudfoundry.client.v3.applications.UpdateApplicationRequest;
 import org.cloudfoundry.client.v3.applications.UpdateApplicationResponse;
+import org.cloudfoundry.client.v3.builds.BuildResource;
+import org.cloudfoundry.client.v3.builds.BuildState;
+import org.cloudfoundry.client.v3.builds.CreatedBy;
 import org.cloudfoundry.client.v3.droplets.Buildpack;
 import org.cloudfoundry.client.v3.droplets.DropletResource;
 import org.cloudfoundry.client.v3.droplets.DropletState;
@@ -80,10 +88,17 @@ import org.cloudfoundry.client.v3.processes.Data;
 import org.cloudfoundry.client.v3.processes.HealthCheck;
 import org.cloudfoundry.client.v3.processes.HealthCheckType;
 import org.cloudfoundry.client.v3.processes.PortMapping;
+import org.cloudfoundry.client.v3.processes.ProcessRelationships;
 import org.cloudfoundry.client.v3.processes.ProcessResource;
 import org.cloudfoundry.client.v3.processes.ProcessState;
 import org.cloudfoundry.client.v3.processes.ProcessStatisticsResource;
 import org.cloudfoundry.client.v3.processes.ProcessUsage;
+import org.cloudfoundry.client.v3.routes.Application;
+import org.cloudfoundry.client.v3.routes.Destination;
+import org.cloudfoundry.client.v3.routes.Process;
+import org.cloudfoundry.client.v3.routes.Protocol;
+import org.cloudfoundry.client.v3.routes.RouteRelationships;
+import org.cloudfoundry.client.v3.routes.RouteResource;
 import org.cloudfoundry.client.v3.tasks.Result;
 import org.cloudfoundry.client.v3.tasks.TaskResource;
 import org.cloudfoundry.client.v3.tasks.TaskState;
@@ -108,16 +123,17 @@ import static io.netty.handler.codec.http.HttpResponseStatus.ACCEPTED;
 import static io.netty.handler.codec.http.HttpResponseStatus.CREATED;
 import static io.netty.handler.codec.http.HttpResponseStatus.NO_CONTENT;
 import static io.netty.handler.codec.http.HttpResponseStatus.OK;
+import static org.cloudfoundry.client.v3.routes.Protocol.HTTP;
 
 public final class ReactorApplicationsV3Test extends AbstractClientApiTest {
 
-    private final ReactorApplicationsV3 applications = new ReactorApplicationsV3(CONNECTION_CONTEXT, this.root, TOKEN_PROVIDER);
+    private final ReactorApplicationsV3 applications = new ReactorApplicationsV3(CONNECTION_CONTEXT, this.root, TOKEN_PROVIDER, Collections.emptyMap());
 
     @Test
     public void create() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(POST).path("/v3/apps")
+                .method(POST).path("/apps")
                 .payload("fixtures/client/v3/apps/POST_request.json")
                 .build())
             .response(TestResponse.builder()
@@ -136,6 +152,10 @@ public final class ReactorApplicationsV3Test extends AbstractClientApiTest {
                             .build())
                         .build())
                     .build())
+                .metadata(Metadata.builder()
+                    .annotation("version", "1.2.3")
+                    .label("isLive", "true")
+                    .build())
                 .build())
             .as(StepVerifier::create)
             .expectNext(CreateApplicationResponse.builder()
@@ -150,6 +170,17 @@ public final class ReactorApplicationsV3Test extends AbstractClientApiTest {
                         .buildpack("java_buildpack")
                         .stack("cflinuxfs2")
                         .build())
+                    .build())
+                .relationships(ApplicationRelationships.builder()
+                    .space(ToOneRelationship.builder()
+                        .data(Relationship.builder()
+                            .id("2f35885d-0c9d-4423-83ad-fd05066f8576")
+                            .build())
+                        .build())
+                    .build())
+                .metadata(Metadata.builder()
+                    .annotation("version", "1.2.3")
+                    .label("isLive", "true")
                     .build())
                 .link("self", Link.builder()
                     .href("https://api.example.org/v3/apps/1cb006ee-fb05-47e1-b541-c34179ddc446")
@@ -195,7 +226,7 @@ public final class ReactorApplicationsV3Test extends AbstractClientApiTest {
     public void delete() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(DELETE).path("/v3/apps/test-application-id")
+                .method(DELETE).path("/apps/test-application-id")
                 .build())
             .response(TestResponse.builder()
                 .status(ACCEPTED)
@@ -217,7 +248,7 @@ public final class ReactorApplicationsV3Test extends AbstractClientApiTest {
     public void get() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(GET).path("/v3/apps/test-application-id")
+                .method(GET).path("/apps/test-application-id")
                 .build())
             .response(TestResponse.builder()
                 .status(OK)
@@ -242,6 +273,18 @@ public final class ReactorApplicationsV3Test extends AbstractClientApiTest {
                         .buildpack("java_buildpack")
                         .stack("cflinuxfs2")
                         .build())
+                    .build())
+                .relationships(ApplicationRelationships.builder()
+                    .space(ToOneRelationship.builder()
+                        .data(Relationship.builder()
+                            .id("2f35885d-0c9d-4423-83ad-fd05066f8576")
+                            .build())
+                        .build())
+                    .build())
+                .metadata(Metadata.builder()
+                    .annotation("version", "1.2.4")
+                    .label("isLive", "false")
+                    .label("maintenance", "true")
                     .build())
                 .link("self", Link.builder()
                     .href("https://api.example.org/v3/apps/1cb006ee-fb05-47e1-b541-c34179ddc446")
@@ -287,7 +330,7 @@ public final class ReactorApplicationsV3Test extends AbstractClientApiTest {
     public void getCurrentDroplet() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(GET).path("/v3/apps/test-application-id/droplets/current")
+                .method(GET).path("/apps/test-application-id/droplets/current")
                 .build())
             .response(TestResponse.builder()
                 .status(OK)
@@ -346,7 +389,7 @@ public final class ReactorApplicationsV3Test extends AbstractClientApiTest {
     public void getCurrentDropletRelationship() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(GET).path("/v3/apps/test-application-id/relationships/current_droplet")
+                .method(GET).path("/apps/test-application-id/relationships/current_droplet")
                 .build())
             .response(TestResponse.builder()
                 .status(OK)
@@ -378,7 +421,7 @@ public final class ReactorApplicationsV3Test extends AbstractClientApiTest {
     public void getEnvironment() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(GET).path("/v3/apps/test-application-id/env")
+                .method(GET).path("/apps/test-application-id/env")
                 .build())
             .response(TestResponse.builder()
                 .status(OK)
@@ -430,7 +473,7 @@ public final class ReactorApplicationsV3Test extends AbstractClientApiTest {
     public void getEnvironmentVariables() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(GET).path("/v3/apps/test-application-id/environment_variables")
+                .method(GET).path("/apps/test-application-id/environment_variables")
                 .build())
             .response(TestResponse.builder()
                 .status(OK)
@@ -460,7 +503,7 @@ public final class ReactorApplicationsV3Test extends AbstractClientApiTest {
     public void getProcess() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(GET).path("/v3/apps/test-application-id/processes/test-type")
+                .method(GET).path("/apps/test-application-id/processes/test-type")
                 .build())
             .response(TestResponse.builder()
                 .status(OK)
@@ -487,6 +530,12 @@ public final class ReactorApplicationsV3Test extends AbstractClientApiTest {
                         .timeout(null)
                         .endpoint(null)
                         .build())
+                    .build())
+                .metadata(Metadata.builder()
+                    .annotations(Collections.emptyMap())
+                    .labels(Collections.emptyMap())
+                    .build())
+                .relationships(ProcessRelationships.builder()
                     .build())
                 .createdAt("2016-03-23T18:48:22Z")
                 .updatedAt("2016-03-23T18:48:42Z")
@@ -515,7 +564,7 @@ public final class ReactorApplicationsV3Test extends AbstractClientApiTest {
     public void getProcessStatistics() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(GET).path("/v3/apps/test-id/processes/test-type/stats")
+                .method(GET).path("/apps/test-id/processes/test-type/stats")
                 .build())
             .response(TestResponse.builder()
                 .status(OK)
@@ -543,7 +592,9 @@ public final class ReactorApplicationsV3Test extends AbstractClientApiTest {
                     .host("10.244.16.10")
                     .instancePort(PortMapping.builder()
                         .external(64546)
+                        .externalTlsProxyPort(1234)
                         .internal(8080)
+                        .internalTlsProxyPort(5678)
                         .build())
                     .uptime(9042)
                     .memoryQuota(268435456)
@@ -559,7 +610,7 @@ public final class ReactorApplicationsV3Test extends AbstractClientApiTest {
     public void list() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(GET).path("/v3/apps")
+                .method(GET).path("/apps")
                 .build())
             .response(TestResponse.builder()
                 .status(OK)
@@ -597,6 +648,17 @@ public final class ReactorApplicationsV3Test extends AbstractClientApiTest {
                             .buildpack("java_buildpack")
                             .stack("cflinuxfs2")
                             .build())
+                        .build())
+                    .relationships(ApplicationRelationships.builder()
+                        .space(ToOneRelationship.builder()
+                            .data(Relationship.builder()
+                                .id("2f35885d-0c9d-4423-83ad-fd05066f8576")
+                                .build())
+                            .build())
+                        .build())
+                    .metadata(Metadata.builder()
+                        .annotation("version", "1.2.3")
+                        .label("isLive", "true")
                         .build())
                     .link("self", Link.builder()
                         .href("https://api.example.org/v3/apps/1cb006ee-fb05-47e1-b541-c34179ddc446")
@@ -647,6 +709,13 @@ public final class ReactorApplicationsV3Test extends AbstractClientApiTest {
                             .stack("cflinuxfs2")
                             .build())
                         .build())
+                    .relationships(ApplicationRelationships.builder()
+                        .space(ToOneRelationship.builder()
+                            .data(Relationship.builder()
+                                .id("2f35885d-0c9d-4423-83ad-fd05066f8576")
+                                .build())
+                            .build())
+                        .build())
                     .link("self", Link.builder()
                         .href("https://api.example.org/v3/apps/02b4ec9b-94c7-4468-9c23-4e906191a0f8")
                         .build())
@@ -689,10 +758,71 @@ public final class ReactorApplicationsV3Test extends AbstractClientApiTest {
     }
 
     @Test
+    public void listBuilds() {
+        mockRequest(InteractionContext.builder()
+            .request(TestRequest.builder()
+                .method(GET).path("/apps/test-application-id/builds")
+                .build())
+            .response(TestResponse.builder()
+                .status(OK)
+                .payload("fixtures/client/v3/apps/GET_{id}_builds_response.json")
+                .build())
+            .build());
+
+        this.applications
+            .listBuilds(ListApplicationBuildsRequest.builder()
+                .applicationId("test-application-id")
+                .build())
+            .as(StepVerifier::create)
+            .expectNext(ListApplicationBuildsResponse.builder()
+                .pagination(Pagination.builder()
+                    .totalResults(1)
+                    .totalPages(1)
+                    .first(Link.builder()
+                        .href("https://api.example.org/v3/apps/test-application-id/builds?states=STAGING&page=1&per_page=2")
+                        .build())
+                    .last(Link.builder()
+                        .href("https://api.example.org/v3/apps/test-application-id/builds?states=STAGING&page=1&per_page=2")
+                        .build())
+                    .build())
+                .resource(BuildResource.builder()
+                    .id("585bc3c1-3743-497d-88b0-403ad6b56d16")
+                    .createdAt("2016-03-28T23:39:34Z")
+                    .updatedAt("2016-06-08T16:41:26Z")
+                    .createdBy(CreatedBy.builder()
+                        .id("3cb4e243-bed4-49d5-8739-f8b45abdec1c")
+                        .name("bill")
+                        .email("bill@example.com")
+                        .build())
+                    .state(BuildState.STAGING)
+                    .error(null)
+                    .lifecycle(Lifecycle.builder()
+                        .type(LifecycleType.BUILDPACK)
+                        .data(BuildpackData.builder()
+                            .buildpack("ruby_buildpack")
+                            .stack("cflinuxfs2")
+                            .build())
+                        .build())
+                    .inputPackage(Relationship.builder()
+                        .id("8e4da443-f255-499c-8b47-b3729b5b7432")
+                        .build())
+                    .link("self", Link.builder()
+                        .href("https://api.example.org/v3/builds/585bc3c1-3743-497d-88b0-403ad6b56d16")
+                        .build())
+                    .link("app", Link.builder()
+                        .href("https://api.example.org/v3/apps/7b34f1cf-7e73-428a-bb5a-8a17a8058396")
+                        .build())
+                    .build())
+                .build())
+            .expectComplete()
+            .verify(Duration.ofSeconds(5));
+    }
+
+    @Test
     public void listDroplets() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(GET).path("/v3/apps/test-application-id/droplets")
+                .method(GET).path("/apps/test-application-id/droplets")
                 .build())
             .response(TestResponse.builder()
                 .status(OK)
@@ -766,7 +896,6 @@ public final class ReactorApplicationsV3Test extends AbstractClientApiTest {
                     .processType("redacted_message", "[PRIVATE DATA HIDDEN IN LISTS]")
                     .image("cloudfoundry/diego-docker-app-custom:latest")
                     .checksum(null)
-                    .buildpacks(null)
                     .stack(null)
                     .createdAt("2016-03-17T00:00:01Z")
                     .updatedAt("2016-03-17T21:41:32Z")
@@ -793,7 +922,7 @@ public final class ReactorApplicationsV3Test extends AbstractClientApiTest {
     public void listPackages() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(GET).path("/v3/apps/test-application-id/packages")
+                .method(GET).path("/apps/test-application-id/packages")
                 .build())
             .response(TestResponse.builder()
                 .status(OK)
@@ -854,7 +983,7 @@ public final class ReactorApplicationsV3Test extends AbstractClientApiTest {
     public void listProcesses() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(GET).path("/v3/apps/test-application-id/processes")
+                .method(GET).path("/apps/test-application-id/processes")
                 .build())
             .response(TestResponse.builder()
                 .status(OK)
@@ -895,6 +1024,12 @@ public final class ReactorApplicationsV3Test extends AbstractClientApiTest {
                             .endpoint(null)
                             .build())
                         .build())
+                    .metadata(Metadata.builder()
+                        .annotations(Collections.emptyMap())
+                        .labels(Collections.emptyMap())
+                        .build())
+                    .relationships(ProcessRelationships.builder()
+                        .build())
                     .createdAt("2016-03-23T18:48:22Z")
                     .updatedAt("2016-03-23T18:48:42Z")
                     .link("self", Link.builder()
@@ -928,6 +1063,12 @@ public final class ReactorApplicationsV3Test extends AbstractClientApiTest {
                             .endpoint(null)
                             .build())
                         .build())
+                    .metadata(Metadata.builder()
+                        .annotations(Collections.emptyMap())
+                        .labels(Collections.emptyMap())
+                        .build())
+                    .relationships(ProcessRelationships.builder()
+                        .build())
                     .createdAt("2016-03-23T18:48:22Z")
                     .updatedAt("2016-03-23T18:48:42Z")
                     .link("self", Link.builder()
@@ -953,10 +1094,102 @@ public final class ReactorApplicationsV3Test extends AbstractClientApiTest {
     }
 
     @Test
+    public void listRoutes() {
+        mockRequest(InteractionContext.builder()
+            .request(TestRequest.builder()
+                .method(GET).path("/apps/test-application-id/routes")
+                .build())
+            .response(TestResponse.builder()
+                .status(OK)
+                .payload("fixtures/client/v3/apps/GET_{id}_routes_response.json")
+                .build())
+            .build());
+        this.applications
+            .listRoutes(ListApplicationRoutesRequest.builder()
+                .applicationId("test-application-id")
+                .build())
+            .as(StepVerifier::create)
+            .expectNext(ListApplicationRoutesResponse.builder()
+                .pagination(Pagination.builder()
+                    .totalResults(3)
+                    .totalPages(2)
+                    .first(Link.builder()
+                        .href("https://api.example.org/v3/apps/1cb006ee-fb05-47e1-b541-c34179ddc446/routes?page=1&per_page=2")
+                        .build())
+                    .last(Link.builder()
+                        .href("https://api.example.org/v3/apps/1cb006ee-fb05-47e1-b541-c34179ddc446/routes?page=2&per_page=2")
+                        .build())
+                    .next(Link.builder()
+                        .href("https://api.example.org/v3/apps/1cb006ee-fb05-47e1-b541-c34179ddc446/routes?page=2&per_page=2")
+                        .build())
+                    .build())
+                .resource(RouteResource.builder().host("test-hostname")
+                    .id("cbad697f-cac1-48f4-9017-ac08f39dfb31")
+                    .protocol(HTTP)
+                    .path("/some_path")
+                    .createdAt("2019-05-10T17:17:48Z")
+                    .updatedAt("2019-05-10T17:17:48Z")
+                    .host("a-hostname")
+                    .url("a-hostname.a-domain.com/some_path")
+                    .destinations(Destination.builder()
+                        .destinationId("385bf117-17f5-4689-8c5c-08c6cc821fed")
+                        .application(Application.builder()
+                            .applicationId("0a6636b5-7fc4-44d8-8752-0db3e40b35a5")
+                            .process(Process.builder()
+                                .type("web")
+                                .build())
+                            .build())
+                        .port(8080)
+                        .build())
+                    .destinations(Destination.builder()
+                        .destinationId("27e96a3b-5bcf-49ed-8048-351e0be23e6f")
+                        .application(Application.builder()
+                            .applicationId("f61e59fa-2121-4217-8c7b-15bfd75baf25")
+                            .process(Process.builder()
+                                .type("web")
+                                .build())
+                            .build())
+                        .port(8080)
+                        .build())
+                    .metadata(Metadata.builder()
+                        .annotations(Collections.emptyMap())
+                        .labels(Collections.emptyMap())
+                        .build())
+                    .relationships(RouteRelationships.builder()
+                        .space(ToOneRelationship.builder()
+                            .data(Relationship.builder()
+                                .id("885a8cb3-c07b-4856-b448-eeb10bf36236")
+                                .build())
+                            .build())
+                        .domain(ToOneRelationship.builder()
+                            .data(Relationship.builder()
+                                .id("0b5f3633-194c-42d2-9408-972366617e0e")
+                                .build())
+                            .build())
+                        .build())
+                    .link("self", Link.builder()
+                        .href("https://api.example.org/v3/routes/cbad697f-cac1-48f4-9017-ac08f39dfb31")
+                        .build())
+                    .link("space", Link.builder()
+                        .href("https://api.example.org/v3/spaces/885a8cb3-c07b-4856-b448-eeb10bf36236")
+                        .build())
+                    .link("domain", Link.builder()
+                        .href("https://api.example.org/v3/domains/0b5f3633-194c-42d2-9408-972366617e0e")
+                        .build())
+                    .link("destinations", Link.builder()
+                        .href("https://api.example.org/v3/routes/cbad697f-cac1-48f4-9017-ac08f39dfb31/destinations")
+                        .build())
+                    .build())
+                .build())
+            .expectComplete()
+            .verify(Duration.ofSeconds(5));
+    }
+
+    @Test
     public void listTasks() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(GET).path("/v3/apps/test-application-id/tasks")
+                .method(GET).path("/apps/test-application-id/tasks")
                 .build())
             .response(TestResponse.builder()
                 .status(OK)
@@ -1045,7 +1278,7 @@ public final class ReactorApplicationsV3Test extends AbstractClientApiTest {
     public void scale() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(PUT).path("/v3/apps/test-application-id/processes/test-type/actions/scale")
+                .method(PUT).path("/apps/test-application-id/processes/test-type/actions/scale")
                 .payload("fixtures/client/v3/apps/PUT_{id}_processes_{type}_actions_scale_request.json")
                 .build())
             .response(TestResponse.builder()
@@ -1077,6 +1310,12 @@ public final class ReactorApplicationsV3Test extends AbstractClientApiTest {
                         .endpoint(null)
                         .build())
                     .build())
+                .metadata(Metadata.builder()
+                    .annotations(Collections.emptyMap())
+                    .labels(Collections.emptyMap())
+                    .build())
+                .relationships(ProcessRelationships.builder()
+                    .build())
                 .createdAt("2016-03-23T18:48:22Z")
                 .updatedAt("2016-03-23T18:48:42Z")
                 .link("self", Link.builder()
@@ -1104,7 +1343,7 @@ public final class ReactorApplicationsV3Test extends AbstractClientApiTest {
     public void setCurrentDroplet() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(PATCH).path("/v3/apps/test-application-id/relationships/current_droplet")
+                .method(PATCH).path("/apps/test-application-id/relationships/current_droplet")
                 .payload("fixtures/client/v3/apps/PATCH_{id}_relationships_current_droplet_request.json")
                 .build())
             .response(TestResponse.builder()
@@ -1140,7 +1379,7 @@ public final class ReactorApplicationsV3Test extends AbstractClientApiTest {
     public void start() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(POST).path("/v3/apps/test-application-id/actions/start")
+                .method(POST).path("/apps/test-application-id/actions/start")
                 .build())
             .response(TestResponse.builder()
                 .status(OK)
@@ -1164,6 +1403,13 @@ public final class ReactorApplicationsV3Test extends AbstractClientApiTest {
                     .data(BuildpackData.builder()
                         .buildpack("java_buildpack")
                         .stack("cflinuxfs2")
+                        .build())
+                    .build())
+                .relationships(ApplicationRelationships.builder()
+                    .space(ToOneRelationship.builder()
+                        .data(Relationship.builder()
+                            .id("2f35885d-0c9d-4423-83ad-fd05066f8576")
+                            .build())
                         .build())
                     .build())
                 .link("self", Link.builder()
@@ -1210,7 +1456,7 @@ public final class ReactorApplicationsV3Test extends AbstractClientApiTest {
     public void stop() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(POST).path("/v3/apps/test-application-id/actions/stop")
+                .method(POST).path("/apps/test-application-id/actions/stop")
                 .build())
             .response(TestResponse.builder()
                 .status(OK)
@@ -1234,6 +1480,13 @@ public final class ReactorApplicationsV3Test extends AbstractClientApiTest {
                     .data(BuildpackData.builder()
                         .buildpack("java_buildpack")
                         .stack("cflinuxfs2")
+                        .build())
+                    .build())
+                .relationships(ApplicationRelationships.builder()
+                    .space(ToOneRelationship.builder()
+                        .data(Relationship.builder()
+                            .id("2f35885d-0c9d-4423-83ad-fd05066f8576")
+                            .build())
                         .build())
                     .build())
                 .link("self", Link.builder()
@@ -1280,7 +1533,7 @@ public final class ReactorApplicationsV3Test extends AbstractClientApiTest {
     public void terminateInstance() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(DELETE).path("/v3/apps/test-application-id/processes/test-type/instances/test-index")
+                .method(DELETE).path("/apps/test-application-id/processes/test-type/instances/test-index")
                 .build())
             .response(TestResponse.builder()
                 .status(NO_CONTENT)
@@ -1302,7 +1555,7 @@ public final class ReactorApplicationsV3Test extends AbstractClientApiTest {
     public void update() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(PATCH).path("/v3/apps/test-application-id")
+                .method(PATCH).path("/apps/test-application-id")
                 .payload("fixtures/client/v3/apps/PATCH_{id}_request.json")
                 .build())
             .response(TestResponse.builder()
@@ -1321,6 +1574,11 @@ public final class ReactorApplicationsV3Test extends AbstractClientApiTest {
                         .buildpack("java_buildpack")
                         .build())
                     .build())
+                .metadata(Metadata.builder()
+                    .annotation("version", "1.2.4")
+                    .label("isLive", "false")
+                    .label("maintenance", "true")
+                    .build())
                 .build())
             .as(StepVerifier::create)
             .expectNext(UpdateApplicationResponse.builder()
@@ -1335,6 +1593,18 @@ public final class ReactorApplicationsV3Test extends AbstractClientApiTest {
                         .buildpack("java_buildpack")
                         .stack("cflinuxfs2")
                         .build())
+                    .build())
+                .relationships(ApplicationRelationships.builder()
+                    .space(ToOneRelationship.builder()
+                        .data(Relationship.builder()
+                            .id("2f35885d-0c9d-4423-83ad-fd05066f8576")
+                            .build())
+                        .build())
+                    .build())
+                .metadata(Metadata.builder()
+                    .annotation("version", "1.2.4")
+                    .label("isLive", "false")
+                    .label("maintenance", "true")
                     .build())
                 .link("self", Link.builder()
                     .href("https://api.example.org/v3/apps/1cb006ee-fb05-47e1-b541-c34179ddc446")
@@ -1380,7 +1650,7 @@ public final class ReactorApplicationsV3Test extends AbstractClientApiTest {
     public void updateEnvironmentVariables() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(PATCH).path("/v3/apps/test-application-id/environment_variables")
+                .method(PATCH).path("/apps/test-application-id/environment_variables")
                 .payload("fixtures/client/v3/apps/PATCH_{id}_environment_variables_request.json")
                 .build())
             .response(TestResponse.builder()

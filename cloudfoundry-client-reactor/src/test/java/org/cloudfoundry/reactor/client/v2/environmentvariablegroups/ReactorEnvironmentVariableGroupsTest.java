@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,16 +38,15 @@ import static io.netty.handler.codec.http.HttpMethod.GET;
 import static io.netty.handler.codec.http.HttpMethod.PUT;
 import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 
-
 public class ReactorEnvironmentVariableGroupsTest extends AbstractClientApiTest {
 
-    private ReactorEnvironmentVariableGroups environmentVariableGroups = new ReactorEnvironmentVariableGroups(CONNECTION_CONTEXT, this.root, TOKEN_PROVIDER);
+    private ReactorEnvironmentVariableGroups environmentVariableGroups = new ReactorEnvironmentVariableGroups(CONNECTION_CONTEXT, this.root, TOKEN_PROVIDER, Collections.emptyMap());
 
     @Test
     public void getRunningEnvironmentVariables() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(GET).path("/v2/config/environment_variable_groups/running")
+                .method(GET).path("/config/environment_variable_groups/running")
                 .build())
             .response(TestResponse.builder()
                 .status(OK)
@@ -71,7 +70,7 @@ public class ReactorEnvironmentVariableGroupsTest extends AbstractClientApiTest 
     public void getStagingEnvironmentVariables() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(GET).path("/v2/config/environment_variable_groups/staging")
+                .method(GET).path("/config/environment_variable_groups/staging")
                 .build())
             .response(TestResponse.builder()
                 .status(OK)
@@ -95,7 +94,7 @@ public class ReactorEnvironmentVariableGroupsTest extends AbstractClientApiTest 
     public void updateRunningEnvironmentVariables() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(PUT).path("/v2/config/environment_variable_groups/running")
+                .method(PUT).path("/config/environment_variable_groups/running")
                 .payload("fixtures/client/v2/environment_variable_groups/PUT_running_request.json")
                 .build())
             .response(TestResponse.builder()
@@ -122,7 +121,7 @@ public class ReactorEnvironmentVariableGroupsTest extends AbstractClientApiTest 
     public void updateRunningEnvironmentVariablesEmpty() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(PUT).path("/v2/config/environment_variable_groups/running")
+                .method(PUT).path("/config/environment_variable_groups/running")
                 .payload("fixtures/client/v2/environment_variable_groups/PUT_running_request_empty.json")
                 .build())
             .response(TestResponse.builder()
@@ -147,7 +146,7 @@ public class ReactorEnvironmentVariableGroupsTest extends AbstractClientApiTest 
     public void updateStagingEnvironmentVariables() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(PUT).path("/v2/config/environment_variable_groups/staging")
+                .method(PUT).path("/config/environment_variable_groups/staging")
                 .payload("fixtures/client/v2/environment_variable_groups/PUT_staging_request.json")
                 .build())
             .response(TestResponse.builder()
@@ -174,7 +173,7 @@ public class ReactorEnvironmentVariableGroupsTest extends AbstractClientApiTest 
     public void updateStagingEnvironmentVariablesEmpty() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(PUT).path("/v2/config/environment_variable_groups/staging")
+                .method(PUT).path("/config/environment_variable_groups/staging")
                 .payload("fixtures/client/v2/environment_variable_groups/PUT_staging_request_empty.json")
                 .build())
             .response(TestResponse.builder()

@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -58,7 +58,7 @@ public final class FeatureFlagsTest extends AbstractIntegrationTest {
     private CloudFoundryClient cloudFoundryClient;
 
     @Test
-    public void getEach() throws TimeoutException, InterruptedException {
+    public void getEach() {
         Flux
             .fromIterable(coreFeatureFlagNameList)
             .flatMap(flagName -> this.cloudFoundryClient.featureFlags()
@@ -74,7 +74,7 @@ public final class FeatureFlagsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void list() throws TimeoutException, InterruptedException {
+    public void list() {
         this.cloudFoundryClient.featureFlags()
             .list(ListFeatureFlagsRequest.builder()
                 .build())
@@ -88,13 +88,13 @@ public final class FeatureFlagsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void setAndResetEach() throws TimeoutException, InterruptedException {
+    public void setAndResetEach() {
         Flux.fromIterable(coreFeatureFlagNameList)
             .flatMap(flagName -> this.cloudFoundryClient.featureFlags()
                 .get(GetFeatureFlagRequest.builder()
                     .name(flagName)
                     .build())
-                .flatMap(getResponse -> Mono.when(
+                .flatMap(getResponse -> Mono.zip(
                     Mono.just(getResponse),
                     this.cloudFoundryClient.featureFlags()
                         .set(SetFeatureFlagRequest.builder()
@@ -102,16 +102,15 @@ public final class FeatureFlagsTest extends AbstractIntegrationTest {
                             .enabled(!getResponse.getEnabled())
                             .build())
                 ))
-                .flatMap(function((getResponse, setResponse) -> Mono
-                    .when(
-                        Mono.just(getResponse),
-                        Mono.just(setResponse),
-                        this.cloudFoundryClient.featureFlags()
-                            .set(SetFeatureFlagRequest.builder()
-                                .name(getResponse.getName())
-                                .enabled(getResponse.getEnabled())
-                                .build())
-                    ))))
+                .flatMap(function((getResponse, setResponse) -> Mono.zip(
+                    Mono.just(getResponse),
+                    Mono.just(setResponse),
+                    this.cloudFoundryClient.featureFlags()
+                        .set(SetFeatureFlagRequest.builder()
+                            .name(getResponse.getName())
+                            .enabled(getResponse.getEnabled())
+                            .build())
+                ))))
             .collectList()
             .as(StepVerifier::create)
             .consumeNextWith(list -> list.forEach(consumer((getResponse, setResponse, resetResponse) -> {

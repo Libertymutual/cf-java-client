@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,31 +16,31 @@
 
 package org.cloudfoundry.reactor.uaa;
 
+import io.netty.handler.codec.http.HttpHeaders;
 import org.cloudfoundry.uaa.IdentityZoned;
 import org.junit.Test;
-import reactor.ipc.netty.http.client.HttpClientRequest;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 public final class IdentityZoneBuilderTest {
 
-    private final HttpClientRequest outbound = mock(HttpClientRequest.class);
+    private final HttpHeaders outbound = mock(HttpHeaders.class);
 
     @Test
     public void augment() {
         IdentityZoneBuilder.augment(this.outbound, new StubIdentityZoned());
 
-        verify(this.outbound).header("X-Identity-Zone-Id", "test-identity-zone-id");
-        verify(this.outbound).header("X-Identity-Zone-Subdomain", "test-identity-zone-subdomain");
+        verify(this.outbound).set("X-Identity-Zone-Id", "test-identity-zone-id");
+        verify(this.outbound).set("X-Identity-Zone-Subdomain", "test-identity-zone-subdomain");
     }
 
     @Test
     public void augmentNotIdentityZoned() {
         IdentityZoneBuilder.augment(this.outbound, new Object());
 
-        verifyZeroInteractions(this.outbound);
+        verifyNoInteractions(this.outbound);
     }
 
     private static final class StubIdentityZoned implements IdentityZoned {

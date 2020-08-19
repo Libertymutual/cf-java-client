@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -98,7 +98,7 @@ public final class DelayUtils {
     private static Flux<?> getDelay(Duration minimum, Duration maximum, Instant finish, Flux<Long> iterations) {
         return iterations
             .map(iteration -> calculateDuration(minimum, maximum, iteration))
-            .flatMap(delay -> {
+            .concatMap(delay -> {
                 if (Instant.now().isAfter(finish)) {
                     return Mono.error(new DelayTimeoutException());
                 }
@@ -106,7 +106,7 @@ public final class DelayUtils {
                 return Mono
                     .delay(delay)
                     .doOnSubscribe(logDelay(delay));
-            }, 1);
+            });
     }
 
     private static Consumer<Subscription> logDelay(Duration delay) {

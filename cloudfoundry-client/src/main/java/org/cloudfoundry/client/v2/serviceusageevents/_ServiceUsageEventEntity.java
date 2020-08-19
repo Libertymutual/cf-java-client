@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,6 +34,20 @@ abstract class _ServiceUsageEventEntity {
     @JsonProperty("org_guid")
     @Nullable
     abstract String getOrganizationId();
+
+    /**
+     * The service broker id
+     */
+    @JsonProperty("service_broker_guid")
+    @Nullable
+    abstract String getServiceBrokerId();
+
+    /**
+     * The service broker name
+     */
+    @JsonProperty("service_broker_name")
+    @Nullable
+    abstract String getServiceBrokerName();
 
     /**
      * The service id

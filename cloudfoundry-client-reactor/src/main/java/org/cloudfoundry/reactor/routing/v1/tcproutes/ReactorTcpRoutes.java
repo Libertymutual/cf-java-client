@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,24 +33,23 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.io.IOException;
+import java.util.Map;
 
 /**
  * The Reactor-based implementation of {@link TcpRoutes}
  */
 public class ReactorTcpRoutes extends AbstractRoutingV1Operations implements TcpRoutes {
 
-    private final ConnectionContext connectionContext;
-
     /**
      * Creates an instance
      *
      * @param connectionContext the {@link ConnectionContext} to use when communicating with the server
-     * @param root              the root URI of the server.  Typically something like {@code https://api.run.pivotal.io}.
+     * @param root              the root URI of the server. Typically something like {@code https://api.run.pivotal.io}.
      * @param tokenProvider     the {@link TokenProvider} to use when communicating with the server
+     * @param requestTags       map with custom http headers which will be added to web request
      */
-    public ReactorTcpRoutes(ConnectionContext connectionContext, Mono<String> root, TokenProvider tokenProvider) {
-        super(connectionContext, root, tokenProvider);
-        this.connectionContext = connectionContext;
+    public ReactorTcpRoutes(ConnectionContext connectionContext, Mono<String> root, TokenProvider tokenProvider, Map<String, String> requestTags) {
+        super(connectionContext, root, tokenProvider, requestTags);
     }
 
     @Override
@@ -67,11 +66,11 @@ public class ReactorTcpRoutes extends AbstractRoutingV1Operations implements Tcp
 
     @Override
     public Flux<TcpRouteEvent> events(EventsRequest request) {
-        return get(builder -> builder.pathSegment("v1", "tcp_routes", "events"))
-            .flatMapMany(EventStreamCodec::decode)
+        return get(EventStreamCodec::createDecoder, builder -> builder.pathSegment("v1", "tcp_routes", "events"), EventStreamCodec::decode)
             .map(event -> {
                 try {
-                    return this.connectionContext.getObjectMapper().readValue(event.getData(), TcpRouteEvent.Builder.class)
+                    return this.connectionContext.getObjectMapper()
+                        .readValue(event.getData(), TcpRouteEvent.Builder.class)
                         .eventType(EventType.from(event.getEventType()))
                         .build();
                 } catch (IOException e) {

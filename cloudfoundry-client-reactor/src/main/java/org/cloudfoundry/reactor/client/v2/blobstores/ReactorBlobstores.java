@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,6 +24,8 @@ import org.cloudfoundry.reactor.TokenProvider;
 import org.cloudfoundry.reactor.client.v2.AbstractClientV2Operations;
 import reactor.core.publisher.Mono;
 
+import java.util.Map;
+
 /**
  * The Reactor-based implementation of {@link Blobstores}
  */
@@ -33,16 +35,17 @@ public final class ReactorBlobstores extends AbstractClientV2Operations implemen
      * Creates an instance
      *
      * @param connectionContext the {@link ConnectionContext} to use when communicating with the server
-     * @param root              the root URI of the server.  Typically something like {@code https://api.run.pivotal.io}.
+     * @param root              the root URI of the server. Typically something like {@code https://api.run.pivotal.io}.
      * @param tokenProvider     the {@link TokenProvider} to use when communicating with the server
+     * @param requestTags       map with custom http headers which will be added to web request
      */
-    public ReactorBlobstores(ConnectionContext connectionContext, Mono<String> root, TokenProvider tokenProvider) {
-        super(connectionContext, root, tokenProvider);
+    public ReactorBlobstores(ConnectionContext connectionContext, Mono<String> root, TokenProvider tokenProvider, Map<String, String> requestTags) {
+        super(connectionContext, root, tokenProvider, requestTags);
     }
 
     @Override
     public Mono<DeleteBlobstoreBuildpackCachesResponse> deleteBuildpackCaches(DeleteBlobstoreBuildpackCachesRequest request) {
-        return delete(request, DeleteBlobstoreBuildpackCachesResponse.class, builder -> builder.pathSegment("v2", "blobstores", "buildpack_cache"))
+        return delete(request, DeleteBlobstoreBuildpackCachesResponse.class, builder -> builder.pathSegment("blobstores", "buildpack_cache"))
             .checkpoint();
     }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,8 +18,10 @@ package org.cloudfoundry.operations.services;
 
 import org.cloudfoundry.AllowNulls;
 import org.cloudfoundry.Nullable;
+import org.cloudfoundry.client.v2.MaintenanceInfo;
 import org.immutables.value.Value;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
@@ -28,6 +30,20 @@ import java.util.Map;
  */
 @Value.Immutable
 abstract class _UpdateServiceInstanceRequest {
+
+    /**
+     * How long to wait for update
+     */
+    @Value.Default
+    Duration getCompletionTimeout() {
+        return Duration.ofMinutes(5);
+    }
+
+    /**
+     * The maintenance info to upgrade to
+     */
+    @Nullable
+    abstract MaintenanceInfo getMaintenanceInfo();
 
     /**
      * The parameters of the service instance

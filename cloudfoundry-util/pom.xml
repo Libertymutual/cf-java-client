@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  ~ Copyright 2013-2017 the original author or authors.
+  ~ Copyright 2013-2020 the original author or authors.
   ~
   ~ Licensed under the Apache License, Version 2.0 (the "License");
   ~ you may not use this file except in compliance with the License.
@@ -18,15 +18,14 @@
 <project
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xmlns="http://maven.apache.org/POM/4.0.0"
-        xsi:schemaLocation="
-                http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+        xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
         <groupId>org.cloudfoundry</groupId>
         <artifactId>cloudfoundry-java-client</artifactId>
-        <version>3.0.0.BUILD-SNAPSHOT</version>
+        <version>4.10.0.BUILD-SNAPSHOT</version>
     </parent>
 
     <artifactId>cloudfoundry-util</artifactId>
@@ -57,7 +56,11 @@
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-compress</artifactId>
-            <version>${commons-compress.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.atteo</groupId>
@@ -68,6 +71,11 @@
             <artifactId>cloudfoundry-client</artifactId>
             <version>${project.version}</version>
             <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>org.immutables</groupId>
+            <artifactId>value</artifactId>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.mockito</groupId>

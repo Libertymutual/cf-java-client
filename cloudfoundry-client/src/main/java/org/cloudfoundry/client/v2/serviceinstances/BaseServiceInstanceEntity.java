@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import org.cloudfoundry.AllowNulls;
 import org.cloudfoundry.Nullable;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -58,6 +59,20 @@ public abstract class BaseServiceInstanceEntity {
     public abstract String getServiceBindingsUrl();
 
     /**
+     * The shared from url
+     */
+    @JsonProperty("shared_from_url")
+    @Nullable
+    public abstract String getSharedFromUrl();
+
+    /**
+     * The shared to url
+     */
+    @JsonProperty("shared_to_url")
+    @Nullable
+    public abstract String getSharedToUrl();
+
+    /**
      * The space id
      */
     @JsonProperty("space_guid")
@@ -70,6 +85,13 @@ public abstract class BaseServiceInstanceEntity {
     @JsonProperty("space_url")
     @Nullable
     public abstract String getSpaceUrl();
+
+    /**
+     * A list of tags for the service instance
+     */
+    @JsonProperty("tags")
+    @Nullable
+    public abstract List<String> getTags();
 
     /**
      * The type

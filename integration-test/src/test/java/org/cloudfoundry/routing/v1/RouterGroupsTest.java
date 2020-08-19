@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -39,7 +39,7 @@ public final class RouterGroupsTest extends AbstractIntegrationTest {
     private RoutingClient routingClient;
 
     @Test
-    public void list() throws TimeoutException, InterruptedException {
+    public void list() {
         this.routingClient.routerGroups()
             .list(ListRouterGroupsRequest.builder()
                 .build())
@@ -53,7 +53,7 @@ public final class RouterGroupsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void update() throws TimeoutException, InterruptedException {
+    public void update() {
         getRouterGroupId(this.routingClient, DEFAULT_ROUTER_GROUP)
             .flatMap(routerGroupId -> this.routingClient.routerGroups()
                 .update(UpdateRouterGroupRequest.builder()

@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,7 +27,6 @@ import org.cloudfoundry.client.v2.organizations.AssociateOrganizationAuditorRequ
 import org.cloudfoundry.client.v2.organizations.AssociateOrganizationBillingManagerRequest;
 import org.cloudfoundry.client.v2.organizations.AssociateOrganizationManagerRequest;
 import org.cloudfoundry.client.v2.organizations.AssociateOrganizationUserRequest;
-import org.cloudfoundry.client.v2.organizations.AssociateOrganizationUserResponse;
 import org.cloudfoundry.client.v2.organizations.CreateOrganizationRequest;
 import org.cloudfoundry.client.v2.organizations.CreateOrganizationResponse;
 import org.cloudfoundry.client.v2.routes.CreateRouteRequest;
@@ -87,7 +86,6 @@ import org.cloudfoundry.client.v2.spaces.RemoveSpaceManagerRequest;
 import org.cloudfoundry.client.v2.spaces.RemoveSpaceSecurityGroupRequest;
 import org.cloudfoundry.client.v2.spaces.SpaceResource;
 import org.cloudfoundry.client.v2.spaces.UpdateSpaceRequest;
-import org.cloudfoundry.client.v2.stacks.ListStacksRequest;
 import org.cloudfoundry.client.v2.users.CreateUserRequest;
 import org.cloudfoundry.client.v2.users.UserEntity;
 import org.cloudfoundry.client.v2.users.UserResource;
@@ -112,11 +110,10 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.Date;
-import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
-import static java.time.temporal.ChronoUnit.HOURS;
+import static java.time.temporal.ChronoUnit.MINUTES;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.util.tuple.TupleUtils.function;
 
@@ -138,19 +135,19 @@ public final class SpacesTest extends AbstractIntegrationTest {
     private Mono<String> spaceId;
 
     @Autowired
-    private String stackName;
+    private Mono<String> stackId;
 
     @Autowired
     private UaaClient uaaClient;
 
     @Test
-    public void associateAuditor() throws TimeoutException, InterruptedException {
+    public void associateAuditor() {
         String organizationName = this.nameFactory.getOrganizationName();
         String spaceName = this.nameFactory.getSpaceName();
         String userName = this.nameFactory.getUserName();
 
         createSpaceIdAndUserId(this.cloudFoundryClient, this.uaaClient, organizationName, spaceName, userName)
-            .flatMap(function((spaceId, userId) -> Mono.when(
+            .flatMap(function((spaceId, userId) -> Mono.zip(
                 Mono.just(spaceId),
                 this.cloudFoundryClient.spaces()
                     .associateAuditor(AssociateSpaceAuditorRequest.builder()
@@ -166,7 +163,7 @@ public final class SpacesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void associateAuditorByUsername() throws TimeoutException, InterruptedException {
+    public void associateAuditorByUsername() {
         String organizationName = this.nameFactory.getOrganizationName();
         String spaceName = this.nameFactory.getSpaceName();
         String userName = this.nameFactory.getUserName();
@@ -187,13 +184,13 @@ public final class SpacesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void associateDeveloper() throws TimeoutException, InterruptedException {
+    public void associateDeveloper() {
         String organizationName = this.nameFactory.getOrganizationName();
         String spaceName = this.nameFactory.getSpaceName();
         String userName = this.nameFactory.getUserName();
 
         createSpaceIdAndUserId(this.cloudFoundryClient, this.uaaClient, organizationName, spaceName, userName)
-            .flatMap(function((spaceId, userId) -> Mono.when(
+            .flatMap(function((spaceId, userId) -> Mono.zip(
                 Mono.just(spaceId),
                 this.cloudFoundryClient.spaces()
                     .associateDeveloper(AssociateSpaceDeveloperRequest.builder()
@@ -209,7 +206,7 @@ public final class SpacesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void associateDeveloperByUsername() throws TimeoutException, InterruptedException {
+    public void associateDeveloperByUsername() {
         String organizationName = this.nameFactory.getOrganizationName();
         String spaceName = this.nameFactory.getSpaceName();
         String userName = this.nameFactory.getUserName();
@@ -229,13 +226,13 @@ public final class SpacesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void associateManager() throws TimeoutException, InterruptedException {
+    public void associateManager() {
         String organizationName = this.nameFactory.getOrganizationName();
         String spaceName = this.nameFactory.getSpaceName();
         String userName = this.nameFactory.getUserName();
 
         createSpaceIdAndUserId(this.cloudFoundryClient, this.uaaClient, organizationName, spaceName, userName)
-            .flatMap(function((spaceId, userId) -> Mono.when(
+            .flatMap(function((spaceId, userId) -> Mono.zip(
                 Mono.just(spaceId),
                 this.cloudFoundryClient.spaces()
                     .associateManager(AssociateSpaceManagerRequest.builder()
@@ -251,7 +248,7 @@ public final class SpacesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void associateManagerByUsername() throws TimeoutException, InterruptedException {
+    public void associateManagerByUsername() {
         String organizationName = this.nameFactory.getOrganizationName();
         String spaceName = this.nameFactory.getSpaceName();
         String userName = this.nameFactory.getUserName();
@@ -276,17 +273,16 @@ public final class SpacesTest extends AbstractIntegrationTest {
         String spaceName = this.nameFactory.getSpaceName();
 
         this.organizationId
-            .flatMap(organizationId ->
-                Mono.when(
-                    createSecurityGroupId(this.cloudFoundryClient, securityGroupName),
-                    createSpaceId(this.cloudFoundryClient, organizationId, spaceName)
-                ))
+            .flatMap(organizationId -> Mono.zip(
+                createSecurityGroupId(this.cloudFoundryClient, securityGroupName),
+                createSpaceId(this.cloudFoundryClient, organizationId, spaceName)
+            ))
             .flatMap(function((securityGroupId, spaceId) -> this.cloudFoundryClient.spaces()
                 .associateSecurityGroup(AssociateSpaceSecurityGroupRequest.builder()
                     .securityGroupId(securityGroupId)
                     .spaceId(spaceId)
                     .build())
-                .then(Mono.just(spaceId))))
+                .thenReturn(spaceId)))
             .flatMapMany(spaceId -> requestListSecurityGroups(this.cloudFoundryClient, spaceId))
             .filter(response -> securityGroupName.equals(response.getEntity().getName()))
             .as(StepVerifier::create)
@@ -296,7 +292,7 @@ public final class SpacesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void create() throws TimeoutException, InterruptedException {
+    public void create() {
         String spaceName = this.nameFactory.getSpaceName();
 
         this.organizationId
@@ -313,7 +309,7 @@ public final class SpacesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void delete() throws TimeoutException, InterruptedException {
+    public void delete() {
         String spaceName = this.nameFactory.getSpaceName();
 
         this.organizationId
@@ -333,7 +329,7 @@ public final class SpacesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void deleteAsyncFalse() throws TimeoutException, InterruptedException {
+    public void deleteAsyncFalse() {
         String spaceName = this.nameFactory.getSpaceName();
 
         this.organizationId
@@ -352,7 +348,7 @@ public final class SpacesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void get() throws TimeoutException, InterruptedException {
+    public void get() {
         String spaceName = this.nameFactory.getSpaceName();
 
         this.organizationId
@@ -369,7 +365,7 @@ public final class SpacesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void getSummary() throws TimeoutException, InterruptedException {
+    public void getSummary() {
         String spaceName = this.nameFactory.getSpaceName();
 
         this.organizationId
@@ -386,7 +382,7 @@ public final class SpacesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void list() throws TimeoutException, InterruptedException {
+    public void list() {
         String organizationName = this.nameFactory.getOrganizationName();
         String spaceName = this.nameFactory.getSpaceName();
 
@@ -406,7 +402,7 @@ public final class SpacesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void listApplications() throws TimeoutException, InterruptedException {
+    public void listApplications() {
         String applicationName = this.nameFactory.getApplicationName();
         String spaceName = this.nameFactory.getSpaceName();
 
@@ -423,7 +419,7 @@ public final class SpacesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void listApplicationsFilterByDiego() throws TimeoutException, InterruptedException {
+    public void listApplicationsFilterByDiego() {
         String applicationName = this.nameFactory.getApplicationName();
         String spaceName = this.nameFactory.getSpaceName();
 
@@ -440,17 +436,17 @@ public final class SpacesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void listApplicationsFilterByName() throws TimeoutException, InterruptedException {
+    public void listApplicationsFilterByName() {
         String applicationName = this.nameFactory.getApplicationName();
         String spaceName = this.nameFactory.getSpaceName();
 
         this.organizationId
             .flatMap(organizationId -> createSpaceId(this.cloudFoundryClient, organizationId, spaceName))
-            .flatMap(spaceId -> Mono.when(
+            .flatMap(spaceId -> Mono.zip(
                 Mono.just(spaceId),
                 createApplicationId(this.cloudFoundryClient, spaceId, applicationName)
             ))
-            .flatMapMany(function((spaceId, applicationId) -> Mono.when(
+            .flatMapMany(function((spaceId, applicationId) -> Mono.zip(
                 Mono.just(applicationId),
                 requestListSpaceApplications(this.cloudFoundryClient, spaceId, builder -> builder.name(applicationName))
                     .single()
@@ -463,12 +459,12 @@ public final class SpacesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void listApplicationsFilterByOrganizationId() throws TimeoutException, InterruptedException {
+    public void listApplicationsFilterByOrganizationId() {
         String applicationName = this.nameFactory.getApplicationName();
         String spaceName = this.nameFactory.getSpaceName();
 
         this.organizationId
-            .flatMap(organizationId -> Mono.when(
+            .flatMap(organizationId -> Mono.zip(
                 Mono.just(organizationId),
                 createSpaceId(this.cloudFoundryClient, organizationId, spaceName)
             ))
@@ -482,24 +478,16 @@ public final class SpacesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void listApplicationsFilterByStackId() throws TimeoutException, InterruptedException {
+    public void listApplicationsFilterByStackId() {
         String applicationName = this.nameFactory.getApplicationName();
         String spaceName = this.nameFactory.getSpaceName();
 
-        this.organizationId
-            .flatMap(organizationId -> createSpaceId(this.cloudFoundryClient, organizationId, spaceName))
-            .delayUntil(spaceId -> createApplicationId(this.cloudFoundryClient, spaceId, applicationName))
-            .flatMap(spaceId -> Mono.when(
-                Mono.just(spaceId),
-                PaginationUtils
-                    .requestClientV2Resources(page -> this.cloudFoundryClient.stacks()
-                        .list(ListStacksRequest.builder()
-                            .name(this.stackName)
-                            .page(page)
-                            .build()))
-                    .single()
-                    .map(ResourceUtils::getId)
-            ))
+        Mono.zip(this.organizationId, this.stackId)
+            .flatMap(function((organizationId, stackId) -> Mono.zip(
+                createSpaceId(this.cloudFoundryClient, organizationId, spaceName),
+                Mono.just(stackId)
+            )))
+            .delayUntil(function((spaceId, stackId) -> createApplicationId(this.cloudFoundryClient, spaceId, applicationName, stackId)))
             .flatMapMany(function((spaceId, stackId) -> requestListSpaceApplications(this.cloudFoundryClient, spaceId, builder -> builder.stackId(stackId))))
             .map(response -> ResourceUtils.getEntity(response).getName())
             .as(StepVerifier::create)
@@ -509,7 +497,7 @@ public final class SpacesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void listAuditors() throws TimeoutException, InterruptedException {
+    public void listAuditors() {
         String organizationName = this.nameFactory.getOrganizationName();
         String spaceName = this.nameFactory.getSpaceName();
         String userName = this.nameFactory.getUserName();
@@ -534,7 +522,7 @@ public final class SpacesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void listDevelopers() throws TimeoutException, InterruptedException {
+    public void listDevelopers() {
         String organizationName = this.nameFactory.getOrganizationName();
         String spaceName = this.nameFactory.getSpaceName();
         String userName = this.nameFactory.getUserName();
@@ -560,7 +548,7 @@ public final class SpacesTest extends AbstractIntegrationTest {
 
     @SuppressWarnings("deprecation")
     @Test
-    public void listDomains() throws TimeoutException, InterruptedException {
+    public void listDomains() {
         String domainName = this.nameFactory.getDomainName();
         String spaceName = this.nameFactory.getSpaceName();
 
@@ -576,7 +564,7 @@ public final class SpacesTest extends AbstractIntegrationTest {
 
     @SuppressWarnings("deprecation")
     @Test
-    public void listDomainsFilterByName() throws TimeoutException, InterruptedException {
+    public void listDomainsFilterByName() {
         String domainName = this.nameFactory.getDomainName();
         String spaceName = this.nameFactory.getSpaceName();
 
@@ -591,7 +579,7 @@ public final class SpacesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void listEvents() throws TimeoutException, InterruptedException {
+    public void listEvents() {
         String spaceName = this.nameFactory.getSpaceName();
 
         this.organizationId
@@ -605,7 +593,7 @@ public final class SpacesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void listEventsFilterByActee() throws TimeoutException, InterruptedException {
+    public void listEventsFilterByActee() {
         String spaceName = this.nameFactory.getSpaceName();
 
         this.organizationId
@@ -619,7 +607,7 @@ public final class SpacesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void listEventsFilterByTimestamp() throws TimeoutException, InterruptedException {
+    public void listEventsFilterByTimestamp() {
         String spaceName = this.nameFactory.getSpaceName();
         String timestamp = getPastTimestamp();
 
@@ -634,12 +622,12 @@ public final class SpacesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void listEventsFilterByType() throws TimeoutException, InterruptedException {
+    public void listEventsFilterByType() {
         String spaceName = this.nameFactory.getSpaceName();
 
         this.organizationId
             .flatMap(organizationId -> createSpaceId(this.cloudFoundryClient, organizationId, spaceName))
-            .flatMap(spaceId -> Mono.when(
+            .flatMap(spaceId -> Mono.zip(
                 Mono.just(spaceId),
                 requestListSpaceEvents(this.cloudFoundryClient, spaceId, builder -> builder.type("audit.space.create"))
                     .single()
@@ -652,17 +640,17 @@ public final class SpacesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void listFilterByApplicationId() throws TimeoutException, InterruptedException {
+    public void listFilterByApplicationId() {
         String applicationName = this.nameFactory.getApplicationName();
         String spaceName = this.nameFactory.getSpaceName();
 
         this.organizationId
             .flatMap(organizationId -> createSpaceId(this.cloudFoundryClient, organizationId, spaceName))
-            .flatMap(spaceId -> Mono.when(
+            .flatMap(spaceId -> Mono.zip(
                 Mono.just(spaceId),
                 createApplicationId(this.cloudFoundryClient, spaceId, applicationName)
             ))
-            .flatMap(function((spaceId, applicationId) -> Mono.when(
+            .flatMap(function((spaceId, applicationId) -> Mono.zip(
                 Mono.just(spaceId),
                 requestListSpaces(this.cloudFoundryClient, builder -> builder.applicationId(applicationId))
                     .single()
@@ -682,7 +670,7 @@ public final class SpacesTest extends AbstractIntegrationTest {
 
         createSpaceIdAndUserId(this.cloudFoundryClient, this.uaaClient, organizationName, spaceName, userName)
             .delayUntil(function((spaceId, userId) -> requestAssociateSpaceDeveloper(this.cloudFoundryClient, userId, spaceId)))
-            .flatMap(function((spaceId, userId) -> Mono.when(
+            .flatMap(function((spaceId, userId) -> Mono.zip(
                 Mono.just(spaceId),
                 requestListSpaces(this.cloudFoundryClient, builder -> builder.developerId(userId))
                     .single()
@@ -695,12 +683,12 @@ public final class SpacesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void listFilterByName() throws TimeoutException, InterruptedException {
+    public void listFilterByName() {
         String spaceName = this.nameFactory.getSpaceName();
 
         this.organizationId
             .flatMap(organizationId -> createSpaceId(this.cloudFoundryClient, organizationId, spaceName))
-            .flatMap(spaceId -> Mono.when(
+            .flatMap(spaceId -> Mono.zip(
                 Mono.just(spaceId),
                 requestListSpaces(this.cloudFoundryClient, builder -> builder.name(spaceName))
                     .single()
@@ -713,12 +701,12 @@ public final class SpacesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void listFilterByOrganizationId() throws TimeoutException, InterruptedException {
+    public void listFilterByOrganizationId() {
         String organizationName = this.nameFactory.getOrganizationName();
         String spaceName = this.nameFactory.getSpaceName();
 
         createOrganizationIdAndSpaceId(this.cloudFoundryClient, organizationName, spaceName)
-            .flatMap(function((organizationId, spaceId) -> Mono.when(
+            .flatMap(function((organizationId, spaceId) -> Mono.zip(
                 Mono.just(spaceId),
                 requestListSpaces(this.cloudFoundryClient, builder -> builder.organizationId(organizationId))
                     .single()
@@ -731,7 +719,7 @@ public final class SpacesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void listManagers() throws TimeoutException, InterruptedException {
+    public void listManagers() {
         String organizationName = this.nameFactory.getOrganizationName();
         String spaceName = this.nameFactory.getSpaceName();
         String userName = this.nameFactory.getUserName();
@@ -747,18 +735,18 @@ public final class SpacesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void listManagersFilterByAuditedOrganizationId() throws TimeoutException, InterruptedException {
+    public void listManagersFilterByAuditedOrganizationId() {
         String organizationName = this.nameFactory.getOrganizationName();
         String spaceName = this.nameFactory.getSpaceName();
         String userName = this.nameFactory.getUserName();
 
         createOrganizationId(this.cloudFoundryClient, organizationName)
-            .flatMap(organizationId -> Mono.when(
+            .flatMap(organizationId -> Mono.zip(
                 createUserId(this.cloudFoundryClient, this.uaaClient, organizationId, userName),
                 createSpaceId(this.cloudFoundryClient, organizationId, spaceName),
                 Mono.just(organizationId)
             ))
-            .delayUntil(function((userId, spaceId, organizationId) -> Mono.when(
+            .delayUntil(function((userId, spaceId, organizationId) -> Mono.zip(
                 requestAssociateSpaceManager(this.cloudFoundryClient, spaceId, userId),
                 this.cloudFoundryClient.organizations()
                     .associateAuditor(AssociateOrganizationAuditorRequest.builder()
@@ -774,13 +762,13 @@ public final class SpacesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void listManagersFilterByAuditedSpaceId() throws TimeoutException, InterruptedException {
+    public void listManagersFilterByAuditedSpaceId() {
         String organizationName = this.nameFactory.getOrganizationName();
         String spaceName = this.nameFactory.getSpaceName();
         String userName = this.nameFactory.getUserName();
 
         createSpaceIdAndUserId(this.cloudFoundryClient, this.uaaClient, organizationName, spaceName, userName)
-            .delayUntil(function((spaceId, userId) -> Mono.when(
+            .delayUntil(function((spaceId, userId) -> Mono.zip(
                 requestAssociateSpaceManager(this.cloudFoundryClient, spaceId, userId),
                 requestAssociateSpaceAuditor(this.cloudFoundryClient, spaceId, userId)
             )))
@@ -793,18 +781,18 @@ public final class SpacesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void listManagersFilterByBillingManagedOrganizationId() throws TimeoutException, InterruptedException {
+    public void listManagersFilterByBillingManagedOrganizationId() {
         String organizationName = this.nameFactory.getOrganizationName();
         String spaceName = this.nameFactory.getSpaceName();
         String userName = this.nameFactory.getUserName();
 
         createOrganizationId(this.cloudFoundryClient, organizationName)
-            .flatMap(organizationId -> Mono.when(
+            .flatMap(organizationId -> Mono.zip(
                 createUserId(this.cloudFoundryClient, this.uaaClient, organizationId, userName),
                 createSpaceId(this.cloudFoundryClient, organizationId, spaceName),
                 Mono.just(organizationId)
             ))
-            .delayUntil(function((userId, spaceId, organizationId) -> Mono.when(
+            .delayUntil(function((userId, spaceId, organizationId) -> Mono.zip(
                 requestAssociateSpaceManager(this.cloudFoundryClient, spaceId, userId),
                 this.cloudFoundryClient.organizations()
                     .associateBillingManager(AssociateOrganizationBillingManagerRequest.builder()
@@ -812,7 +800,7 @@ public final class SpacesTest extends AbstractIntegrationTest {
                         .billingManagerId(userId)
                         .build())
             )))
-            .flatMap(function((userId, spaceId, organizationId) -> Mono.when(
+            .flatMap(function((userId, spaceId, organizationId) -> Mono.zip(
                 Mono.just(userId),
                 requestListSpaceManagers(this.cloudFoundryClient, spaceId, builder -> builder.billingManagedOrganizationId(organizationId))
                     .single()
@@ -825,18 +813,18 @@ public final class SpacesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void listManagersFilterByManagedOrganizationId() throws TimeoutException, InterruptedException {
+    public void listManagersFilterByManagedOrganizationId() {
         String organizationName = this.nameFactory.getOrganizationName();
         String spaceName = this.nameFactory.getSpaceName();
         String userName = this.nameFactory.getUserName();
 
         createOrganizationId(this.cloudFoundryClient, organizationName)
-            .flatMap(organizationId -> Mono.when(
+            .flatMap(organizationId -> Mono.zip(
                 createUserId(this.cloudFoundryClient, this.uaaClient, organizationId, userName),
                 createSpaceId(this.cloudFoundryClient, organizationId, spaceName),
                 Mono.just(organizationId)
             ))
-            .delayUntil(function((userId, spaceId, organizationId) -> Mono.when(
+            .delayUntil(function((userId, spaceId, organizationId) -> Mono.zip(
                 requestAssociateSpaceManager(this.cloudFoundryClient, spaceId, userId),
                 this.cloudFoundryClient.organizations()
                     .associateManager(AssociateOrganizationManagerRequest.builder()
@@ -844,7 +832,7 @@ public final class SpacesTest extends AbstractIntegrationTest {
                         .managerId(userId)
                         .build())
             )))
-            .flatMap(function((userId, spaceId, organizationId) -> Mono.when(
+            .flatMap(function((userId, spaceId, organizationId) -> Mono.zip(
                 Mono.just(userId),
                 requestListSpaceManagers(this.cloudFoundryClient, spaceId, builder -> builder.managedOrganizationId(organizationId))
                     .single()
@@ -857,7 +845,7 @@ public final class SpacesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void listManagersFilterByManagedSpaceId() throws TimeoutException, InterruptedException {
+    public void listManagersFilterByManagedSpaceId() {
         String organizationName = this.nameFactory.getOrganizationName();
         String spaceName = this.nameFactory.getSpaceName();
         String userName = this.nameFactory.getUserName();
@@ -873,19 +861,19 @@ public final class SpacesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void listManagersFilterByOrganizationId() throws TimeoutException, InterruptedException {
+    public void listManagersFilterByOrganizationId() {
         String organizationName = this.nameFactory.getOrganizationName();
         String spaceName = this.nameFactory.getSpaceName();
         String userName = this.nameFactory.getUserName();
 
         createOrganizationId(this.cloudFoundryClient, organizationName)
-            .flatMap(organizationId -> Mono.when(
+            .flatMap(organizationId -> Mono.zip(
                 createUserId(this.cloudFoundryClient, this.uaaClient, organizationId, userName),
                 createSpaceId(this.cloudFoundryClient, organizationId, spaceName),
                 Mono.just(organizationId)
             ))
             .delayUntil(function((userId, spaceId, organizationId) -> requestAssociateSpaceManager(this.cloudFoundryClient, spaceId, userId)))
-            .flatMap(function((userId, spaceId, organizationId) -> Mono.when(
+            .flatMap(function((userId, spaceId, organizationId) -> Mono.zip(
                 Mono.just(userId),
                 requestListSpaceManagers(this.cloudFoundryClient, spaceId, builder -> builder.organizationId(organizationId))
                     .single()
@@ -898,18 +886,18 @@ public final class SpacesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void listRoutes() throws TimeoutException, InterruptedException {
+    public void listRoutes() {
         String domainName = this.nameFactory.getDomainName();
         String hostName = this.nameFactory.getHostName();
         String spaceName = this.nameFactory.getSpaceName();
 
         this.organizationId
             .flatMap(organizationId -> createSpaceIdWithDomain(this.cloudFoundryClient, organizationId, spaceName, domainName))
-            .flatMap(spaceId -> Mono.when(
+            .flatMap(spaceId -> Mono.zip(
                 Mono.just(spaceId),
                 createRouteId(this.cloudFoundryClient, spaceId, domainName, hostName, "/test-path")
             ))
-            .flatMapMany(function((spaceId, routeId) -> Mono.when(
+            .flatMapMany(function((spaceId, routeId) -> Mono.zip(
                 Mono.just(routeId),
                 requestListSpaceRoutes(this.cloudFoundryClient, spaceId)
                     .single()
@@ -922,19 +910,19 @@ public final class SpacesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void listRoutesFilterByDomainId() throws TimeoutException, InterruptedException {
+    public void listRoutesFilterByDomainId() {
         String domainName = this.nameFactory.getDomainName();
         String hostName = this.nameFactory.getHostName();
         String spaceName = this.nameFactory.getSpaceName();
 
         this.organizationId
             .flatMap(organizationId -> createSpaceIdWithDomain(this.cloudFoundryClient, organizationId, spaceName, domainName))
-            .flatMap(spaceId -> Mono.when(
+            .flatMap(spaceId -> Mono.zip(
                 Mono.just(spaceId),
                 getSharedDomainId(this.cloudFoundryClient, domainName),
                 createRouteId(this.cloudFoundryClient, spaceId, domainName, hostName, "/test-path")
             ))
-            .flatMapMany(function((spaceId, domainId, routeId) -> Mono.when(
+            .flatMapMany(function((spaceId, domainId, routeId) -> Mono.zip(
                 Mono.just(routeId),
                 requestListSpaceRoutes(this.cloudFoundryClient, spaceId, builder -> builder.domainId(domainId))
                     .single()
@@ -947,18 +935,18 @@ public final class SpacesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void listRoutesFilterByHost() throws TimeoutException, InterruptedException {
+    public void listRoutesFilterByHost() {
         String domainName = this.nameFactory.getDomainName();
         String hostName = this.nameFactory.getHostName();
         String spaceName = this.nameFactory.getSpaceName();
 
         this.organizationId
             .flatMap(organizationId -> createSpaceIdWithDomain(this.cloudFoundryClient, organizationId, spaceName, domainName))
-            .flatMap(spaceId -> Mono.when(
+            .flatMap(spaceId -> Mono.zip(
                 Mono.just(spaceId),
                 createRouteId(this.cloudFoundryClient, spaceId, domainName, hostName, "/test-path")
             ))
-            .flatMapMany(function((spaceId, routeId) -> Mono.when(
+            .flatMapMany(function((spaceId, routeId) -> Mono.zip(
                 Mono.just(routeId),
                 requestListSpaceRoutes(this.cloudFoundryClient, spaceId, builder -> builder.host(hostName))
                     .single()
@@ -971,18 +959,18 @@ public final class SpacesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void listRoutesFilterByPath() throws TimeoutException, InterruptedException {
+    public void listRoutesFilterByPath() {
         String domainName = this.nameFactory.getDomainName();
         String hostName = this.nameFactory.getHostName();
         String spaceName = this.nameFactory.getSpaceName();
 
         this.organizationId
             .flatMap(organizationId -> createSpaceIdWithDomain(this.cloudFoundryClient, organizationId, spaceName, domainName))
-            .flatMap(spaceId -> Mono.when(
+            .flatMap(spaceId -> Mono.zip(
                 Mono.just(spaceId),
                 createRouteId(this.cloudFoundryClient, spaceId, domainName, hostName, "/test-path")
             ))
-            .flatMapMany(function((spaceId, routeId) -> Mono.when(
+            .flatMapMany(function((spaceId, routeId) -> Mono.zip(
                 Mono.just(routeId),
                 requestListSpaceRoutes(this.cloudFoundryClient, spaceId, builder -> builder.path("/test-path"))
                     .single()
@@ -1000,13 +988,12 @@ public final class SpacesTest extends AbstractIntegrationTest {
         String spaceName = this.nameFactory.getSpaceName();
 
         this.organizationId
-            .flatMap(organizationId ->
-                Mono.when(
-                    createSecurityGroupId(this.cloudFoundryClient, securityGroupName),
-                    createSpaceId(this.cloudFoundryClient, organizationId, spaceName)
-                ))
+            .flatMap(organizationId -> Mono.zip(
+                createSecurityGroupId(this.cloudFoundryClient, securityGroupName),
+                createSpaceId(this.cloudFoundryClient, organizationId, spaceName)
+            ))
             .flatMap(function((securityGroupId, spaceId) -> requestAssociateSpaceSecurityGroup(this.cloudFoundryClient, spaceId, securityGroupId)
-                .then(Mono.just(spaceId))))
+                .thenReturn(spaceId)))
             .flatMapMany(spaceId -> PaginationUtils
                 .requestClientV2Resources(page -> this.cloudFoundryClient.spaces()
                     .listSecurityGroups(ListSpaceSecurityGroupsRequest.builder()
@@ -1026,13 +1013,12 @@ public final class SpacesTest extends AbstractIntegrationTest {
         String spaceName = this.nameFactory.getSpaceName();
 
         this.organizationId
-            .flatMap(organizationId ->
-                Mono.when(
-                    createSecurityGroupId(this.cloudFoundryClient, securityGroupName),
-                    createSpaceId(this.cloudFoundryClient, organizationId, spaceName)
-                ))
+            .flatMap(organizationId -> Mono.zip(
+                createSecurityGroupId(this.cloudFoundryClient, securityGroupName),
+                createSpaceId(this.cloudFoundryClient, organizationId, spaceName)
+            ))
             .flatMap(function((securityGroupId, spaceId) -> requestAssociateSpaceSecurityGroup(this.cloudFoundryClient, spaceId, securityGroupId)
-                .then(Mono.just(spaceId))))
+                .thenReturn(spaceId)))
             .flatMapMany(spaceId -> PaginationUtils
                 .requestClientV2Resources(page -> this.cloudFoundryClient.spaces()
                     .listSecurityGroups(ListSpaceSecurityGroupsRequest.builder()
@@ -1052,13 +1038,12 @@ public final class SpacesTest extends AbstractIntegrationTest {
         String spaceName = this.nameFactory.getSpaceName();
 
         this.organizationId
-            .flatMap(organizationId -> Mono
-                .when(
-                    this.serviceBrokerId,
-                    createSpaceId(this.cloudFoundryClient, organizationId, spaceName)
-                ))
-            .flatMap(function((serviceBrokerId, spaceId) -> createServiceInstanceId(this.cloudFoundryClient, serviceBrokerId, serviceInstanceName, spaceId)
-                .then(Mono.just(spaceId))))
+            .flatMap(organizationId -> Mono.zip(
+                this.serviceBrokerId,
+                createSpaceId(this.cloudFoundryClient, organizationId, spaceName)
+            ))
+            .flatMap(function((serviceBrokerId, spaceId) -> createServiceInstanceId(this.cloudFoundryClient, serviceBrokerId, serviceInstanceName, this.serviceName, spaceId)
+                .thenReturn(spaceId)))
             .flatMapMany(spaceId -> requestListServiceInstances(this.cloudFoundryClient, spaceId))
             .filter(resource -> serviceInstanceName.equals(ResourceUtils.getEntity(resource).getName()))
             .as(StepVerifier::create)
@@ -1073,17 +1058,15 @@ public final class SpacesTest extends AbstractIntegrationTest {
         String spaceName = this.nameFactory.getSpaceName();
 
         this.organizationId
-            .flatMap(organizationId -> Mono
-                .when(
-                    this.serviceBrokerId,
-                    createSpaceId(this.cloudFoundryClient, organizationId, spaceName)
-                ))
-            .flatMap(function((serviceBrokerId, spaceId) -> createServiceInstanceId(this.cloudFoundryClient, serviceBrokerId, serviceInstanceName, spaceId)
-                .then(Mono.just(spaceId))))
-            .flatMapMany(spaceId -> requestListServiceInstances(this.cloudFoundryClient, spaceId, builder -> builder.gatewayName("")))
-            .filter(resource -> serviceInstanceName.equals(ResourceUtils.getEntity(resource).getName()))
+            .flatMap(organizationId -> Mono.zip(
+                this.serviceBrokerId,
+                createSpaceId(this.cloudFoundryClient, organizationId, spaceName)
+            ))
+            .flatMap(function((serviceBrokerId, spaceId) -> createServiceInstanceId(this.cloudFoundryClient, serviceBrokerId, serviceInstanceName, this.serviceName, spaceId)
+                .thenReturn(spaceId)))
+            .flatMapMany(spaceId -> requestListServiceInstances(this.cloudFoundryClient, spaceId, builder -> builder.gatewayName("test-gateway-name")))
             .as(StepVerifier::create)
-            .expectNextCount(1)
+            .expectNextCount(0)
             .expectComplete()
             .verify(Duration.ofMinutes(5));
     }
@@ -1094,38 +1077,13 @@ public final class SpacesTest extends AbstractIntegrationTest {
         String spaceName = this.nameFactory.getSpaceName();
 
         this.organizationId
-            .flatMap(organizationId -> Mono
-                .when(
-                    this.serviceBrokerId,
-                    createSpaceId(this.cloudFoundryClient, organizationId, spaceName)
-                ))
-            .flatMap(function((serviceBrokerId, spaceId) -> createServiceInstanceId(this.cloudFoundryClient, serviceBrokerId, serviceInstanceName, spaceId)
-                .then(Mono.just(spaceId))))
+            .flatMap(organizationId -> Mono.zip(
+                this.serviceBrokerId,
+                createSpaceId(this.cloudFoundryClient, organizationId, spaceName)
+            ))
+            .flatMap(function((serviceBrokerId, spaceId) -> createServiceInstanceId(this.cloudFoundryClient, serviceBrokerId, serviceInstanceName, this.serviceName, spaceId)
+                .thenReturn(spaceId)))
             .flatMapMany(spaceId -> requestListServiceInstances(this.cloudFoundryClient, spaceId, builder -> builder.name(serviceInstanceName)))
-            .as(StepVerifier::create)
-            .expectNextCount(1)
-            .expectComplete()
-            .verify(Duration.ofMinutes(5));
-    }
-
-
-    // TODO: Await https://github.com/cloudfoundry/cloud_controller_ng/issues/855 to decide whether this parameter should exist
-    @Ignore("Await https://github.com/cloudfoundry/cloud_controller_ng/issues/855 to decide whether this parameter should exist")
-    @Test
-    public void listServiceInstancesFilterByOrganizationId() {
-        String serviceInstanceName = this.nameFactory.getServiceInstanceName();
-        String spaceName = this.nameFactory.getSpaceName();
-
-        this.organizationId
-            .flatMap(organizationId -> Mono
-                .when(
-                    Mono.just(organizationId),
-                    this.serviceBrokerId,
-                    createSpaceId(this.cloudFoundryClient, organizationId, spaceName)
-                ))
-            .delayUntil(function((organizationId, serviceBrokerId, spaceId) -> createServiceInstanceId(this.cloudFoundryClient, serviceBrokerId, serviceInstanceName, spaceId)))
-            .flatMapMany(function((organizationId, ignore, spaceId) -> requestListServiceInstances(this.cloudFoundryClient, spaceId, builder -> builder.organizationId(organizationId))))
-            .filter(resource -> serviceInstanceName.equals(ResourceUtils.getEntity(resource).getName()))
             .as(StepVerifier::create)
             .expectNextCount(1)
             .expectComplete()
@@ -1139,22 +1097,19 @@ public final class SpacesTest extends AbstractIntegrationTest {
         String spaceName = this.nameFactory.getSpaceName();
 
         this.organizationId
-            .flatMap(organizationId -> Mono
-                .when(
-                    this.serviceBrokerId,
-                    createSpaceId(this.cloudFoundryClient, organizationId, spaceName)
-                ))
-            .flatMap(function((serviceBrokerId, spaceId) -> Mono
-                .when(
-                    createApplicationId(this.cloudFoundryClient, spaceId, applicationName),
-                    createServiceInstanceId(this.cloudFoundryClient, serviceBrokerId, serviceInstanceName, spaceId),
-                    Mono.just(spaceId)
-                )))
-            .flatMap(function((applicationId, serviceInstanceId, spaceId) -> Mono
-                .when(
-                    createServiceBindingId(this.cloudFoundryClient, applicationId, serviceInstanceId),
-                    Mono.just(spaceId)
-                )))
+            .flatMap(organizationId -> Mono.zip(
+                this.serviceBrokerId,
+                createSpaceId(this.cloudFoundryClient, organizationId, spaceName)
+            ))
+            .flatMap(function((serviceBrokerId, spaceId) -> Mono.zip(
+                createApplicationId(this.cloudFoundryClient, spaceId, applicationName),
+                createServiceInstanceId(this.cloudFoundryClient, serviceBrokerId, serviceInstanceName, this.serviceName, spaceId),
+                Mono.just(spaceId)
+            )))
+            .flatMap(function((applicationId, serviceInstanceId, spaceId) -> Mono.zip(
+                createServiceBindingId(this.cloudFoundryClient, applicationId, serviceInstanceId),
+                Mono.just(spaceId)
+            )))
             .flatMapMany(function((serviceBindingId, spaceId) -> requestListServiceInstances(this.cloudFoundryClient, spaceId, builder -> builder.serviceBindingId(serviceBindingId))))
             .as(StepVerifier::create)
             .expectNextCount(1)
@@ -1169,21 +1124,18 @@ public final class SpacesTest extends AbstractIntegrationTest {
         String spaceName = this.nameFactory.getSpaceName();
 
         this.organizationId
-            .flatMap(organizationId -> Mono
-                .when(
-                    this.serviceBrokerId,
-                    createSpaceId(this.cloudFoundryClient, organizationId, spaceName)
-                ))
-            .flatMap(function((serviceBrokerId, spaceId) -> Mono
-                .when(
-                    createServiceInstanceId(this.cloudFoundryClient, serviceBrokerId, serviceInstanceName, spaceId),
-                    Mono.just(spaceId)
-                )))
-            .flatMap(function((serviceInstanceId, spaceId) -> Mono
-                .when(
-                    createServiceKeyId(this.cloudFoundryClient, serviceInstanceId, serviceKeyName),
-                    Mono.just(spaceId)
-                )))
+            .flatMap(organizationId -> Mono.zip(
+                this.serviceBrokerId,
+                createSpaceId(this.cloudFoundryClient, organizationId, spaceName)
+            ))
+            .flatMap(function((serviceBrokerId, spaceId) -> Mono.zip(
+                createServiceInstanceId(this.cloudFoundryClient, serviceBrokerId, serviceInstanceName, this.serviceName, spaceId),
+                Mono.just(spaceId)
+            )))
+            .flatMap(function((serviceInstanceId, spaceId) -> Mono.zip(
+                createServiceKeyId(this.cloudFoundryClient, serviceInstanceId, serviceKeyName),
+                Mono.just(spaceId)
+            )))
             .flatMapMany(function((serviceKeyId, spaceId) -> requestListServiceInstances(this.cloudFoundryClient, spaceId, builder -> builder.serviceKeyId(serviceKeyId))))
             .as(StepVerifier::create)
             .expectNextCount(1)
@@ -1197,17 +1149,15 @@ public final class SpacesTest extends AbstractIntegrationTest {
         String spaceName = this.nameFactory.getSpaceName();
 
         this.organizationId
-            .flatMap(organizationId -> Mono
-                .when(
-                    this.serviceBrokerId,
-                    createSpaceId(this.cloudFoundryClient, organizationId, spaceName)
-                ))
-            .flatMap(function((serviceBrokerId, spaceId) -> Mono
-                .when(
-                    createServiceInstanceId(this.cloudFoundryClient, serviceBrokerId, serviceInstanceName, spaceId),
-                    getServicePlanId(this.cloudFoundryClient, serviceBrokerId),
-                    Mono.just(spaceId)
-                )))
+            .flatMap(organizationId -> Mono.zip(
+                this.serviceBrokerId,
+                createSpaceId(this.cloudFoundryClient, organizationId, spaceName)
+            ))
+            .flatMap(function((serviceBrokerId, spaceId) -> Mono.zip(
+                createServiceInstanceId(this.cloudFoundryClient, serviceBrokerId, serviceInstanceName, this.serviceName, spaceId),
+                getServicePlanId(this.cloudFoundryClient, serviceBrokerId, this.serviceName),
+                Mono.just(spaceId)
+            )))
             .flatMapMany(function((ignore, servicePlanId, spaceId) -> requestListServiceInstances(this.cloudFoundryClient, spaceId, builder -> builder.servicePlanId(servicePlanId))))
             .as(StepVerifier::create)
             .expectNextCount(1)
@@ -1217,31 +1167,31 @@ public final class SpacesTest extends AbstractIntegrationTest {
 
     @Test
     public void listServices() {
-        Mono.when(this.serviceBrokerId, this.spaceId)
-            .flatMapMany(function((serviceBrokerId, spaceId) -> requestListSpaceServices(this.cloudFoundryClient, spaceId)
-                .filter(resource -> serviceBrokerId.equals(ResourceUtils.getEntity(resource).getServiceBrokerId()))))
-            .map(response -> response.getEntity().getLabel())
+        this.spaceId
+            .flatMapMany(spaceId -> requestListSpaceServices(this.cloudFoundryClient, spaceId)
+                .filter(resource -> this.serviceName.equals(ResourceUtils.getEntity(resource).getLabel())))
             .as(StepVerifier::create)
-            .expectNext(this.serviceName)
+            .expectNextCount(1)
             .expectComplete()
             .verify(Duration.ofMinutes(5));
     }
 
     @Test
     public void listServicesFilterByActive() {
-        Mono.when(this.serviceBrokerId, this.spaceId)
-            .flatMapMany(function((serviceBrokerId, spaceId) -> requestListSpaceServices(this.cloudFoundryClient, spaceId)
-                .filter(resource -> serviceBrokerId.equals(ResourceUtils.getEntity(resource).getServiceBrokerId()))))
+        this.spaceId
+            .flatMapMany(spaceId -> requestListSpaceServices(this.cloudFoundryClient, spaceId)
+                .filter(resource -> this.serviceName.equals(ResourceUtils.getEntity(resource).getLabel())))
             .map(response -> response.getEntity().getLabel())
             .as(StepVerifier::create)
-            .expectNext(this.serviceName)
+            .expectNextCount(1)
             .expectComplete()
             .verify(Duration.ofMinutes(5));
     }
 
     @Test
     public void listServicesFilterByLabel() {
-        Mono.when(this.serviceBrokerId, this.spaceId)
+        Mono
+            .zip(this.serviceBrokerId, this.spaceId)
             .flatMapMany(function((serviceBrokerId, spaceId) -> requestListSpaceServices(this.cloudFoundryClient, spaceId, builder -> builder.label(this.serviceName))
                 .filter(resource -> serviceBrokerId.equals(ResourceUtils.getEntity(resource).getServiceBrokerId()))))
             .map(response -> response.getEntity().getLabel())
@@ -1255,7 +1205,8 @@ public final class SpacesTest extends AbstractIntegrationTest {
     @Ignore("Await https://github.com/cloudfoundry/cloud_controller_ng/issues/856 for this test to work")
     @Test
     public void listServicesFilterByServiceBrokerId() {
-        Mono.when(this.serviceBrokerId, this.spaceId)
+        Mono
+            .zip(this.serviceBrokerId, this.spaceId)
             .flatMapMany(function((serviceBrokerId, spaceId) -> requestListSpaceServices(this.cloudFoundryClient, spaceId, builder -> builder.serviceBrokerId(serviceBrokerId))))
             .map(response -> response.getEntity().getLabel())
             .as(StepVerifier::create)
@@ -1265,7 +1216,7 @@ public final class SpacesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void listUserRoles() throws TimeoutException, InterruptedException {
+    public void listUserRoles() {
         String organizationName = this.nameFactory.getOrganizationName();
         String spaceName = this.nameFactory.getSpaceName();
         String userName = this.nameFactory.getUserName();
@@ -1289,7 +1240,7 @@ public final class SpacesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void removeAuditor() throws TimeoutException, InterruptedException {
+    public void removeAuditor() {
         String organizationName = this.nameFactory.getOrganizationName();
         String spaceName = this.nameFactory.getSpaceName();
         String userName = this.nameFactory.getUserName();
@@ -1308,7 +1259,7 @@ public final class SpacesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void removeAuditorByUsername() throws TimeoutException, InterruptedException {
+    public void removeAuditorByUsername() {
         String organizationName = this.nameFactory.getOrganizationName();
         String spaceName = this.nameFactory.getSpaceName();
         String userName = this.nameFactory.getUserName();
@@ -1327,7 +1278,7 @@ public final class SpacesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void removeDeveloper() throws TimeoutException, InterruptedException {
+    public void removeDeveloper() {
         String organizationName = this.nameFactory.getOrganizationName();
         String spaceName = this.nameFactory.getSpaceName();
         String userName = this.nameFactory.getUserName();
@@ -1346,7 +1297,7 @@ public final class SpacesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void removeDeveloperByUsername() throws TimeoutException, InterruptedException {
+    public void removeDeveloperByUsername() {
         String organizationName = this.nameFactory.getOrganizationName();
         String spaceName = this.nameFactory.getSpaceName();
         String userName = this.nameFactory.getUserName();
@@ -1365,7 +1316,7 @@ public final class SpacesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void removeManager() throws TimeoutException, InterruptedException {
+    public void removeManager() {
         String organizationName = this.nameFactory.getOrganizationName();
         String spaceName = this.nameFactory.getSpaceName();
         String userName = this.nameFactory.getUserName();
@@ -1384,7 +1335,7 @@ public final class SpacesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void removeManagerByUsername() throws TimeoutException, InterruptedException {
+    public void removeManagerByUsername() {
         String organizationName = this.nameFactory.getOrganizationName();
         String spaceName = this.nameFactory.getSpaceName();
         String userName = this.nameFactory.getUserName();
@@ -1408,18 +1359,17 @@ public final class SpacesTest extends AbstractIntegrationTest {
         String spaceName = this.nameFactory.getSpaceName();
 
         this.organizationId
-            .flatMap(organizationId ->
-                Mono.when(
-                    createSecurityGroupId(this.cloudFoundryClient, securityGroupName),
-                    createSpaceId(this.cloudFoundryClient, organizationId, spaceName)
-                ))
+            .flatMap(organizationId -> Mono.zip(
+                createSecurityGroupId(this.cloudFoundryClient, securityGroupName),
+                createSpaceId(this.cloudFoundryClient, organizationId, spaceName)
+            ))
             .delayUntil(function((securityGroupId, spaceId) -> requestAssociateSpaceSecurityGroup(this.cloudFoundryClient, spaceId, securityGroupId)))
             .flatMap(function((securityGroupId, spaceId) -> this.cloudFoundryClient.spaces()
                 .removeSecurityGroup(RemoveSpaceSecurityGroupRequest.builder()
                     .securityGroupId(securityGroupId)
                     .spaceId(spaceId)
                     .build())
-                .then(Mono.just(spaceId))))
+                .thenReturn(spaceId)))
             .flatMapMany(spaceId -> requestListSecurityGroups(this.cloudFoundryClient, spaceId))
             .filter(response -> securityGroupName.equals(response.getEntity().getName()))
             .as(StepVerifier::create)
@@ -1428,7 +1378,7 @@ public final class SpacesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void update() throws TimeoutException, InterruptedException {
+    public void update() {
         String spaceName = this.nameFactory.getSpaceName();
         String spaceName2 = this.nameFactory.getSpaceName();
 
@@ -1451,7 +1401,7 @@ public final class SpacesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void updateEmptyManagers() throws TimeoutException, InterruptedException {
+    public void updateEmptyManagers() {
         String organizationName = this.nameFactory.getOrganizationName();
         String spaceName = this.nameFactory.getSpaceName();
         String userName = this.nameFactory.getUserName();
@@ -1475,6 +1425,11 @@ public final class SpacesTest extends AbstractIntegrationTest {
             .map(ResourceUtils::getId);
     }
 
+    private static Mono<String> createApplicationId(CloudFoundryClient cloudFoundryClient, String spaceId, String applicationName, String stackId) {
+        return requestCreateApplication(cloudFoundryClient, spaceId, applicationName, stackId)
+            .map(ResourceUtils::getId);
+    }
+
     private static Mono<String> createOrganizationId(CloudFoundryClient cloudFoundryClient, String organization) {
         return requestCreateOrganization(cloudFoundryClient, organization)
             .map(ResourceUtils::getId);
@@ -1482,7 +1437,7 @@ public final class SpacesTest extends AbstractIntegrationTest {
 
     private static Mono<Tuple2<String, String>> createOrganizationIdAndSpaceId(CloudFoundryClient cloudFoundryClient, String organizationName, String spaceName) {
         return createOrganizationId(cloudFoundryClient, organizationName)
-            .flatMap(organizationId -> Mono.when(
+            .flatMap(organizationId -> Mono.zip(
                 Mono.just(organizationId),
                 createSpaceId(cloudFoundryClient, organizationId, spaceName)));
     }
@@ -1503,8 +1458,8 @@ public final class SpacesTest extends AbstractIntegrationTest {
             .map(ResourceUtils::getId);
     }
 
-    private static Mono<String> createServiceInstanceId(CloudFoundryClient cloudFoundryClient, String serviceBrokerId, String serviceInstanceName, String spaceId) {
-        return getServicePlanId(cloudFoundryClient, serviceBrokerId)
+    private static Mono<String> createServiceInstanceId(CloudFoundryClient cloudFoundryClient, String serviceBrokerId, String serviceInstanceName, String serviceName, String spaceId) {
+        return getServicePlanId(cloudFoundryClient, serviceBrokerId, serviceName)
             .flatMap(planId -> requestCreateServiceInstance(cloudFoundryClient, planId, serviceInstanceName, spaceId))
             .map(ResourceUtils::getId);
     }
@@ -1525,7 +1480,7 @@ public final class SpacesTest extends AbstractIntegrationTest {
 
     private static Mono<Tuple2<String, String>> createSpaceIdAndUserId(CloudFoundryClient cloudFoundryClient, UaaClient uaaClient, String organizationName, String spaceName, String userName) {
         return createOrganizationId(cloudFoundryClient, organizationName)
-            .flatMap(organizationId -> Mono.when(
+            .flatMap(organizationId -> Mono.zip(
                 createSpaceId(cloudFoundryClient, organizationId, spaceName),
                 createUserId(cloudFoundryClient, uaaClient, organizationId, userName)
             ));
@@ -1571,16 +1526,16 @@ public final class SpacesTest extends AbstractIntegrationTest {
                     .organizationId(organizationId)
                     .userId(userId)
                     .build())
-                .then(Mono.just(userId)));
+                .thenReturn(userId));
     }
 
     private static String getPastTimestamp() {
-        Date past = Date.from(Instant.now().minus(1, HOURS));
+        Date past = Date.from(Instant.now().minus(61, MINUTES));
         return DateUtils.formatToIso8601(past);
     }
 
-    private static Mono<String> getServicePlanId(CloudFoundryClient cloudFoundryClient, String serviceBrokerId) {
-        return requestListServices(cloudFoundryClient, serviceBrokerId)
+    private static Mono<String> getServicePlanId(CloudFoundryClient cloudFoundryClient, String serviceBrokerId, String serviceName) {
+        return requestListServices(cloudFoundryClient, serviceBrokerId, serviceName)
             .single()
             .map(ResourceUtils::getId)
             .flatMapMany(serviceId -> requestListServicePlans(cloudFoundryClient, serviceId))
@@ -1627,20 +1582,22 @@ public final class SpacesTest extends AbstractIntegrationTest {
                 .build());
     }
 
-    private static Mono<AssociateOrganizationUserResponse> requestAssociateUser(CloudFoundryClient cloudFoundryClient, String organizationId, String userId) {
-        return cloudFoundryClient.organizations()
-            .associateUser(AssociateOrganizationUserRequest.builder()
-                .userId(userId)
-                .organizationId(organizationId)
-                .build());
-    }
-
     private static Mono<CreateApplicationResponse> requestCreateApplication(CloudFoundryClient cloudFoundryClient, String spaceId, String applicationName) {
         return cloudFoundryClient.applicationsV2()
             .create(CreateApplicationRequest.builder()
                 .diego(true)
                 .name(applicationName)
                 .spaceId(spaceId)
+                .build());
+    }
+
+    private static Mono<CreateApplicationResponse> requestCreateApplication(CloudFoundryClient cloudFoundryClient, String spaceId, String applicationName, String stackId) {
+        return cloudFoundryClient.applicationsV2()
+            .create(CreateApplicationRequest.builder()
+                .diego(true)
+                .name(applicationName)
+                .spaceId(spaceId)
+                .stackId(stackId)
                 .build());
     }
 
@@ -1726,10 +1683,11 @@ public final class SpacesTest extends AbstractIntegrationTest {
                     .build()));
     }
 
-    private static Flux<ServiceResource> requestListServices(CloudFoundryClient cloudFoundryClient, String serviceBrokerId) {
+    private static Flux<ServiceResource> requestListServices(CloudFoundryClient cloudFoundryClient, String serviceBrokerId, String serviceName) {
         return PaginationUtils
             .requestClientV2Resources(page -> cloudFoundryClient.services()
                 .list(ListServicesRequest.builder()
+                    .label(serviceName)
                     .page(page)
                     .serviceBrokerId(serviceBrokerId)
                     .build()));

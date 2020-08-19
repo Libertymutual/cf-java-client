@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 package org.cloudfoundry.operations.applications;
 
+import org.cloudfoundry.AllowNulls;
 import org.cloudfoundry.Nullable;
 import org.immutables.value.Value;
 
@@ -29,10 +30,11 @@ import java.util.List;
 abstract class _ApplicationDetail extends AbstractApplicationSummary {
 
     /**
-     * The buildpack, if any, used to stage this application
+     * The buildpacks, if any, used to stage this application
      */
+    @AllowNulls
     @Nullable
-    abstract String getBuildpack();
+    abstract List<String> getBuildpacks();
 
     /**
      * The list of instances

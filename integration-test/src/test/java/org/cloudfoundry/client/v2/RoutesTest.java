@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -70,17 +70,17 @@ public final class RoutesTest extends AbstractIntegrationTest {
     private Mono<String> stackId;
 
     @Test
-    public void associateApplication() throws TimeoutException, InterruptedException {
+    public void associateApplication() {
         String applicationName = this.nameFactory.getApplicationName();
         String domainName = this.nameFactory.getDomainName();
 
         Mono
-            .when(
+            .zip(
                 this.organizationId
                     .flatMap(organizationId -> createPrivateDomainId(this.cloudFoundryClient, domainName, organizationId)),
                 this.spaceId
             )
-            .flatMap(function((domainId, spaceId) -> Mono.when(
+            .flatMap(function((domainId, spaceId) -> Mono.zip(
                 createApplicationId(this.cloudFoundryClient, spaceId, applicationName, null),
                 createRouteId(this.cloudFoundryClient, domainId, spaceId)
             )))
@@ -98,16 +98,16 @@ public final class RoutesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void create() throws TimeoutException, InterruptedException {
+    public void create() {
         String domainName = this.nameFactory.getDomainName();
 
         Mono
-            .when(
+            .zip(
                 this.organizationId
                     .flatMap(organizationId -> createPrivateDomainId(this.cloudFoundryClient, domainName, organizationId)),
                 this.spaceId
             )
-            .flatMap(function((domainId, spaceId) -> Mono.when(
+            .flatMap(function((domainId, spaceId) -> Mono.zip(
                 Mono.just(domainId),
                 Mono.just(spaceId),
                 this.cloudFoundryClient.routes()
@@ -124,11 +124,11 @@ public final class RoutesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void delete() throws TimeoutException, InterruptedException {
+    public void delete() {
         String domainName = this.nameFactory.getDomainName();
 
         Mono
-            .when(
+            .zip(
                 this.organizationId
                     .flatMap(organizationId -> createPrivateDomainId(this.cloudFoundryClient, domainName, organizationId)),
                 this.spaceId
@@ -147,11 +147,11 @@ public final class RoutesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void deleteAsyncFalse() throws TimeoutException, InterruptedException {
+    public void deleteAsyncFalse() {
         String domainName = this.nameFactory.getDomainName();
 
         Mono
-            .when(
+            .zip(
                 this.organizationId
                     .flatMap(organizationId -> createPrivateDomainId(this.cloudFoundryClient, domainName, organizationId)),
                 this.spaceId
@@ -169,12 +169,12 @@ public final class RoutesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void exists() throws TimeoutException, InterruptedException {
+    public void exists() {
         String domainName = this.nameFactory.getDomainName();
         String hostName = this.nameFactory.getHostName();
 
         Mono
-            .when(
+            .zip(
                 this.organizationId
                     .flatMap(organizationId -> createPrivateDomainId(this.cloudFoundryClient, domainName, organizationId)),
                 this.spaceId
@@ -192,13 +192,13 @@ public final class RoutesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void existsDoesNotExist() throws TimeoutException, InterruptedException {
+    public void existsDoesNotExist() {
         String domainName = this.nameFactory.getDomainName();
         String hostName1 = this.nameFactory.getHostName();
         String hostName2 = this.nameFactory.getHostName();
 
         Mono
-            .when(
+            .zip(
                 this.organizationId
                     .flatMap(organizationId -> createPrivateDomainId(this.cloudFoundryClient, domainName, organizationId)),
                 this.spaceId
@@ -221,30 +221,28 @@ public final class RoutesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void get() throws TimeoutException, InterruptedException {
+    public void get() {
         String domainName = this.nameFactory.getDomainName();
 
         Mono
-            .when(
+            .zip(
                 this.organizationId
                     .flatMap(organizationId -> createPrivateDomainId(this.cloudFoundryClient, domainName, organizationId)),
                 this.spaceId
             )
-            .flatMap(function((domainId, spaceId) -> Mono
-                .when(
-                    Mono.just(domainId),
-                    Mono.just(spaceId),
-                    createRouteId(this.cloudFoundryClient, domainId, spaceId))
+            .flatMap(function((domainId, spaceId) -> Mono.zip(
+                Mono.just(domainId),
+                Mono.just(spaceId),
+                createRouteId(this.cloudFoundryClient, domainId, spaceId))
             ))
-            .flatMap(function((domainId, spaceId, routeId) -> Mono
-                .when(
-                    Mono.just(domainId),
-                    Mono.just(spaceId),
-                    this.cloudFoundryClient.routes()
-                        .get(GetRouteRequest.builder()
-                            .routeId(routeId)
-                            .build())
-                        .map(ResourceUtils::getEntity))
+            .flatMap(function((domainId, spaceId, routeId) -> Mono.zip(
+                Mono.just(domainId),
+                Mono.just(spaceId),
+                this.cloudFoundryClient.routes()
+                    .get(GetRouteRequest.builder()
+                        .routeId(routeId)
+                        .build())
+                    .map(ResourceUtils::getEntity))
             ))
             .as(StepVerifier::create)
             .consumeNextWith(domainIdSpaceIdEquality())
@@ -253,17 +251,17 @@ public final class RoutesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void listApplications() throws TimeoutException, InterruptedException {
+    public void listApplications() {
         String applicationName = this.nameFactory.getApplicationName();
         String domainName = this.nameFactory.getDomainName();
 
         Mono
-            .when(
+            .zip(
                 this.organizationId
                     .flatMap(organizationId -> createPrivateDomainId(this.cloudFoundryClient, domainName, organizationId)),
                 this.spaceId
             )
-            .flatMap(function((domainId, spaceId) -> Mono.when(
+            .flatMap(function((domainId, spaceId) -> Mono.zip(
                 createApplicationId(this.cloudFoundryClient, spaceId, applicationName, null),
                 createRouteId(this.cloudFoundryClient, domainId, spaceId)
             )))
@@ -281,17 +279,17 @@ public final class RoutesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void listApplicationsFilterByDiego() throws TimeoutException, InterruptedException {
+    public void listApplicationsFilterByDiego() {
         String applicationName = this.nameFactory.getApplicationName();
         String domainName = this.nameFactory.getDomainName();
 
         Mono
-            .when(
+            .zip(
                 this.organizationId
                     .flatMap(organizationId -> createPrivateDomainId(this.cloudFoundryClient, domainName, organizationId)),
                 this.spaceId
             )
-            .flatMap(function((domainId, spaceId) -> Mono.when(
+            .flatMap(function((domainId, spaceId) -> Mono.zip(
                 createApplicationId(this.cloudFoundryClient, spaceId, applicationName, null),
                 createRouteId(this.cloudFoundryClient, domainId, spaceId)
             )))
@@ -310,17 +308,17 @@ public final class RoutesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void listApplicationsFilterByName() throws TimeoutException, InterruptedException {
+    public void listApplicationsFilterByName() {
         String applicationName = this.nameFactory.getApplicationName();
         String domainName = this.nameFactory.getDomainName();
 
         Mono
-            .when(
+            .zip(
                 this.organizationId
                     .flatMap(organizationId -> createPrivateDomainId(this.cloudFoundryClient, domainName, organizationId)),
                 this.spaceId
             )
-            .flatMap(function((domainId, spaceId) -> Mono.when(
+            .flatMap(function((domainId, spaceId) -> Mono.zip(
                 createApplicationId(this.cloudFoundryClient, spaceId, applicationName, null),
                 createRouteId(this.cloudFoundryClient, domainId, spaceId)
             )))
@@ -339,23 +337,21 @@ public final class RoutesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void listApplicationsFilterByOrganizationId() throws TimeoutException, InterruptedException {
+    public void listApplicationsFilterByOrganizationId() {
         String applicationName = this.nameFactory.getApplicationName();
         String domainName = this.nameFactory.getDomainName();
 
         this.organizationId
-            .flatMap(organizationId -> Mono
-                .when(
-                    createPrivateDomainId(this.cloudFoundryClient, domainName, organizationId),
-                    this.spaceId,
-                    Mono.just(organizationId)
-                ))
-            .flatMap(function((domainId, spaceId, organizationId) -> Mono
-                .when(
-                    createApplicationId(this.cloudFoundryClient, spaceId, applicationName, null),
-                    createRouteId(this.cloudFoundryClient, domainId, spaceId),
-                    Mono.just(organizationId)
-                )))
+            .flatMap(organizationId -> Mono.zip(
+                createPrivateDomainId(this.cloudFoundryClient, domainName, organizationId),
+                this.spaceId,
+                Mono.just(organizationId)
+            ))
+            .flatMap(function((domainId, spaceId, organizationId) -> Mono.zip(
+                createApplicationId(this.cloudFoundryClient, spaceId, applicationName, null),
+                createRouteId(this.cloudFoundryClient, domainId, spaceId),
+                Mono.just(organizationId)
+            )))
             .delayUntil(function((applicationId, routeId, organizationId) -> associateApplicationWithRoute(this.cloudFoundryClient, applicationId, routeId)))
             .flatMapMany(function((applicationId, routeId, organizationId) -> PaginationUtils
                 .requestClientV2Resources(page -> this.cloudFoundryClient.routes()
@@ -371,17 +367,17 @@ public final class RoutesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void listApplicationsFilterBySpaceId() throws TimeoutException, InterruptedException {
+    public void listApplicationsFilterBySpaceId() {
         String applicationName = this.nameFactory.getApplicationName();
         String domainName = this.nameFactory.getDomainName();
 
         Mono
-            .when(
+            .zip(
                 this.organizationId
                     .flatMap(organizationId -> createPrivateDomainId(this.cloudFoundryClient, domainName, organizationId)),
                 this.spaceId
             )
-            .flatMap(function((domainId, spaceId) -> Mono.when(
+            .flatMap(function((domainId, spaceId) -> Mono.zip(
                 createApplicationId(this.cloudFoundryClient, spaceId, applicationName, null),
                 createRouteId(this.cloudFoundryClient, domainId, spaceId),
                 Mono.just(spaceId)
@@ -401,26 +397,25 @@ public final class RoutesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void listApplicationsFilterByStackId() throws TimeoutException, InterruptedException {
+    public void listApplicationsFilterByStackId() {
         String applicationName = this.nameFactory.getApplicationName();
         String domainName = this.nameFactory.getDomainName();
 
         Mono
-            .when(
+            .zip(
                 this.organizationId
                     .flatMap(organizationId -> createPrivateDomainId(this.cloudFoundryClient, domainName, organizationId)),
                 this.spaceId,
                 this.stackId
             )
-            .flatMap(function((domainId, spaceId, stackId) -> Mono
-                .when(
-                    createApplicationId(this.cloudFoundryClient, spaceId, applicationName, stackId),
-                    createRouteId(this.cloudFoundryClient, domainId, spaceId),
-                    Mono.just(stackId)
+            .flatMap(function((domainId, spaceId, stackId) -> Mono.zip(
+                createApplicationId(this.cloudFoundryClient, spaceId, applicationName, stackId),
+                createRouteId(this.cloudFoundryClient, domainId, spaceId),
+                Mono.just(stackId)
                 )
             ))
             .delayUntil(function((applicationId, routeId, stackId) -> associateApplicationWithRoute(this.cloudFoundryClient, applicationId, routeId)))
-            .flatMapMany(function((aplicationId, routeId, stackId) -> PaginationUtils
+            .flatMapMany(function((applicationId, routeId, stackId) -> PaginationUtils
                 .requestClientV2Resources(page -> this.cloudFoundryClient.routes()
                     .listApplications(ListRouteApplicationsRequest.builder()
                         .page(page)
@@ -434,11 +429,11 @@ public final class RoutesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void listFilterByDomainId() throws TimeoutException, InterruptedException {
+    public void listFilterByDomainId() {
         String domainName = this.nameFactory.getDomainName();
 
         Mono
-            .when(
+            .zip(
                 this.organizationId
                     .flatMap(organizationId -> createPrivateDomainId(this.cloudFoundryClient, domainName, organizationId)),
                 this.spaceId
@@ -457,12 +452,12 @@ public final class RoutesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void listFilterByHost() throws TimeoutException, InterruptedException {
+    public void listFilterByHost() {
         String domainName = this.nameFactory.getDomainName();
         String host = this.nameFactory.getHostName();
 
         Mono
-            .when(
+            .zip(
                 this.organizationId
                     .flatMap(organizationId -> createPrivateDomainId(this.cloudFoundryClient, domainName, organizationId)),
                 this.spaceId
@@ -481,16 +476,15 @@ public final class RoutesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void listFilterByOrganizationId() throws TimeoutException, InterruptedException {
+    public void listFilterByOrganizationId() {
         String domainName = this.nameFactory.getDomainName();
 
         this.organizationId
-            .flatMap(organizationId -> Mono
-                .when(
-                    createPrivateDomainId(this.cloudFoundryClient, domainName, organizationId),
-                    this.spaceId,
-                    Mono.just(organizationId)
-                ))
+            .flatMap(organizationId -> Mono.zip(
+                createPrivateDomainId(this.cloudFoundryClient, domainName, organizationId),
+                this.spaceId,
+                Mono.just(organizationId)
+            ))
             .delayUntil(function((domainId, spaceId, organizationId) -> requestCreateRoute(this.cloudFoundryClient, domainId, spaceId)))
             .flatMapMany(function((domainId, spaceId, organizationId) -> PaginationUtils
                 .requestClientV2Resources(page -> this.cloudFoundryClient.routes()
@@ -506,12 +500,12 @@ public final class RoutesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void listFilterByPath() throws TimeoutException, InterruptedException {
+    public void listFilterByPath() {
         String domainName = this.nameFactory.getDomainName();
         String path = this.nameFactory.getPath();
 
         Mono
-            .when(
+            .zip(
                 this.organizationId
                     .flatMap(organizationId -> createPrivateDomainId(this.cloudFoundryClient, domainName, organizationId)),
                 this.spaceId
@@ -535,22 +529,22 @@ public final class RoutesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void listMappings() throws TimeoutException, InterruptedException {
+    public void listMappings() {
         String applicationName = this.nameFactory.getApplicationName();
         String domainName = this.nameFactory.getDomainName();
 
         Mono
-            .when(
+            .zip(
                 this.organizationId
                     .flatMap(organizationId -> createPrivateDomainId(this.cloudFoundryClient, domainName, organizationId)),
                 this.spaceId
             )
-            .flatMap(function((domainId, spaceId) -> Mono.when(
+            .flatMap(function((domainId, spaceId) -> Mono.zip(
                 createApplicationId(this.cloudFoundryClient, spaceId, applicationName, null),
                 createRouteId(this.cloudFoundryClient, domainId, spaceId)
             )))
             .delayUntil(function((applicationId, routeId) -> requestCreateRouteMapping(this.cloudFoundryClient, applicationId, routeId)))
-            .flatMapMany(function((applicationId, routeId) -> Mono.when(
+            .flatMapMany(function((applicationId, routeId) -> Mono.zip(
                 Mono.just(applicationId),
                 PaginationUtils
                     .requestClientV2Resources(page -> this.cloudFoundryClient.routes()
@@ -567,22 +561,22 @@ public final class RoutesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void listMappingsFilterByApplicationId() throws TimeoutException, InterruptedException {
+    public void listMappingsFilterByApplicationId() {
         String applicationName = this.nameFactory.getApplicationName();
         String domainName = this.nameFactory.getDomainName();
 
         Mono
-            .when(
+            .zip(
                 this.organizationId
                     .flatMap(organizationId -> createPrivateDomainId(this.cloudFoundryClient, domainName, organizationId)),
                 this.spaceId
             )
-            .flatMap(function((domainId, spaceId) -> Mono.when(
+            .flatMap(function((domainId, spaceId) -> Mono.zip(
                 createApplicationId(this.cloudFoundryClient, spaceId, applicationName, null),
                 createRouteId(this.cloudFoundryClient, domainId, spaceId)
             )))
             .delayUntil(function((applicationId, routeId) -> requestCreateRouteMapping(this.cloudFoundryClient, applicationId, routeId)))
-            .flatMapMany(function((applicationId, routeId) -> Mono.when(
+            .flatMapMany(function((applicationId, routeId) -> Mono.zip(
                 Mono.just(applicationId),
                 PaginationUtils
                     .requestClientV2Resources(page -> this.cloudFoundryClient.routes()
@@ -600,17 +594,17 @@ public final class RoutesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void removeApplication() throws TimeoutException, InterruptedException {
+    public void removeApplication() {
         String applicationName = this.nameFactory.getApplicationName();
         String domainName = this.nameFactory.getDomainName();
 
         Mono
-            .when(
+            .zip(
                 this.organizationId
                     .flatMap(organizationId -> createPrivateDomainId(this.cloudFoundryClient, domainName, organizationId)),
                 this.spaceId
             )
-            .flatMap(function((domainId, spaceId) -> Mono.when(
+            .flatMap(function((domainId, spaceId) -> Mono.zip(
                 createApplicationId(this.cloudFoundryClient, spaceId, applicationName, null),
                 createRouteId(this.cloudFoundryClient, domainId, spaceId)
             )))
@@ -636,7 +630,7 @@ public final class RoutesTest extends AbstractIntegrationTest {
         String domainName = this.nameFactory.getDomainName();
 
         Mono
-            .when(
+            .zip(
                 this.organizationId
                     .flatMap(organizationId -> createPrivateDomainId(this.cloudFoundryClient, domainName, organizationId)),
                 this.spaceId

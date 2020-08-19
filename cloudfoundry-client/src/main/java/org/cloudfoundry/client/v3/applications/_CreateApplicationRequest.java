@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,9 +17,11 @@
 package org.cloudfoundry.client.v3.applications;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.cloudfoundry.AllowNulls;
 import org.cloudfoundry.Nullable;
 import org.cloudfoundry.client.v3.Lifecycle;
+import org.cloudfoundry.client.v3.Metadata;
 import org.immutables.value.Value;
 
 import java.util.Map;
@@ -27,6 +29,7 @@ import java.util.Map;
 /**
  * The request payload for the Create Application operation
  */
+@JsonSerialize
 @Value.Immutable
 abstract class _CreateApplicationRequest {
 
@@ -44,6 +47,13 @@ abstract class _CreateApplicationRequest {
     @JsonProperty("lifecycle")
     @Nullable
     abstract Lifecycle getLifecycle();
+
+    /**
+     * The metadata
+     */
+    @JsonProperty("metadata")
+    @Nullable
+    abstract Metadata getMetadata();
 
     /**
      * The name

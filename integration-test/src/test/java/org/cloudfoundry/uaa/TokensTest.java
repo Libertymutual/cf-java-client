@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,8 +19,10 @@ package org.cloudfoundry.uaa;
 import org.cloudfoundry.AbstractIntegrationTest;
 import org.cloudfoundry.reactor.ConnectionContext;
 import org.cloudfoundry.reactor.TokenProvider;
+import org.cloudfoundry.uaa.authorizations.AuthorizeByAuthorizationCodeGrantApiRequest;
 import org.cloudfoundry.uaa.tokens.CheckTokenRequest;
 import org.cloudfoundry.uaa.tokens.GetTokenByAuthorizationCodeRequest;
+import org.cloudfoundry.uaa.tokens.GetTokenByAuthorizationCodeResponse;
 import org.cloudfoundry.uaa.tokens.GetTokenByClientCredentialsRequest;
 import org.cloudfoundry.uaa.tokens.GetTokenByClientCredentialsResponse;
 import org.cloudfoundry.uaa.tokens.GetTokenByOneTimePasscodeRequest;
@@ -33,6 +35,7 @@ import org.cloudfoundry.uaa.tokens.GetTokenKeyRequest;
 import org.cloudfoundry.uaa.tokens.GetTokenKeyResponse;
 import org.cloudfoundry.uaa.tokens.ListTokenKeysRequest;
 import org.cloudfoundry.uaa.tokens.RefreshTokenRequest;
+import org.cloudfoundry.uaa.tokens.RefreshTokenResponse;
 import org.cloudfoundry.uaa.tokens.TokenFormat;
 import org.cloudfoundry.uaa.tokens.TokenKey;
 import org.junit.Ignore;
@@ -43,7 +46,6 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import java.time.Duration;
-import java.util.concurrent.TimeoutException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -59,45 +61,50 @@ public final class TokensTest extends AbstractIntegrationTest {
     private ConnectionContext connectionContext;
 
     @Autowired
+    private String password;
+
+    @Autowired
     private TokenProvider tokenProvider;
 
     @Autowired
     private UaaClient uaaClient;
 
+    @Autowired
+    private String username;
+
     @Test
-    public void checkTokenNotAuthorized() throws TimeoutException, InterruptedException {
+    public void checkTokenNotAuthorized() {
         this.tokenProvider.getToken(this.connectionContext)
             .flatMap(token -> this.uaaClient.tokens()
                 .check(CheckTokenRequest.builder()
                     .token(token)
                     .clientId(this.clientId)
                     .clientSecret(this.clientSecret)
-                    .scope("password.write")
-                    .scope("scim.userids")
+                    .scopes("password.write", "scim.userids")
                     .build()))
             .as(StepVerifier::create)
             .consumeErrorWith(t -> assertThat(t).isInstanceOf(UaaException.class).hasMessage("access_denied: Access is denied"))
             .verify(Duration.ofMinutes(5));
     }
 
-    //TODO: Ready to Implement - use test authorizationCode
-    @Ignore("Ready to Implement - use test authorizationCode")
     @Test
-    public void getTokenByAuthorizationCode() throws TimeoutException, InterruptedException {
-        this.uaaClient.tokens()
-            .getByAuthorizationCode(GetTokenByAuthorizationCodeRequest.builder()
-                .authorizationCode("some auth code")
-                .clientId(this.clientId)
-                .clientSecret(this.clientSecret)
-                .build())
+    public void getTokenByAuthorizationCode() {
+        requestGetAuthorizationCode(this.uaaClient, this.clientId)
+            .flatMap(authorizationCode -> this.uaaClient.tokens()
+                .getByAuthorizationCode(GetTokenByAuthorizationCodeRequest.builder()
+                    .authorizationCode(authorizationCode)
+                    .clientId(this.clientId)
+                    .clientSecret(this.clientSecret)
+                    .build()))
+            .map(GetTokenByAuthorizationCodeResponse::getTokenType)
             .as(StepVerifier::create)
-            .expectNextCount(1)
+            .expectNext("bearer")
             .expectComplete()
             .verify(Duration.ofMinutes(5));
     }
 
     @Test
-    public void getTokenByClientCredentials() throws TimeoutException, InterruptedException {
+    public void getTokenByClientCredentials() {
         this.uaaClient.tokens()
             .getByClientCredentials(GetTokenByClientCredentialsRequest.builder()
                 .clientId(this.clientId)
@@ -111,34 +118,34 @@ public final class TokensTest extends AbstractIntegrationTest {
             .verify(Duration.ofMinutes(5));
     }
 
-    //TODO: Ready to Implement - use test one-time passcode
-    @Ignore("Ready to Implement - use test one-time passcode")
+    //TODO: Ready to Implement - Await https://github.com/cloudfoundry/cf-java-client/issues/862 to get passcode
+    @Ignore("Ready to Implement - Await https://github.com/cloudfoundry/cf-java-client/issues/862 to get passcode")
     @Test
-    public void getTokenByOneTimePasscode() throws TimeoutException, InterruptedException {
+    public void getTokenByOneTimePasscode() {
         this.uaaClient.tokens()
             .getByOneTimePasscode(GetTokenByOneTimePasscodeRequest.builder()
-                .passcode("Some passcode")
+                .passcode("some passcode")
                 .clientId(this.clientId)
                 .clientSecret(this.clientSecret)
                 .tokenFormat(TokenFormat.OPAQUE)
                 .build())
-            .map(GetTokenByOneTimePasscodeResponse::getTokenType)
+            .map(GetTokenByOneTimePasscodeResponse::getAccessToken)
             .as(StepVerifier::create)
             .expectNext("bearer")
-            .expectComplete();
+            .expectComplete()
+            .verify(Duration.ofMinutes(5));
     }
 
-    //TODO: Ready to Implement - use test openid authorizationCode
-    @Ignore("Ready to Implement - use test openid authorizationCode")
     @Test
-    public void getTokenByOpenId() throws TimeoutException, InterruptedException {
-        this.uaaClient.tokens()
-            .getByOpenId(GetTokenByOpenIdRequest.builder()
-                .authorizationCode("Some authorization code")
-                .clientId(this.clientId)
-                .clientSecret(this.clientSecret)
-                .tokenFormat(TokenFormat.OPAQUE)
-                .build())
+    public void getTokenByOpenId() {
+        requestGetAuthorizationCode(this.uaaClient, this.clientId)
+            .flatMap(authorizationCode -> this.uaaClient.tokens()
+                .getByOpenId(GetTokenByOpenIdRequest.builder()
+                    .authorizationCode(authorizationCode)
+                    .clientId(this.clientId)
+                    .clientSecret(this.clientSecret)
+                    .tokenFormat(TokenFormat.OPAQUE)
+                    .build()))
             .map(GetTokenByOpenIdResponse::getTokenType)
             .as(StepVerifier::create)
             .expectNext("bearer")
@@ -146,17 +153,15 @@ public final class TokensTest extends AbstractIntegrationTest {
             .verify(Duration.ofMinutes(5));
     }
 
-    //TODO: Ready to Implement - use test username and password
-    @Ignore("Ready to Implement - use test username and password")
     @Test
-    public void getTokenByPassword() throws TimeoutException, InterruptedException {
+    public void getTokenByPassword() {
         this.uaaClient.tokens()
             .getByPassword(GetTokenByPasswordRequest.builder()
-                .password("a-password")
-                .username("a-username")
                 .clientId(this.clientId)
                 .clientSecret(this.clientSecret)
+                .password(this.password)
                 .tokenFormat(TokenFormat.OPAQUE)
+                .username(this.username)
                 .build())
             .map(GetTokenByPasswordResponse::getTokenType)
             .as(StepVerifier::create)
@@ -166,7 +171,7 @@ public final class TokensTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void getTokenKey() throws TimeoutException, InterruptedException {
+    public void getTokenKey() {
         this.uaaClient.tokens()
             .getKey(GetTokenKeyRequest.builder()
                 .build())
@@ -177,43 +182,61 @@ public final class TokensTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void listTokenKeys() throws TimeoutException, InterruptedException {
+    public void listTokenKeys() {
         this.uaaClient.tokens()
             .getKey(GetTokenKeyRequest.builder()
                 .build())
-            .flatMap(getKey -> Mono
-                .when(
-                    this.uaaClient.tokens()
-                        .listKeys(ListTokenKeysRequest.builder()
-                            .build())
-                        .flatMapMany(response -> Flux.fromIterable(response.getKeys()))
-                        .filter(tokenKey -> getKey.getValue().equals(tokenKey.getValue()))
-                        .single()
-                        .map(TokenKey::getId),
-                    Mono.just(getKey)
-                        .map(GetTokenKeyResponse::getId)
-                ))
+            .flatMap(getKey -> Mono.zip(
+                this.uaaClient.tokens()
+                    .listKeys(ListTokenKeysRequest.builder()
+                        .build())
+                    .flatMapMany(response -> Flux.fromIterable(response.getKeys()))
+                    .filter(tokenKey -> getKey.getValue().equals(tokenKey.getValue()))
+                    .single()
+                    .map(TokenKey::getId),
+                Mono.just(getKey)
+                    .map(GetTokenKeyResponse::getId)
+            ))
             .as(StepVerifier::create)
             .consumeNextWith(tupleEquality())
             .expectComplete()
             .verify(Duration.ofMinutes(5));
     }
 
-    //TODO: Ready to Implement - use test refresh token
-    @Ignore("Ready to Implement - use test refresh token")
     @Test
-    public void refreshToken() throws TimeoutException, InterruptedException {
-        this.uaaClient.tokens()
-            .refresh(RefreshTokenRequest.builder()
-                .tokenFormat(TokenFormat.OPAQUE)
-                .clientId(this.clientId)
-                .clientSecret(this.clientSecret)
-                .refreshToken("a-refresh-token")
-                .build())
+    public void refreshToken() {
+        getRequestToken(this.uaaClient, this.clientId, this.clientSecret, this.password, this.username)
+            .flatMap(refreshToken -> this.uaaClient.tokens()
+                .refresh(RefreshTokenRequest.builder()
+                    .tokenFormat(TokenFormat.OPAQUE)
+                    .clientId(this.clientId)
+                    .clientSecret(this.clientSecret)
+                    .refreshToken(refreshToken)
+                    .build()))
+            .map(RefreshTokenResponse::getTokenType)
             .as(StepVerifier::create)
-            .expectNextCount(1)
+            .expectNext("bearer")
             .expectComplete()
             .verify(Duration.ofMinutes(5));
+    }
+
+    private static Mono<String> getRequestToken(UaaClient uaaClient, String clientId, String clientSecret, String password, String username) {
+        return uaaClient.tokens()
+            .getByPassword(GetTokenByPasswordRequest.builder()
+                .clientId(clientId)
+                .clientSecret(clientSecret)
+                .password(password)
+                .tokenFormat(TokenFormat.OPAQUE)
+                .username(username)
+                .build())
+            .map(GetTokenByPasswordResponse::getRefreshToken);
+    }
+
+    private static Mono<String> requestGetAuthorizationCode(UaaClient uaaClient, String clientId) {
+        return uaaClient.authorizations()
+            .authorizationCodeGrantApi(AuthorizeByAuthorizationCodeGrantApiRequest.builder()
+                .clientId(clientId)
+                .build());
     }
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,10 +16,16 @@
 
 package org.cloudfoundry.reactor;
 
+import io.netty.handler.codec.http.HttpHeaders;
+import org.cloudfoundry.reactor.util.JsonCodec;
+import org.cloudfoundry.reactor.util.Operator;
+import org.cloudfoundry.reactor.util.OperatorContext;
+import org.cloudfoundry.reactor.util.UserAgent;
 import org.immutables.value.Value;
 import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Mono;
+import reactor.netty.http.client.HttpClient;
 
 import java.util.Optional;
 import java.util.regex.Matcher;
@@ -28,7 +34,7 @@ import java.util.regex.Pattern;
 /**
  * An abstract implementation of {@link RootProvider} that ensures that returned values are trusted (if configured) and cached.
  */
-public abstract class AbstractRootProvider implements RootProvider {
+abstract class AbstractRootProvider implements RootProvider {
 
     private static final int DEFAULT_PORT = 443;
 
@@ -45,25 +51,39 @@ public abstract class AbstractRootProvider implements RootProvider {
         }
     }
 
+    public Mono<Operator> createOperator(ConnectionContext connectionContext) {
+        HttpClient httpClient = connectionContext.getHttpClient();
+        return getRoot(connectionContext)
+            .map(root -> OperatorContext.of(connectionContext, root))
+            .map(operatorContext -> new Operator(operatorContext, httpClient))
+            .map(operator -> operator.headers(this::addHeaders));
+    }
+
     /**
-     * The hostname of the API root.  Typically something like {@code api.run.pivotal.io}.
+     * The hostname of the API root. Typically something like {@code api.run.pivotal.io}.
      */
     public abstract String getApiHost();
 
     @Override
-    public final Mono<String> getRoot(ConnectionContext connectionContext) {
-        return doGetRoot(connectionContext)
-            .doOnNext(uri -> trust(uri.getHost(), uri.getPort(), connectionContext))
-            .map(UriComponents::toUriString)
-            .cache();
+    public final Mono<String> getRoot(String key, ConnectionContext connectionContext) {
+        Mono<String> cached = doGetRoot(key, connectionContext)
+            .delayUntil(uri -> trust(uri.getHost(), uri.getPort(), connectionContext))
+            .map(UriComponents::toUriString);
+
+        return connectionContext.getCacheDuration()
+            .map(cached::cache)
+            .orElseGet(cached::cache);
     }
 
     @Override
-    public final Mono<String> getRoot(String key, ConnectionContext connectionContext) {
-        return doGetRoot(key, connectionContext)
-            .doOnNext(uri -> trust(uri.getHost(), uri.getPort(), connectionContext))
-            .map(UriComponents::toUriString)
-            .cache();
+    public final Mono<String> getRoot(ConnectionContext connectionContext) {
+        Mono<String> cached = doGetRoot(connectionContext)
+            .delayUntil(uri -> trust(uri.getHost(), uri.getPort(), connectionContext))
+            .map(UriComponents::toUriString);
+
+        return connectionContext.getCacheDuration()
+            .map(cached::cache)
+            .orElseGet(cached::cache);
     }
 
     protected abstract Mono<UriComponents> doGetRoot(ConnectionContext connectionContext);
@@ -78,9 +98,11 @@ public abstract class AbstractRootProvider implements RootProvider {
     }
 
     protected final UriComponents normalize(UriComponentsBuilder builder) {
+        UriComponents components = builder.build();
+
         builder.scheme(getScheme());
 
-        if (UNDEFINED_PORT == builder.build().getPort()) {
+        if (UNDEFINED_PORT == components.getPort()) {
             builder.port(getPort().orElse(DEFAULT_PORT));
         }
 
@@ -93,9 +115,14 @@ public abstract class AbstractRootProvider implements RootProvider {
     abstract Optional<Integer> getPort();
 
     /**
-     * Whether the connection to the root API should be secure (i.e. using HTTPS).  Defaults to {@code true}.
+     * Whether the connection to the root API should be secure (i.e. using HTTPS). Defaults to {@code true}.
      */
     abstract Optional<Boolean> getSecure();
+
+    private void addHeaders(HttpHeaders httpHeaders) {
+        UserAgent.setUserAgent(httpHeaders);
+        JsonCodec.setDecodeHeaders(httpHeaders);
+    }
 
     private String getScheme() {
         if (getSecure().orElse(true)) {
@@ -105,8 +132,8 @@ public abstract class AbstractRootProvider implements RootProvider {
         }
     }
 
-    private void trust(String host, int port, ConnectionContext connectionContext) {
-        connectionContext.trust(host, port);
+    private Mono<Void> trust(String host, int port, ConnectionContext connectionContext) {
+        return connectionContext.trust(host, port);
     }
 
 }

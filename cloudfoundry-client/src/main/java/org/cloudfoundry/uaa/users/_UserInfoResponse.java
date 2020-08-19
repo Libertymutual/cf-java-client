@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,10 +29,17 @@ import org.immutables.value.Value;
 abstract class _UserInfoResponse {
 
     /**
-     * The user's email
+     * The user's email address
      */
     @JsonProperty("email")
     abstract String getEmail();
+
+    /**
+     * Whether the user has verified their email address
+     */
+    @JsonProperty("email_verified")
+    @Nullable
+    abstract Boolean getEmailVerified();
 
     /**
      * The user's family name
@@ -60,14 +67,14 @@ abstract class _UserInfoResponse {
     abstract String getPhoneNumber();
 
     /**
-     * When the user last logged
+     * When the user last logged on
      */
     @JsonProperty("previous_logon_time")
     @Nullable
-    abstract Integer getPreviousLogonTime();
+    abstract Long getPreviousLogonTime();
 
     /**
-     * The user sub
+     * The user subject identifier
      */
     @JsonProperty("sub")
     @Nullable

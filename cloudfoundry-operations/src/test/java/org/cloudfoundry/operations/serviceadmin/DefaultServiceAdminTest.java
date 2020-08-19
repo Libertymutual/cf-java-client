@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,6 +28,7 @@ import org.cloudfoundry.client.v2.servicebrokers.ListServiceBrokersRequest;
 import org.cloudfoundry.client.v2.servicebrokers.ListServiceBrokersResponse;
 import org.cloudfoundry.client.v2.servicebrokers.ServiceBrokerEntity;
 import org.cloudfoundry.client.v2.servicebrokers.ServiceBrokerResource;
+import org.cloudfoundry.client.v2.servicebrokers.UpdateServiceBrokerResponse;
 import org.cloudfoundry.client.v2.serviceplans.ListServicePlansRequest;
 import org.cloudfoundry.client.v2.serviceplans.ListServicePlansResponse;
 import org.cloudfoundry.client.v2.serviceplans.ServicePlanEntity;
@@ -307,7 +308,7 @@ public final class DefaultServiceAdminTest extends AbstractOperationsTest {
             .expectNext(ServiceAccess.builder()
                 .access(Access.ALL)
                 .brokerName("test-service-broker-resource-name")
-                .organizationName()
+                .organizationNames()
                 .planName("test-service-plan-name")
                 .serviceName("test-service-name")
                 .build())
@@ -343,7 +344,7 @@ public final class DefaultServiceAdminTest extends AbstractOperationsTest {
             .expectNext(ServiceAccess.builder()
                 .access(Access.ALL)
                 .brokerName("test-service-broker-resource-name")
-                .organizationName()
+                .organizationNames()
                 .planName("test-service-plan-name")
                 .serviceName("test-service-name")
                 .build())
@@ -421,7 +422,7 @@ public final class DefaultServiceAdminTest extends AbstractOperationsTest {
             .expectNext(ServiceAccess.builder()
                 .access(Access.ALL)
                 .brokerName("test-service-broker-resource-name")
-                .organizationName()
+                .organizationNames()
                 .planName("test-service-plan-name")
                 .serviceName("test-service-name")
                 .build())
@@ -468,6 +469,42 @@ public final class DefaultServiceAdminTest extends AbstractOperationsTest {
             .list()
             .as(StepVerifier::create)
             .expectComplete()
+            .verify(Duration.ofSeconds(5));
+    }
+
+    @Test
+    public void updateServiceBroker() {
+        requestListServiceBrokers(this.cloudFoundryClient, "test-service-broker-name");
+        requestUpdateServiceBroker(this.cloudFoundryClient, "test-service-broker-name", "test-service-broker-url", "test-service-broker-username",
+            "test-service-broker-password", "test-service-broker-id");
+
+        this.serviceAdmin
+            .update(UpdateServiceBrokerRequest.builder()
+                .name("test-service-broker-name")
+                .url("test-service-broker-url")
+                .username("test-service-broker-username")
+                .password("test-service-broker-password")
+                .build())
+            .as(StepVerifier::create)
+            .expectComplete()
+            .verify(Duration.ofSeconds(5));
+    }
+
+    @Test
+    public void updateServiceBrokerNoServiceBroker() {
+        requestListServiceBrokersEmpty(this.cloudFoundryClient, "test-service-broker-name");
+        requestUpdateServiceBroker(this.cloudFoundryClient, "test-service-broker-name", "test-service-broker-url", "test-service-broker-username",
+            "test-service-broker-password", "test-service-broker-id");
+
+        this.serviceAdmin
+            .update(UpdateServiceBrokerRequest.builder()
+                .name("test-service-broker-name")
+                .url("test-service-broker-url")
+                .username("test-service-broker-username")
+                .password("test-service-broker-password")
+                .build())
+            .as(StepVerifier::create)
+            .consumeErrorWith(t -> assertThat(t).isInstanceOf(IllegalArgumentException.class).hasMessage("Service Broker test-service-broker-name not found"))
             .verify(Duration.ofSeconds(5));
     }
 
@@ -719,6 +756,20 @@ public final class DefaultServiceAdminTest extends AbstractOperationsTest {
                 .build()))
             .thenReturn(Mono
                 .just(fill(ListServicesResponse.builder())
+                    .build()));
+    }
+
+    private static void requestUpdateServiceBroker(CloudFoundryClient cloudFoundryClient, String name, String url, String username, String password, String serviceBrokerId) {
+        when(cloudFoundryClient.serviceBrokers()
+            .update(org.cloudfoundry.client.v2.servicebrokers.UpdateServiceBrokerRequest.builder()
+                .serviceBrokerId(serviceBrokerId)
+                .name(name)
+                .brokerUrl(url)
+                .authenticationUsername(username)
+                .authenticationPassword(password)
+                .build()))
+            .thenReturn(Mono
+                .just(fill(UpdateServiceBrokerResponse.builder())
                     .build()));
     }
 

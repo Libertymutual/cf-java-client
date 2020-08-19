@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package org.cloudfoundry.uaa.tokens;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import org.cloudfoundry.Nullable;
 import org.immutables.value.Value;
 
 /**
@@ -26,6 +27,13 @@ import org.immutables.value.Value;
 @JsonDeserialize
 @Value.Immutable
 abstract class _GetTokenByOneTimePasscodeResponse extends AbstractToken {
+
+    /**
+     * The OpenId token
+     */
+    @JsonProperty("id_token")
+    @Nullable
+    abstract String getOpenIdToken();
 
     /**
      * The refresh token

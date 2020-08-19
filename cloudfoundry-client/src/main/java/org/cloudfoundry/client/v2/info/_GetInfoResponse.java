@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -111,6 +111,13 @@ abstract class _GetInfoResponse {
     @JsonProperty("name")
     @Nullable
     abstract String getName();
+
+    /**
+     * The version of the supported Open Service Broker API
+     */
+    @JsonProperty("osbapi_version")
+    @Nullable
+    abstract String getOsbapiVersion();
 
     /**
      * The routing endpoint

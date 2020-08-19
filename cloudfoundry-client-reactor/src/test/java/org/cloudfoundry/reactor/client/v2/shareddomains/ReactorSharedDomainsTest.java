@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,6 +36,7 @@ import org.junit.Test;
 import reactor.test.StepVerifier;
 
 import java.time.Duration;
+import java.util.Collections;
 
 import static io.netty.handler.codec.http.HttpMethod.DELETE;
 import static io.netty.handler.codec.http.HttpMethod.GET;
@@ -46,13 +47,13 @@ import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 
 public final class ReactorSharedDomainsTest extends AbstractClientApiTest {
 
-    private final ReactorSharedDomains sharedDomains = new ReactorSharedDomains(CONNECTION_CONTEXT, this.root, TOKEN_PROVIDER);
+    private final ReactorSharedDomains sharedDomains = new ReactorSharedDomains(CONNECTION_CONTEXT, this.root, TOKEN_PROVIDER, Collections.emptyMap());
 
     @Test
     public void create() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(POST).path("/v2/shared_domains")
+                .method(POST).path("/shared_domains")
                 .payload("fixtures/client/v2/shared_domains/POST_request.json")
                 .build())
             .response(TestResponse.builder()
@@ -87,7 +88,7 @@ public final class ReactorSharedDomainsTest extends AbstractClientApiTest {
     public void delete() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(DELETE).path("/v2/shared_domains/fa1385de-55ba-41d3-beb2-f83919c634d6")
+                .method(DELETE).path("/shared_domains/fa1385de-55ba-41d3-beb2-f83919c634d6")
                 .build())
             .response(TestResponse.builder()
                 .status(NO_CONTENT)
@@ -107,7 +108,7 @@ public final class ReactorSharedDomainsTest extends AbstractClientApiTest {
     public void deleteAsync() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(DELETE).path("/v2/shared_domains/fa1385de-55ba-41d3-beb2-f83919c634d6?async=true")
+                .method(DELETE).path("/shared_domains/fa1385de-55ba-41d3-beb2-f83919c634d6?async=true")
                 .build())
             .response(TestResponse.builder()
                 .status(ACCEPTED)
@@ -140,7 +141,7 @@ public final class ReactorSharedDomainsTest extends AbstractClientApiTest {
     public void listSharedDomains() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(GET).path("/v2/shared_domains?page=-1")
+                .method(GET).path("/shared_domains?page=-1")
                 .build())
             .response(TestResponse.builder()
                 .status(OK)
@@ -213,7 +214,7 @@ public final class ReactorSharedDomainsTest extends AbstractClientApiTest {
 
     public static final class Get extends AbstractClientApiTest {
 
-        private final ReactorSharedDomains sharedDomains = new ReactorSharedDomains(CONNECTION_CONTEXT, this.root, TOKEN_PROVIDER);
+        private final ReactorSharedDomains sharedDomains = new ReactorSharedDomains(CONNECTION_CONTEXT, this.root, TOKEN_PROVIDER, Collections.emptyMap());
 
         @Test
         public void get() {
@@ -241,7 +242,7 @@ public final class ReactorSharedDomainsTest extends AbstractClientApiTest {
         public InteractionContext interactionContext() {
             return InteractionContext.builder()
                 .request(TestRequest.builder()
-                    .method(GET).path("/v2/shared_domains/fa1385de-55ba-41d3-beb2-f83919c634d6")
+                    .method(GET).path("/shared_domains/fa1385de-55ba-41d3-beb2-f83919c634d6")
                     .build())
                 .response(TestResponse.builder()
                     .status(OK)

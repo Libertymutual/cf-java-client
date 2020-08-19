@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,6 +36,7 @@ import org.junit.Test;
 import reactor.test.StepVerifier;
 
 import java.time.Duration;
+import java.util.Collections;
 
 import static io.netty.handler.codec.http.HttpMethod.DELETE;
 import static io.netty.handler.codec.http.HttpMethod.GET;
@@ -47,13 +48,13 @@ import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 
 public final class ReactorServiceBrokersTest extends AbstractClientApiTest {
 
-    private final ReactorServiceBrokers serviceBrokers = new ReactorServiceBrokers(CONNECTION_CONTEXT, this.root, TOKEN_PROVIDER);
+    private final ReactorServiceBrokers serviceBrokers = new ReactorServiceBrokers(CONNECTION_CONTEXT, this.root, TOKEN_PROVIDER, Collections.emptyMap());
 
     @Test
     public void create() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(POST).path("/v2/service_brokers")
+                .method(POST).path("/service_brokers")
                 .payload("fixtures/client/v2/service_brokers/POST_request.json")
                 .build())
             .response(TestResponse.builder()
@@ -90,7 +91,7 @@ public final class ReactorServiceBrokersTest extends AbstractClientApiTest {
     public void delete() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(DELETE).path("/v2/service_brokers/test-service-broker-id")
+                .method(DELETE).path("/service_brokers/test-service-broker-id")
                 .build())
             .response(TestResponse.builder()
                 .status(NO_CONTENT)
@@ -110,7 +111,7 @@ public final class ReactorServiceBrokersTest extends AbstractClientApiTest {
     public void get() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(GET).path("/v2/service_brokers/test-service-broker-id")
+                .method(GET).path("/service_brokers/test-service-broker-id")
                 .build())
             .response(TestResponse.builder()
                 .status(OK)
@@ -145,7 +146,7 @@ public final class ReactorServiceBrokersTest extends AbstractClientApiTest {
     public void list() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(GET).path("/v2/service_brokers?q=name:test-name&page=-1")
+                .method(GET).path("/service_brokers?q=name%3Atest-name&page=-1")
                 .build())
             .response(TestResponse.builder()
                 .status(OK)
@@ -209,7 +210,7 @@ public final class ReactorServiceBrokersTest extends AbstractClientApiTest {
     public void update() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(PUT).path("/v2/service_brokers/test-service-broker-id")
+                .method(PUT).path("/service_brokers/test-service-broker-id")
                 .payload("fixtures/client/v2/service_brokers/PUT_{id}_request.json")
                 .build())
             .response(TestResponse.builder()

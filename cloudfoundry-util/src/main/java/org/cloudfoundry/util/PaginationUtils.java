@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@ import java.util.Optional;
 import java.util.function.Function;
 
 /**
- * A utility class to provide functions for handling {@link org.cloudfoundry.client.v2.PaginatedResponse}s and those containing lists of {@link org.cloudfoundry.client.v2.Resource}s.
+ * A utility class to provide functions for handling PaginatedResponse and those containing lists of Resources.
  */
 public final class PaginationUtils {
 

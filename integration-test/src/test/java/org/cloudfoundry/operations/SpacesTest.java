@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,12 +18,13 @@ package org.cloudfoundry.operations;
 
 import org.cloudfoundry.AbstractIntegrationTest;
 import org.cloudfoundry.operations.spaces.CreateSpaceRequest;
+import org.cloudfoundry.operations.spaces.GetSpaceRequest;
+import org.cloudfoundry.operations.spaces.SpaceDetail;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import reactor.test.StepVerifier;
 
 import java.time.Duration;
-import java.util.concurrent.TimeoutException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -36,7 +37,7 @@ public final class SpacesTest extends AbstractIntegrationTest {
     private String organizationName;
 
     @Test
-    public void create() throws TimeoutException, InterruptedException {
+    public void create() {
         String spaceName = this.nameFactory.getSpaceName();
 
         this.cloudFoundryOperations.spaces()
@@ -54,7 +55,27 @@ public final class SpacesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void list() throws TimeoutException, InterruptedException {
+    public void getWithURLReservedCharacterInName() {
+        String spaceName = this.nameFactory.getSpaceName() + "+test";
+
+        this.cloudFoundryOperations.spaces()
+            .create(CreateSpaceRequest.builder()
+                .name(spaceName)
+                .organization(this.organizationName)
+                .build())
+            .then(this.cloudFoundryOperations.spaces()
+                .get(GetSpaceRequest.builder()
+                    .name(spaceName)
+                    .build()))
+            .map(SpaceDetail::getName)
+            .as(StepVerifier::create)
+            .expectNext(spaceName)
+            .expectComplete()
+            .verify(Duration.ofMinutes(5));
+    }
+
+    @Test
+    public void list() {
         this.cloudFoundryOperations.spaces()
             .list()
             .count()

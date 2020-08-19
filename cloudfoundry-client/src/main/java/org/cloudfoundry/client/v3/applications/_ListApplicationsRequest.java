@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 package org.cloudfoundry.client.v3.applications;
 
+import org.cloudfoundry.Nullable;
 import org.cloudfoundry.client.v3.FilterParameter;
 import org.cloudfoundry.client.v3.PaginatedRequest;
 import org.immutables.value.Value;
@@ -33,6 +34,13 @@ abstract class _ListApplicationsRequest extends PaginatedRequest {
      */
     @FilterParameter("guids")
     abstract List<String> getApplicationIds();
+
+    /**
+     * The metadata query
+     */
+    @FilterParameter("label_selector")
+    @Nullable
+    abstract String getLabelSelector();
 
     /**
      * The names

@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,35 +16,35 @@
 
 package org.cloudfoundry.reactor.uaa;
 
+import io.netty.handler.codec.http.HttpHeaders;
 import org.cloudfoundry.uaa.Versioned;
 import org.junit.Test;
-import reactor.ipc.netty.http.client.HttpClientRequest;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 
 public final class VersionBuilderTest {
 
-    private final HttpClientRequest outbound = mock(HttpClientRequest.class);
+    private final HttpHeaders outbound = mock(HttpHeaders.class);
 
     @Test
     public void augment() {
         VersionBuilder.augment(this.outbound, new StubVersioned("test-version"));
-        verify(this.outbound).header("If-Match", "test-version");
+        verify(this.outbound).set("If-Match", "test-version");
     }
 
     @Test
     public void augmentNotVersioned() {
         VersionBuilder.augment(this.outbound, new Object());
-        verifyZeroInteractions(this.outbound);
+        verifyNoInteractions(this.outbound);
     }
 
     @Test
     public void augmentNullVersion() {
         VersionBuilder.augment(this.outbound, new StubVersioned(null));
-        verifyZeroInteractions(this.outbound);
+        verifyNoInteractions(this.outbound);
     }
 
     private static final class StubVersioned implements Versioned {

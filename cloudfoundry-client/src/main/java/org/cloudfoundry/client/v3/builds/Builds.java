@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@ import reactor.core.publisher.Mono;
 public interface Builds {
 
     /**
-     * Makes the <a href="http://v3-apidocs.cloudfoundry.org/version/3.27.0/index.html#create-a-build">Create Build</a> request
+     * Makes the <a href="https://v3-apidocs.cloudfoundry.org/version/3.27.0/index.html#create-a-build">Create Build</a> request
      *
      * @param request the Create Build request
      * @return the response from the Create Build request
@@ -32,11 +32,19 @@ public interface Builds {
     Mono<CreateBuildResponse> create(CreateBuildRequest request);
 
     /**
-     * Makes the <a href="http://v3-apidocs.cloudfoundry.org/version/3.27.0/index.html#get-a-build">Get Build</a> request
+     * Makes the <a href="https://v3-apidocs.cloudfoundry.org/version/3.27.0/index.html#get-a-build">Get Build</a> request
      *
      * @param request the Get Build request
      * @return the response from the Get Build request
      */
     Mono<GetBuildResponse> get(GetBuildRequest request);
+
+    /**
+     * Makes the <a href="https://v3-apidocs.cloudfoundry.org/version/3.47.0/#list-builds">List Builds</a> request
+     *
+     * @param request the List Builds request
+     * @return the response from the List Builds request
+     */
+    Mono<ListBuildsResponse> list(ListBuildsRequest request);
 
 }

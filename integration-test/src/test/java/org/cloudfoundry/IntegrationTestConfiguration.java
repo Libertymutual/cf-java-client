@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,6 +29,7 @@ import org.cloudfoundry.client.v2.organizations.CreateOrganizationRequest;
 import org.cloudfoundry.client.v2.spaces.CreateSpaceRequest;
 import org.cloudfoundry.client.v2.stacks.ListStacksRequest;
 import org.cloudfoundry.doppler.DopplerClient;
+import org.cloudfoundry.networking.NetworkingClient;
 import org.cloudfoundry.operations.DefaultCloudFoundryOperations;
 import org.cloudfoundry.reactor.ConnectionContext;
 import org.cloudfoundry.reactor.DefaultConnectionContext;
@@ -36,6 +37,7 @@ import org.cloudfoundry.reactor.ProxyConfiguration;
 import org.cloudfoundry.reactor.TokenProvider;
 import org.cloudfoundry.reactor.client.ReactorCloudFoundryClient;
 import org.cloudfoundry.reactor.doppler.ReactorDopplerClient;
+import org.cloudfoundry.reactor.networking.ReactorNetworkingClient;
 import org.cloudfoundry.reactor.routing.ReactorRoutingClient;
 import org.cloudfoundry.reactor.tokenprovider.ClientCredentialsGrantTokenProvider;
 import org.cloudfoundry.reactor.tokenprovider.PasswordGrantTokenProvider;
@@ -92,6 +94,7 @@ public class IntegrationTestConfiguration {
         "clients.secret",
         "cloud_controller.admin",
         "idps.write",
+        "network.admin",
         "routing.router_groups.read",
         "routing.router_groups.write",
         "routing.routes.read",
@@ -113,6 +116,7 @@ public class IntegrationTestConfiguration {
         "cloud_controller.read",
         "cloud_controller.write",
         "idps.write",
+        "network.admin",
         "openid",
         "password.write",
         "routing.router_groups.read",
@@ -134,10 +138,20 @@ public class IntegrationTestConfiguration {
 
     @Bean
     @Qualifier("admin")
-    ReactorCloudFoundryClient adminCloudFoundryClient(ConnectionContext connectionContext,
-                                                      @Value("${test.admin.password}") String password,
-                                                      @Value("${test.admin.username}") String username) {
+    ReactorCloudFoundryClient adminCloudFoundryClient(ConnectionContext connectionContext, @Value("${test.admin.password}") String password, @Value("${test.admin.username}") String username) {
         return ReactorCloudFoundryClient.builder()
+            .connectionContext(connectionContext)
+            .tokenProvider(PasswordGrantTokenProvider.builder()
+                .password(password)
+                .username(username)
+                .build())
+            .build();
+    }
+
+    @Bean
+    @Qualifier("admin")
+    NetworkingClient adminNetworkingClient(ConnectionContext connectionContext, @Value("${test.admin.password}") String password, @Value("${test.admin.username}") String username) {
+        return ReactorNetworkingClient.builder()
             .connectionContext(connectionContext)
             .tokenProvider(PasswordGrantTokenProvider.builder()
                 .password(password)
@@ -163,14 +177,14 @@ public class IntegrationTestConfiguration {
     Mono<Tuple2<String, String>> client(@Qualifier("admin") UaaClient uaaClient, String clientId, String clientSecret) {
         return uaaClient.clients()
             .create(CreateClientRequest.builder()
-                .authorizedGrantType(AUTHORIZATION_CODE, CLIENT_CREDENTIALS, PASSWORD, REFRESH_TOKEN)
+                .authorizedGrantTypes(AUTHORIZATION_CODE, CLIENT_CREDENTIALS, PASSWORD, REFRESH_TOKEN)
                 .autoApprove(String.valueOf(true))
                 .clientId(clientId)
                 .clientSecret(clientSecret)
                 .redirectUriPattern("https://test.com/login")
                 .scopes(SCOPES)
                 .build())
-            .then(Mono.just(Tuples.of(clientId, clientSecret)))
+            .thenReturn(Tuples.of(clientId, clientSecret))
             .doOnSubscribe(s -> this.logger.debug(">> CLIENT ({}/{}) <<", clientId, clientSecret))
             .doOnError(Throwable::printStackTrace)
             .doOnSuccess(r -> this.logger.debug("<< CLIENT ({})>>", clientId));
@@ -187,8 +201,10 @@ public class IntegrationTestConfiguration {
     }
 
     @Bean(initMethod = "clean", destroyMethod = "clean")
-    CloudFoundryCleaner cloudFoundryCleaner(@Qualifier("admin") CloudFoundryClient cloudFoundryClient, NameFactory nameFactory, @Qualifier("admin") UaaClient uaaClient) {
-        return new CloudFoundryCleaner(cloudFoundryClient, nameFactory, uaaClient);
+    CloudFoundryCleaner cloudFoundryCleaner(@Qualifier("admin") CloudFoundryClient cloudFoundryClient, NameFactory nameFactory, @Qualifier("admin") NetworkingClient networkingClient,
+                                            Version serverVersion, @Qualifier("admin") UaaClient uaaClient) {
+
+        return new CloudFoundryCleaner(cloudFoundryClient, nameFactory, networkingClient, serverVersion, uaaClient);
     }
 
     @Bean
@@ -200,11 +216,12 @@ public class IntegrationTestConfiguration {
     }
 
     @Bean
-    DefaultCloudFoundryOperations cloudFoundryOperations(CloudFoundryClient cloudFoundryClient, DopplerClient dopplerClient, RoutingClient routingClient, UaaClient uaaClient, String organizationName,
-                                                         String spaceName) {
+    DefaultCloudFoundryOperations cloudFoundryOperations(CloudFoundryClient cloudFoundryClient, DopplerClient dopplerClient, NetworkingClient networkingClient, RoutingClient routingClient,
+                                                         UaaClient uaaClient, String organizationName, String spaceName) {
         return DefaultCloudFoundryOperations.builder()
             .cloudFoundryClient(cloudFoundryClient)
             .dopplerClient(dopplerClient)
+            .networkingClient(networkingClient)
             .routingClient(routingClient)
             .uaaClient(uaaClient)
             .organization(organizationName)
@@ -213,15 +230,8 @@ public class IntegrationTestConfiguration {
     }
 
     @Bean
-    CloudFoundryVersionConditionalRule cloudFoundryVersionConditionalRule(CloudFoundryClient cloudFoundryClient) {
-        return cloudFoundryClient.info()
-            .get(GetInfoRequest.builder()
-                .build())
-            .map(response -> Version.valueOf(response.getApiVersion()))
-            .map(CloudFoundryVersionConditionalRule::new)
-            .doOnSubscribe(s -> this.logger.debug(">> CLOUD FOUNDRY VERSION <<"))
-            .doOnSuccess(r -> this.logger.debug("<< CLOUD FOUNDRY VERSION >>"))
-            .block();
+    CloudFoundryVersionConditionalRule cloudFoundryVersionConditionalRule(Version serverVersion) {
+        return new CloudFoundryVersionConditionalRule(serverVersion);
     }
 
     @Bean
@@ -268,9 +278,17 @@ public class IntegrationTestConfiguration {
         return new RandomNameFactory(random);
     }
 
+    @Bean
+    NetworkingClient networkingClient(ConnectionContext connectionContext, TokenProvider tokenProvider) {
+        return ReactorNetworkingClient.builder()
+            .connectionContext(connectionContext)
+            .tokenProvider(tokenProvider)
+            .build();
+    }
+
     @Bean(initMethod = "block")
     @DependsOn("cloudFoundryCleaner")
-    Mono<String> organizationId(CloudFoundryClient cloudFoundryClient, String organizationName, String organizationQuotaName, Mono<String> userId) throws InterruptedException {
+    Mono<String> organizationId(CloudFoundryClient cloudFoundryClient, String organizationName, String organizationQuotaName, Mono<String> userId) {
         return userId
             .flatMap(userId1 -> cloudFoundryClient.organizationQuotaDefinitions()
                 .create(CreateOrganizationQuotaDefinitionRequest.builder()
@@ -287,20 +305,20 @@ public class IntegrationTestConfiguration {
                     .totalServices(-1)
                     .build())
                 .map(ResourceUtils::getId)
-                .and(Mono.just(userId1)))
+                .zipWith(Mono.just(userId1)))
             .flatMap(function((quotaId, userId1) -> cloudFoundryClient.organizations()
                 .create(CreateOrganizationRequest.builder()
                     .name(organizationName)
                     .quotaDefinitionId(quotaId)
                     .build())
                 .map(ResourceUtils::getId)
-                .and(Mono.just(userId1))))
+                .zipWith(Mono.just(userId1))))
             .flatMap(function((organizationId, userId1) -> cloudFoundryClient.organizations()
                 .associateManager(AssociateOrganizationManagerRequest.builder()
                     .organizationId(organizationId)
                     .managerId(userId1)
                     .build())
-                .then(Mono.just(organizationId))))
+                .thenReturn(organizationId)))
             .doOnSubscribe(s -> this.logger.debug(">> ORGANIZATION ({}) <<", organizationName))
             .doOnError(Throwable::printStackTrace)
             .doOnSuccess(id -> this.logger.debug("<< ORGANIZATION ({}) >>", id))
@@ -340,6 +358,17 @@ public class IntegrationTestConfiguration {
             .build();
     }
 
+    @Bean
+    Version serverVersion(@Qualifier("admin") CloudFoundryClient cloudFoundryClient) {
+        return cloudFoundryClient.info()
+            .get(GetInfoRequest.builder()
+                .build())
+            .map(response -> Version.valueOf(response.getApiVersion()))
+            .doOnSubscribe(s -> this.logger.debug(">> CLOUD FOUNDRY VERSION <<"))
+            .doOnSuccess(r -> this.logger.debug("<< CLOUD FOUNDRY VERSION >>"))
+            .block();
+    }
+
     @Bean(initMethod = "block")
     @DependsOn("cloudFoundryCleaner")
     Mono<String> serviceBrokerId(CloudFoundryClient cloudFoundryClient, NameFactory nameFactory, String planName, String serviceBrokerName, String serviceName, Mono<String> spaceId) {
@@ -364,7 +393,7 @@ public class IntegrationTestConfiguration {
 
     @Bean(initMethod = "block")
     @DependsOn("cloudFoundryCleaner")
-    Mono<String> spaceId(CloudFoundryClient cloudFoundryClient, Mono<String> organizationId, String spaceName) throws InterruptedException {
+    Mono<String> spaceId(CloudFoundryClient cloudFoundryClient, Mono<String> organizationId, String spaceName) {
         return organizationId
             .flatMap(orgId -> cloudFoundryClient.spaces()
                 .create(CreateSpaceRequest.builder()
@@ -385,7 +414,7 @@ public class IntegrationTestConfiguration {
 
     @Bean(initMethod = "block")
     @DependsOn("cloudFoundryCleaner")
-    Mono<String> stackId(CloudFoundryClient cloudFoundryClient, String stackName) throws InterruptedException {
+    Mono<String> stackId(CloudFoundryClient cloudFoundryClient, String stackName) {
         return PaginationUtils
             .requestClientV2Resources(page -> cloudFoundryClient.stacks()
                 .list(ListStacksRequest.builder()
@@ -402,7 +431,7 @@ public class IntegrationTestConfiguration {
 
     @Bean
     String stackName() {
-        return "cflinuxfs2";
+        return "cflinuxfs3";
     }
 
     @Bean

@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,9 @@
 package org.cloudfoundry.client.v3.applications;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.cloudfoundry.Nullable;
 import org.cloudfoundry.client.v3.Lifecycle;
+import org.cloudfoundry.client.v3.Metadata;
 import org.cloudfoundry.client.v3.Resource;
 
 /**
@@ -32,10 +34,24 @@ public abstract class Application extends Resource {
     public abstract Lifecycle getLifecycle();
 
     /**
+     * The metadata
+     */
+    @JsonProperty("metadata")
+    @Nullable
+    public abstract Metadata getMetadata();
+
+    /**
      * The name
      */
     @JsonProperty("name")
     public abstract String getName();
+
+    /**
+     * The relationships
+     */
+    @JsonProperty("relationships")
+    @Nullable
+    public abstract ApplicationRelationships getRelationships();
 
     /**
      * The state

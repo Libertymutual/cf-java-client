@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 package org.cloudfoundry.client.v2.applications;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.cloudfoundry.AllowNulls;
 import org.cloudfoundry.Nullable;
 import org.immutables.value.Value;
@@ -27,6 +28,7 @@ import java.util.Map;
 /**
  * The request payload for the v2 Create Application request
  */
+@JsonSerialize
 @Value.Immutable
 abstract class _CreateApplicationRequest {
 
@@ -85,9 +87,9 @@ abstract class _CreateApplicationRequest {
      * Docker credentials for pulling docker image
      */
     @AllowNulls
-    @JsonProperty("docker_credentials_json")
+    @JsonProperty("docker_credentials")
     @Nullable
-    abstract Map<String, Object> getDockerCredentialsJsons();
+    abstract DockerCredentials getDockerCredentials();
 
     /**
      * Name of the Docker image containing the application
@@ -153,7 +155,7 @@ abstract class _CreateApplicationRequest {
     abstract String getName();
 
     /**
-     * The ports on which application may listen
+     * The ports on which the application may listen
      */
     @JsonProperty("ports")
     @Nullable

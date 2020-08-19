@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,6 +34,7 @@ import org.junit.Test;
 import reactor.test.StepVerifier;
 
 import java.time.Duration;
+import java.util.Collections;
 
 import static io.netty.handler.codec.http.HttpMethod.DELETE;
 import static io.netty.handler.codec.http.HttpMethod.GET;
@@ -44,13 +45,13 @@ import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 
 public final class ReactorServiceKeysTest extends AbstractClientApiTest {
 
-    private final ReactorServiceKeys serviceKeys = new ReactorServiceKeys(CONNECTION_CONTEXT, this.root, TOKEN_PROVIDER);
+    private final ReactorServiceKeys serviceKeys = new ReactorServiceKeys(CONNECTION_CONTEXT, this.root, TOKEN_PROVIDER, Collections.emptyMap());
 
     @Test
     public void create() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(POST).path("/v2/service_keys")
+                .method(POST).path("/service_keys")
                 .payload("fixtures/client/v2/service_keys/POST_request.json")
                 .build())
             .response(TestResponse.builder()
@@ -86,7 +87,7 @@ public final class ReactorServiceKeysTest extends AbstractClientApiTest {
     public void delete() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(DELETE).path("/v2/service_keys/test-service-key-id")
+                .method(DELETE).path("/service_keys/test-service-key-id")
                 .build())
             .response(TestResponse.builder()
                 .status(NO_CONTENT)
@@ -106,7 +107,7 @@ public final class ReactorServiceKeysTest extends AbstractClientApiTest {
     public void get() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(GET).path("/v2/service_keys/test-service-key-id")
+                .method(GET).path("/service_keys/test-service-key-id")
                 .build())
             .response(TestResponse.builder()
                 .status(OK)
@@ -121,15 +122,17 @@ public final class ReactorServiceKeysTest extends AbstractClientApiTest {
             .as(StepVerifier::create)
             .expectNext(GetServiceKeyResponse.builder()
                 .metadata(Metadata.builder()
-                    .createdAt("2015-07-27T22:43:22Z")
-                    .id("7f1f30d3-bed3-4ba7-bf88-fd3a678ff4f5")
-                    .url("/v2/service_keys/7f1f30d3-bed3-4ba7-bf88-fd3a678ff4f5")
+                    .createdAt("2016-06-08T16:41:23Z")
+                    .id("6ad2cc9b-1996-49a3-9538-dfc0da3b1f32")
+                    .updatedAt("2016-06-08T16:41:26Z")
+                    .url("/v2/service_keys/6ad2cc9b-1996-49a3-9538-dfc0da3b1f32")
                     .build())
                 .entity(ServiceKeyEntity.builder()
-                    .credential("creds-key-388", "creds-val-388")
-                    .name("name-947")
-                    .serviceInstanceId("011457da-c205-4415-a578-de5df82b15a8")
-                    .serviceInstanceUrl("/v2/service_instances/011457da-c205-4415-a578-de5df82b15a8")
+                    .credential("creds-key-7", "creds-val-7")
+                    .name("name-140")
+                    .serviceInstanceId("ca567b3d-e142-4139-94e3-1e0c010ba728")
+                    .serviceInstanceUrl("/v2/service_instances/ca567b3d-e142-4139-94e3-1e0c010ba728")
+                    .serviceKeyParametersUrl("/v2/service_keys/6ad2cc9b-1996-49a3-9538-dfc0da3b1f32/parameters")
                     .build())
                 .build())
             .expectComplete()
@@ -140,7 +143,7 @@ public final class ReactorServiceKeysTest extends AbstractClientApiTest {
     public void list() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(GET).path("/v2/service_keys?q=name:test-name&page=-1")
+                .method(GET).path("/service_keys?q=name%3Atest-name&page=-1")
                 .build())
             .response(TestResponse.builder()
                 .status(OK)

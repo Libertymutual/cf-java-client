@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@ import reactor.core.publisher.Mono;
 public interface Services {
 
     /**
-     * Makes the <a href="http://apidocs.cloudfoundry.org/latest-release/services/delete_a_particular_service.html">Delete the Service</a> request
+     * Makes the <a href="https://apidocs.cloudfoundry.org/latest-release/services/delete_a_particular_service.html">Delete the Service</a> request
      *
      * @param request the Delete Service request
      * @return the response from the Delete Service request
@@ -32,7 +32,7 @@ public interface Services {
     Mono<DeleteServiceResponse> delete(DeleteServiceRequest request);
 
     /**
-     * Makes the <a href="http://apidocs.cloudfoundry.org/latest-release/services/retrieve_a_particular_service.html">Retrieve a Particular Service</a> request
+     * Makes the <a href="https://apidocs.cloudfoundry.org/latest-release/services/retrieve_a_particular_service.html">Retrieve a Particular Service</a> request
      *
      * @param request the Get Service request
      * @return the response from the Get Service request
@@ -40,7 +40,7 @@ public interface Services {
     Mono<GetServiceResponse> get(GetServiceRequest request);
 
     /**
-     * Makes the <a href="http://apidocs.cloudfoundry.org/latest-release/services/list_all_services.html">List Services</a> request
+     * Makes the <a href="https://apidocs.cloudfoundry.org/latest-release/services/list_all_services.html">List Services</a> request
      *
      * @param request the List Services request
      * @return the response from the List Services request
@@ -48,7 +48,7 @@ public interface Services {
     Mono<ListServicesResponse> list(ListServicesRequest request);
 
     /**
-     * Makes the <a href="http://apidocs.cloudfoundry.org/latest-release/services/list_all_service_plans_for_the_service.html">List all Service Plans for the Service</a> request
+     * Makes the <a href="https://apidocs.cloudfoundry.org/latest-release/services/list_all_service_plans_for_the_service.html">List all Service Plans for the Service</a> request
      *
      * @param request the List Service Plans request
      * @return the response from the List Service Plans request

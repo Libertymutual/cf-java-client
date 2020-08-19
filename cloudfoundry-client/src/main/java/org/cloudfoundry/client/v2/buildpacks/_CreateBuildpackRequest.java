@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,12 +18,14 @@ package org.cloudfoundry.client.v2.buildpacks;
 
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.cloudfoundry.Nullable;
 import org.immutables.value.Value;
 
 /**
  * The request payload for the Create Buildpack
  */
+@JsonSerialize
 @Value.Immutable
 abstract class _CreateBuildpackRequest {
 

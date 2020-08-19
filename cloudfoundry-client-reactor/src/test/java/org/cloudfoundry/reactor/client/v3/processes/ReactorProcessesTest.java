@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 package org.cloudfoundry.reactor.client.v3.processes;
 
 import org.cloudfoundry.client.v3.Link;
+import org.cloudfoundry.client.v3.Metadata;
 import org.cloudfoundry.client.v3.Pagination;
 import org.cloudfoundry.client.v3.processes.Data;
 import org.cloudfoundry.client.v3.processes.GetProcessRequest;
@@ -28,6 +29,7 @@ import org.cloudfoundry.client.v3.processes.HealthCheckType;
 import org.cloudfoundry.client.v3.processes.ListProcessesRequest;
 import org.cloudfoundry.client.v3.processes.ListProcessesResponse;
 import org.cloudfoundry.client.v3.processes.PortMapping;
+import org.cloudfoundry.client.v3.processes.ProcessRelationships;
 import org.cloudfoundry.client.v3.processes.ProcessResource;
 import org.cloudfoundry.client.v3.processes.ProcessState;
 import org.cloudfoundry.client.v3.processes.ProcessStatisticsResource;
@@ -45,6 +47,7 @@ import org.junit.Test;
 import reactor.test.StepVerifier;
 
 import java.time.Duration;
+import java.util.Collections;
 
 import static io.netty.handler.codec.http.HttpMethod.DELETE;
 import static io.netty.handler.codec.http.HttpMethod.GET;
@@ -55,13 +58,13 @@ import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 
 public final class ReactorProcessesTest extends AbstractClientApiTest {
 
-    private final ReactorProcesses processes = new ReactorProcesses(CONNECTION_CONTEXT, this.root, TOKEN_PROVIDER);
+    private final ReactorProcesses processes = new ReactorProcesses(CONNECTION_CONTEXT, this.root, TOKEN_PROVIDER, Collections.emptyMap());
 
     @Test
     public void deleteInstance() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(DELETE).path("/v3/processes/test-process-id/instances/test-index")
+                .method(DELETE).path("/processes/test-process-id/instances/test-index")
                 .build())
             .response(TestResponse.builder()
                 .status(NO_CONTENT)
@@ -82,7 +85,7 @@ public final class ReactorProcessesTest extends AbstractClientApiTest {
     public void get() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(GET).path("/v3/processes/test-process-id")
+                .method(GET).path("/processes/test-process-id")
                 .build())
             .response(TestResponse.builder()
                 .status(OK)
@@ -108,6 +111,12 @@ public final class ReactorProcessesTest extends AbstractClientApiTest {
                         .timeout(null)
                         .endpoint(null)
                         .build())
+                    .build())
+                .metadata(Metadata.builder()
+                    .annotations(Collections.emptyMap())
+                    .labels(Collections.emptyMap())
+                    .build())
+                .relationships(ProcessRelationships.builder()
                     .build())
                 .createdAt("2016-03-23T18:48:22Z")
                 .updatedAt("2016-03-23T18:48:42Z")
@@ -136,7 +145,7 @@ public final class ReactorProcessesTest extends AbstractClientApiTest {
     public void getProcessStatistics() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(GET).path("/v3/processes/test-id/stats")
+                .method(GET).path("/processes/test-id/stats")
                 .build())
             .response(TestResponse.builder()
                 .status(OK)
@@ -163,7 +172,9 @@ public final class ReactorProcessesTest extends AbstractClientApiTest {
                     .host("10.244.16.10")
                     .instancePort(PortMapping.builder()
                         .external(64546)
+                        .externalTlsProxyPort(1234)
                         .internal(8080)
+                        .internalTlsProxyPort(5678)
                         .build())
                     .uptime(9042)
                     .memoryQuota(268435456)
@@ -179,7 +190,7 @@ public final class ReactorProcessesTest extends AbstractClientApiTest {
     public void list() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(GET).path("/v3/processes")
+                .method(GET).path("/processes")
                 .build())
             .response(TestResponse.builder()
                 .status(OK)
@@ -219,6 +230,12 @@ public final class ReactorProcessesTest extends AbstractClientApiTest {
                             .endpoint(null)
                             .build())
                         .build())
+                    .metadata(Metadata.builder()
+                        .annotations(Collections.emptyMap())
+                        .labels(Collections.emptyMap())
+                        .build())
+                    .relationships(ProcessRelationships.builder()
+                        .build())
                     .createdAt("2016-03-23T18:48:22Z")
                     .updatedAt("2016-03-23T18:48:42Z")
                     .link("self", Link.builder()
@@ -252,6 +269,12 @@ public final class ReactorProcessesTest extends AbstractClientApiTest {
                             .endpoint(null)
                             .build())
                         .build())
+                    .metadata(Metadata.builder()
+                        .annotations(Collections.emptyMap())
+                        .labels(Collections.emptyMap())
+                        .build())
+                    .relationships(ProcessRelationships.builder()
+                        .build())
                     .createdAt("2016-03-23T18:48:22Z")
                     .updatedAt("2016-03-23T18:48:42Z")
                     .link("self", Link.builder()
@@ -280,7 +303,7 @@ public final class ReactorProcessesTest extends AbstractClientApiTest {
     public void scale() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(POST).path("/v3/processes/test-process-id/actions/scale")
+                .method(POST).path("/processes/test-process-id/actions/scale")
                 .payload("fixtures/client/v3/processes/POST_{id}_actions_scale_request.json")
                 .build())
             .response(TestResponse.builder()
@@ -311,6 +334,12 @@ public final class ReactorProcessesTest extends AbstractClientApiTest {
                         .endpoint(null)
                         .build())
                     .build())
+                .metadata(Metadata.builder()
+                    .annotations(Collections.emptyMap())
+                    .labels(Collections.emptyMap())
+                    .build())
+                .relationships(ProcessRelationships.builder()
+                    .build())
                 .createdAt("2016-03-23T18:48:22Z")
                 .updatedAt("2016-03-23T18:48:42Z")
                 .link("self", Link.builder()
@@ -338,7 +367,7 @@ public final class ReactorProcessesTest extends AbstractClientApiTest {
     public void update() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(PATCH).path("/v3/processes/test-process-id")
+                .method(PATCH).path("/processes/test-process-id")
                 .payload("fixtures/client/v3/processes/PATCH_{id}_request.json")
                 .build())
             .response(TestResponse.builder()
@@ -366,6 +395,12 @@ public final class ReactorProcessesTest extends AbstractClientApiTest {
                         .timeout(null)
                         .endpoint(null)
                         .build())
+                    .build())
+                .metadata(Metadata.builder()
+                    .annotations(Collections.emptyMap())
+                    .labels(Collections.emptyMap())
+                    .build())
+                .relationships(ProcessRelationships.builder()
                     .build())
                 .createdAt("2016-03-23T18:48:22Z")
                 .updatedAt("2016-03-23T18:48:42Z")

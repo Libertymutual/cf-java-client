@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -45,6 +45,7 @@ import org.junit.Test;
 import reactor.test.StepVerifier;
 
 import java.time.Duration;
+import java.util.Collections;
 
 import static io.netty.handler.codec.http.HttpMethod.DELETE;
 import static io.netty.handler.codec.http.HttpMethod.GET;
@@ -55,18 +56,18 @@ import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 
 public final class ReactorDropletsTest extends AbstractClientApiTest {
 
-    private final ReactorDroplets droplets = new ReactorDroplets(CONNECTION_CONTEXT, this.root, TOKEN_PROVIDER);
+    private final ReactorDroplets droplets = new ReactorDroplets(CONNECTION_CONTEXT, this.root, TOKEN_PROVIDER, Collections.emptyMap());
 
     @Test
     public void copy() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(POST).path("/v3/droplets?source_guid=test-source-droplet-id")
-                .payload("fixtures/client/v3/droplets/POST_?source_guid={id}_request.json")
+                .method(POST).path("/droplets?source_guid=test-source-droplet-id")
+                .payload("fixtures/client/v3/droplets/POST_source_guid={id}_request.json")
                 .build())
             .response(TestResponse.builder()
                 .status(CREATED)
-                .payload("fixtures/client/v3/droplets/POST_?source_guid={id}_response.json")
+                .payload("fixtures/client/v3/droplets/POST_source_guid={id}_response.json")
                 .build())
             .build());
 
@@ -94,7 +95,6 @@ public final class ReactorDropletsTest extends AbstractClientApiTest {
                 .executionMetadata("")
                 .processTypes(null)
                 .checksum(null)
-                .buildpacks(null)
                 .stack(null)
                 .image(null)
                 .createdAt("2016-03-28T23:39:34Z")
@@ -121,7 +121,7 @@ public final class ReactorDropletsTest extends AbstractClientApiTest {
     public void delete() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(DELETE).path("/v3/droplets/test-droplet-id")
+                .method(DELETE).path("/droplets/test-droplet-id")
                 .build())
             .response(TestResponse.builder()
                 .status(ACCEPTED)
@@ -143,7 +143,7 @@ public final class ReactorDropletsTest extends AbstractClientApiTest {
     public void get() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(GET).path("/v3/droplets/test-droplet-id")
+                .method(GET).path("/droplets/test-droplet-id")
                 .build())
             .response(TestResponse.builder()
                 .status(OK)
@@ -173,8 +173,10 @@ public final class ReactorDropletsTest extends AbstractClientApiTest {
                     .value("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")
                     .build())
                 .buildpack(Buildpack.builder()
-                    .name("ruby_buildpack")
+                    .buildpackName("ruby")
                     .detectOutput("ruby 1.6.14")
+                    .name("ruby_buildpack")
+                    .version("1.1.1.")
                     .build())
                 .stack("cflinuxfs2")
                 .image(null)
@@ -202,7 +204,7 @@ public final class ReactorDropletsTest extends AbstractClientApiTest {
     public void list() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(GET).path("/v3/droplets")
+                .method(GET).path("/droplets")
                 .build())
             .response(TestResponse.builder()
                 .status(OK)
@@ -275,7 +277,6 @@ public final class ReactorDropletsTest extends AbstractClientApiTest {
                     .processType("redacted_message", "[PRIVATE DATA HIDDEN IN LISTS]")
                     .image("cloudfoundry/diego-docker-app-custom:latest")
                     .checksum(null)
-                    .buildpacks(null)
                     .stack(null)
                     .createdAt("2016-03-17T00:00:01Z")
                     .updatedAt("2016-03-17T21:41:32Z")

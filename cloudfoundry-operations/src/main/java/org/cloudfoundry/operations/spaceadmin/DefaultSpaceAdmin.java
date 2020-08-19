@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -45,7 +45,7 @@ public final class DefaultSpaceAdmin implements SpaceAdmin {
     @Override
     public Mono<SpaceQuota> get(GetSpaceQuotaRequest request) {
         return Mono
-            .when(this.cloudFoundryClient, this.organizationId)
+            .zip(this.cloudFoundryClient, this.organizationId)
             .flatMap(function((cloudFoundryClient, organizationId) -> getSpaceQuotaDefinition(cloudFoundryClient, organizationId, request.getName())))
             .map(DefaultSpaceAdmin::toSpaceQuota)
             .transform(OperationsLogging.log("Get Space Quota"))
@@ -55,7 +55,7 @@ public final class DefaultSpaceAdmin implements SpaceAdmin {
     @Override
     public Flux<SpaceQuota> listQuotas() {
         return Mono
-            .when(this.cloudFoundryClient, this.organizationId)
+            .zip(this.cloudFoundryClient, this.organizationId)
             .flatMapMany(function(DefaultSpaceAdmin::requestSpaceQuotaDefinitions))
             .map(DefaultSpaceAdmin::toSpaceQuota)
             .transform(OperationsLogging.log("List Space Quota"))

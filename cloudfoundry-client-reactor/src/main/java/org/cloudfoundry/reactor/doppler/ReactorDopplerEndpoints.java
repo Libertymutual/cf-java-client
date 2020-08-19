@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,38 +29,31 @@ import reactor.core.publisher.Mono;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Map;
 
 final class ReactorDopplerEndpoints extends AbstractDopplerOperations {
 
-    ReactorDopplerEndpoints(ConnectionContext connectionContext, Mono<String> root, TokenProvider tokenProvider) {
-        super(connectionContext, root, tokenProvider);
+    ReactorDopplerEndpoints(ConnectionContext connectionContext, Mono<String> root, TokenProvider tokenProvider, Map<String, String> requestTags) {
+        super(connectionContext, root, tokenProvider, requestTags);
     }
 
     Flux<Envelope> containerMetrics(ContainerMetricsRequest request) {
-        return get(builder -> builder.pathSegment("apps", request.getApplicationId(), "containermetrics"))
-            .flatMapMany(MultipartCodec::decode)
-            .map(ReactorDopplerEndpoints::toEnvelope)
+        return get(builder -> builder.pathSegment("apps", request.getApplicationId(), "containermetrics"), MultipartCodec::createDecoder, MultipartCodec::decode).map(ReactorDopplerEndpoints::toEnvelope)
             .checkpoint();
     }
 
     Flux<Envelope> firehose(FirehoseRequest request) {
-        return ws(builder -> builder.pathSegment("firehose", request.getSubscriptionId()))
-            .flatMapMany(response -> response.receiveWebsocket().aggregateFrames().receive().asInputStream())
-            .map(ReactorDopplerEndpoints::toEnvelope)
+        return ws(builder -> builder.pathSegment("firehose", request.getSubscriptionId())).map(ReactorDopplerEndpoints::toEnvelope)
             .checkpoint();
     }
 
     Flux<Envelope> recentLogs(RecentLogsRequest request) {
-        return get(builder -> builder.pathSegment("apps", request.getApplicationId(), "recentlogs"))
-            .flatMapMany(MultipartCodec::decode)
-            .map(ReactorDopplerEndpoints::toEnvelope)
+        return get(builder -> builder.pathSegment("apps", request.getApplicationId(), "recentlogs"), MultipartCodec::createDecoder, MultipartCodec::decode).map(ReactorDopplerEndpoints::toEnvelope)
             .checkpoint();
     }
 
     Flux<Envelope> stream(StreamRequest request) {
-        return ws(builder -> builder.pathSegment("apps", request.getApplicationId(), "stream"))
-            .flatMapMany(response -> response.receiveWebsocket().aggregateFrames().receive().asInputStream())
-            .map(ReactorDopplerEndpoints::toEnvelope)
+        return ws(builder -> builder.pathSegment("apps", request.getApplicationId(), "stream")).map(ReactorDopplerEndpoints::toEnvelope)
             .checkpoint();
     }
 

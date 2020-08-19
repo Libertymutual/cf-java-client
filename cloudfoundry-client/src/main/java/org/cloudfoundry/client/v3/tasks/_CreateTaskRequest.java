@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,12 +18,14 @@ package org.cloudfoundry.client.v3.tasks;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.cloudfoundry.Nullable;
 import org.immutables.value.Value;
 
 /**
  * The request payload for the Create Task endpoint
  */
+@JsonSerialize
 @Value.Immutable
 abstract class _CreateTaskRequest {
 
@@ -32,7 +34,6 @@ abstract class _CreateTaskRequest {
      */
     @JsonIgnore
     abstract String getApplicationId();
-
 
     /**
      * The command that will be executed
@@ -45,7 +46,7 @@ abstract class _CreateTaskRequest {
      */
     @JsonProperty("disk_in_mb")
     @Nullable
-    abstract String getDiskInMb();
+    abstract Integer getDiskInMb();
 
     /**
      * The id of the droplet that will be used to run the command

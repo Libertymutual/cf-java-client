@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -107,6 +107,14 @@ public interface Applications {
     Flux<ApplicationSummary> list();
 
     /**
+     * Lists the tasks for an application
+     *
+     * @param request the list tasks request
+     * @return the tasks
+     */
+    Flux<Task> listTasks(ListApplicationTasksRequest request);
+
+    /**
      * List the applications logs
      *
      * @param request the application logs request
@@ -161,6 +169,22 @@ public interface Applications {
      * @return a completion indicator
      */
     Mono<Void> restartInstance(RestartApplicationInstanceRequest request);
+
+    /**
+     * Run a one-off task on an application
+     *
+     * @param request the run task request
+     * @return the task
+     */
+    Mono<Task> runTask(RunApplicationTaskRequest request);
+
+    /**
+     * Terminate a running task of an application
+     *
+     * @param request the terminate task request
+     * @return a completion indicator
+     */
+    Mono<Void> terminateTask(TerminateApplicationTaskRequest request);
 
     /**
      * Scales a specific application

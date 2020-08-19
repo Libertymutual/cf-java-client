@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -77,6 +77,27 @@ abstract class _ServiceBindingEntity {
     @JsonProperty("gateway_name")
     @Nullable
     abstract String getGatewayName();
+
+    /**
+     * The last operation
+     */
+    @JsonProperty("last_operation")
+    @Nullable
+    abstract LastOperation getLastOperation();
+
+    /**
+     * The service binding name
+     */
+    @JsonProperty("name")
+    @Nullable
+    abstract String getName();
+
+    /**
+     * The service binding parameters url
+     */
+    @JsonProperty("service_binding_parameters_url")
+    @Nullable
+    abstract String getServiceBindingParametersUrl();
 
     /**
      * The service instance id

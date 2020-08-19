@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,8 +16,6 @@
 
 package org.cloudfoundry;
 
-import com.github.zafarkhaja.semver.Version;
-
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Inherited;
@@ -25,7 +23,7 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-import static org.cloudfoundry.IfCloudFoundryVersion.CloudFoundryVersion.UNSPECIFIED;
+import static org.cloudfoundry.CloudFoundryVersion.UNSPECIFIED;
 
 @Target({ElementType.METHOD, ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
@@ -42,27 +40,5 @@ public @interface IfCloudFoundryVersion {
     CloudFoundryVersion lessThan() default UNSPECIFIED;
 
     CloudFoundryVersion lessThanOrEqualTo() default UNSPECIFIED;
-
-    enum CloudFoundryVersion {
-
-        PCF_1_8(Version.forIntegers(2, 58, 0)),
-
-        PCF_1_9(Version.forIntegers(2, 65, 0)),
-
-        PCF_1_10(Version.forIntegers(2, 75, 0)),
-
-        UNSPECIFIED(Version.forIntegers(0));
-
-        private final Version version;
-
-        CloudFoundryVersion(Version version) {
-            this.version = version;
-        }
-
-        Version getVersion() {
-            return this.version;
-        }
-
-    }
 
 }

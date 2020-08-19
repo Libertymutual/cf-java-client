@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -43,6 +43,7 @@ import reactor.test.StepVerifier;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.time.Duration;
+import java.util.Collections;
 
 import static io.netty.handler.codec.http.HttpMethod.DELETE;
 import static io.netty.handler.codec.http.HttpMethod.GET;
@@ -55,13 +56,13 @@ import static org.cloudfoundry.util.tuple.TupleUtils.consumer;
 
 public final class ReactorBuildpacksTest extends AbstractClientApiTest {
 
-    private ReactorBuildpacks buildpacks = new ReactorBuildpacks(CONNECTION_CONTEXT, this.root, TOKEN_PROVIDER);
+    private ReactorBuildpacks buildpacks = new ReactorBuildpacks(CONNECTION_CONTEXT, this.root, TOKEN_PROVIDER, Collections.emptyMap());
 
     @Test
     public void create() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(POST).path("/v2/buildpacks")
+                .method(POST).path("/buildpacks")
                 .payload("fixtures/client/v2/buildpacks/POST_request.json")
                 .build())
             .response(TestResponse.builder()
@@ -77,15 +78,17 @@ public final class ReactorBuildpacksTest extends AbstractClientApiTest {
             .as(StepVerifier::create)
             .expectNext(CreateBuildpackResponse.builder()
                 .metadata(Metadata.builder()
-                    .createdAt("2016-03-17T21:41:28Z")
-                    .id("9c38753c-960c-44aa-ac46-37ad61b87e35")
-                    .url("/v2/buildpacks/9c38753c-960c-44aa-ac46-37ad61b87e35")
+                    .createdAt("2016-06-08T16:41:31Z")
+                    .id("11bd4dd1-134e-4d15-b8fe-dd9f36bae66a")
+                    .updatedAt("2016-06-08T16:41:26Z")
+                    .url("/v2/buildpacks/11bd4dd1-134e-4d15-b8fe-dd9f36bae66a")
                     .build())
                 .entity(BuildpackEntity.builder()
                     .enabled(true)
                     .locked(false)
                     .name("Golang_buildpack")
                     .position(1)
+                    .stack("cflinuxfs2")
                     .build())
                 .build())
             .expectComplete()
@@ -96,7 +99,7 @@ public final class ReactorBuildpacksTest extends AbstractClientApiTest {
     public void delete() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(DELETE).path("/v2/buildpacks/test-buildpack-id?async=true")
+                .method(DELETE).path("/buildpacks/test-buildpack-id?async=true")
                 .build())
             .response(TestResponse.builder()
                 .status(OK)
@@ -129,7 +132,7 @@ public final class ReactorBuildpacksTest extends AbstractClientApiTest {
     public void get() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(GET).path("/v2/buildpacks/test-buildpack-id")
+                .method(GET).path("/buildpacks/test-buildpack-id")
                 .build())
             .response(TestResponse.builder()
                 .status(OK)
@@ -165,7 +168,7 @@ public final class ReactorBuildpacksTest extends AbstractClientApiTest {
     public void list() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(GET).path("/v2/buildpacks?q=name:test-name&page=-1")
+                .method(GET).path("/buildpacks?q=name%3Atest-name&page=-1")
                 .build())
             .response(TestResponse.builder()
                 .status(OK)
@@ -233,7 +236,7 @@ public final class ReactorBuildpacksTest extends AbstractClientApiTest {
     public void update() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(PUT).path("/v2/buildpacks/test-buildpack-id")
+                .method(PUT).path("/buildpacks/test-buildpack-id")
                 .payload("fixtures/client/v2/buildpacks/PUT_{id}_request.json")
                 .build())
             .response(TestResponse.builder()
@@ -271,19 +274,20 @@ public final class ReactorBuildpacksTest extends AbstractClientApiTest {
     public void upload() throws IOException {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(PUT).path("/v2/buildpacks/test-buildpack-id/bits")
+                .method(PUT).path("/buildpacks/test-buildpack-id/bits")
                 .contents(consumer((headers, body) -> {
                     String boundary = extractBoundary(headers);
 
                     assertThat(body.readString(Charset.defaultCharset()))
-                        .isEqualTo("\r\n--" + boundary + "\r\n" +
+                        .isEqualTo("--" + boundary + "\r\n" +
                             "content-disposition: form-data; name=\"buildpack\"; filename=\"test-filename\"\r\n" +
-                            "content-length: 13\r\n" +
+                            "content-length: 12\r\n" +
                             "content-type: application/zip\r\n" +
+                            "content-transfer-encoding: binary\r\n" +
                             "\r\n" +
-                            "test-content\n" +
+                            "test-content" +
                             "\r\n" +
-                            "--" + boundary + "--");
+                            "--" + boundary + "--\r\n");
                 }))
                 .build())
             .response(TestResponse.builder()

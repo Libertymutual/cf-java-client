@@ -1,27 +1,31 @@
 # Cloud Foundry Java Client
-
-[![Maven Central](https://img.shields.io/maven-central/v/org.cloudfoundry/cloudfoundry-client.svg)](http://search.maven.org/#search%7Cga%7C1%7Cg%3Aorg.cloudfoundry%20AND%20a%3Acloudfoundry-*)
-
-| Job | Status
-| --- | ------
-| `unit-test` | [![unit-test-master](https://java-experience.ci.springapps.io/api/v1/teams/java-experience/pipelines/cf-java-client/jobs/unit-test-master/badge)](https://java-experience.ci.springapps.io/teams/java-experience/pipelines/cf-java-client/jobs/unit-test-master)
-| `integration-test-1.8` | [![unit-test-master](https://java-experience.ci.springapps.io/api/v1/teams/java-experience/pipelines/cf-java-client/jobs/integration-test-1.8-master/badge)](https://java-experience.ci.springapps.io/teams/java-experience/pipelines/cf-java-client/jobs/integration-test-1.8-master)
-| `integration-test-1.9` | [![unit-test-master](https://java-experience.ci.springapps.io/api/v1/teams/java-experience/pipelines/cf-java-client/jobs/integration-test-1.9-master/badge)](https://java-experience.ci.springapps.io/teams/java-experience/pipelines/cf-java-client/jobs/integration-test-1.9-master)
-| `integration-test-1.10` | [![unit-test-master](https://java-experience.ci.springapps.io/api/v1/teams/java-experience/pipelines/cf-java-client/jobs/integration-test-1.10-master/badge)](https://java-experience.ci.springapps.io/teams/java-experience/pipelines/cf-java-client/jobs/integration-test-1.10-master)
-| `deploy` | [![deploy-master](https://java-experience.ci.springapps.io/api/v1/teams/java-experience/pipelines/cf-java-client/jobs/deploy-master/badge)](https://java-experience.ci.springapps.io/teams/java-experience/pipelines/cf-java-client/jobs/deploy-master)
+[![Maven Central](https://img.shields.io/maven-central/v/org.cloudfoundry/cloudfoundry-client)](https://search.maven.org/search?q=g:org.cloudfoundry%20AND%20a:cloudfoundry-client%20AND%20v)
 
 | Artifact | Javadocs
 | -------- | --------
-| `cloudfoundry-client` | [![Javadocs](https://javadoc.io/badge/org.cloudfoundry/cloudfoundry-client.svg)](https://javadoc.io/doc/org.cloudfoundry/cloudfoundry-client)
-| `cloudfoundry-client-reactor` | [![Javadocs](https://javadoc.io/badge/org.cloudfoundry/cloudfoundry-client-reactor.svg)](https://javadoc.io/doc/org.cloudfoundry/cloudfoundry-client-reactor)
-| `cloudfoundry-operations` | [![Javadocs](https://javadoc.io/badge/org.cloudfoundry/cloudfoundry-operations.svg)](https://javadoc.io/doc/org.cloudfoundry/cloudfoundry-operations)
-| `cloudfoundry-util` | [![Javadocs](https://javadoc.io/badge/org.cloudfoundry/cloudfoundry-util.svg)](https://javadoc.io/doc/org.cloudfoundry/cloudfoundry-util)
+| `cloudfoundry-client`         | [![javadoc](https://javadoc.io/badge2/org.cloudfoundry/cloudfoundry-client/javadoc.svg)](https://javadoc.io/doc/org.cloudfoundry/cloudfoundry-client)
+| `cloudfoundry-client-reactor` | [![javadoc](https://javadoc.io/badge2/org.cloudfoundry/cloudfoundry-client-reactor/javadoc.svg)](https://javadoc.io/doc/org.cloudfoundry/cloudfoundry-client-reactor)
+| `cloudfoundry-operations`     | [![javadoc](https://javadoc.io/badge2/org.cloudfoundry/cloudfoundry-operations/javadoc.svg)](https://javadoc.io/doc/org.cloudfoundry/cloudfoundry-operations)
+| `cloudfoundry-util`           | [![javadoc](https://javadoc.io/badge2/org.cloudfoundry/cloudfoundry-util/javadoc.svg)](https://javadoc.io/doc/org.cloudfoundry/cloudfoundry-util)
 
-The `cf-java-client` project is a Java language binding for interacting with a Cloud Foundry instance.  The project is broken up into a number of components which expose different levels of abstraction depending on need.
+| Job | Status
+| --- | ------
+| `unit-test`             | [![unit-test-master](https://java-experience.ci.springapps.io/api/v1/teams/java-experience/pipelines/java-client/jobs/unit-test-master/badge)](https://java-experience.ci.springapps.io/teams/java-experience/pipelines/java-client/jobs/unit-test-master)
+| `integration-test-2.5`  | [![integration-test-2.5-master](https://java-experience.ci.springapps.io/api/v1/teams/java-experience/pipelines/java-client/jobs/integration-test-2.5-master/badge)](https://java-experience.ci.springapps.io/teams/java-experience/pipelines/java-client/jobs/integration-test-2.5-master)
+| `integration-test-2.6`  | [![integration-test-2.6-master](https://java-experience.ci.springapps.io/api/v1/teams/java-experience/pipelines/java-client/jobs/integration-test-2.6-master/badge)](https://java-experience.ci.springapps.io/teams/java-experience/pipelines/java-client/jobs/integration-test-2.6-master)
+| `integration-test-2.7`  | [![integration-test-2.7-master](https://java-experience.ci.springapps.io/api/v1/teams/java-experience/pipelines/java-client/jobs/integration-test-2.7-master/badge)](https://java-experience.ci.springapps.io/teams/java-experience/pipelines/java-client/jobs/integration-test-2.7-master)
+| `integration-test-2.8`  | [![integration-test-2.8-master](https://java-experience.ci.springapps.io/api/v1/teams/java-experience/pipelines/java-client/jobs/integration-test-2.8-master/badge)](https://java-experience.ci.springapps.io/teams/java-experience/pipelines/java-client/jobs/integration-test-2.8-master)
+| `deploy`                | [![deploy-master](https://java-experience.ci.springapps.io/api/v1/teams/java-experience/pipelines/java-client/jobs/deploy-master/badge)](https://java-experience.ci.springapps.io/teams/java-experience/pipelines/java-client/jobs/deploy-master)
 
-* `cloudfoundry-client` – Interfaces, request, and response objects mapping to the [Cloud Foundry REST APIs][a].  This project has no implementation and therefore cannot connect a Cloud Foundry instance on its own.
-* `cloudfoundry-client-reactor` – The default implementation of the `cloudfoundry-client` project.  This implementation is based on the Reactor Netty [`HttpClient`][h].
+
+The `cf-java-client` project is a Java language binding for interacting with a Cloud Foundry instance.  The project is broken up into a number of components that expose different levels of abstraction depending on need.
+
+* `cloudfoundry-client` – Interfaces, request, and response objects mapping to the [Cloud Foundry REST APIs][a].  This project has no implementation and therefore cannot connect to a Cloud Foundry instance on its own.
+* `cloudfoundry-client-reactor` – The default implementation of the `cloudfoundry-client` project.  This implementation is based on Reactor Netty [`HttpClient`][h].
 * `cloudfoundry-operations` – An API and implementation that corresponds to the [Cloud Foundry CLI][c] operations.  This project builds on the `cloudfoundry-client` and therefore has a single implementation.
+
+## Versions
+The Cloud Foundry Java Client has two active versions. The `4.x` line uses Spring Boot `2.2.x` just to manage its dependencies, while the `3.x` line uses Spring Boot `2.1.x`. Unless you have a specific dependency-related reason for using the older version we recommend you adopt the `4.x` line.
 
 ## Dependencies
 Most projects will need two dependencies; the Operations API and an implementation of the Client API.  For Maven, the dependencies would be defined like this:
@@ -31,22 +35,12 @@ Most projects will need two dependencies; the Operations API and an implementati
     <dependency>
         <groupId>org.cloudfoundry</groupId>
         <artifactId>cloudfoundry-client-reactor</artifactId>
-        <version>2.16.0.RELEASE</version>
+        <version>4.6.0.RELEASE</version>
     </dependency>
     <dependency>
         <groupId>org.cloudfoundry</groupId>
         <artifactId>cloudfoundry-operations</artifactId>
-        <version>2.16.0.RELEASE</version>
-    </dependency>
-    <dependency>
-        <groupId>io.projectreactor</groupId>
-        <artifactId>reactor-core</artifactId>
-        <version>3.0.7.RELEASE</version>
-    </dependency>
-    <dependency>
-        <groupId>io.projectreactor.ipc</groupId>
-        <artifactId>reactor-netty</artifactId>
-        <version>0.6.4.RELEASE</version>
+        <version>4.6.0.RELEASE</version>
     </dependency>
     ...
 </dependencies>
@@ -59,7 +53,7 @@ Snapshot artifacts can be found in the Spring snapshot repository:
     <repository>
         <id>spring-snapshots</id>
         <name>Spring Snapshots</name>
-        <url>http://repo.spring.io/snapshot</url>
+        <url>https://repo.spring.io/snapshot</url>
         <snapshots>
             <enabled>true</enabled>
         </snapshots>
@@ -72,10 +66,8 @@ For Gradle, the dependencies would be defined like this:
 
 ```groovy
 dependencies {
-    compile 'org.cloudfoundry:cloudfoundry-client-reactor:2.16.0.RELEASE'
-    compile 'org.cloudfoundry:cloudfoundry-operations:2.16.0.RELEASE'
-    compile 'io.projectreactor:reactor-core:3.0.7.RELEASE'
-    compile 'io.projectreactor.ipc:reactor-netty:0.6.4.RELEASE'
+    compile 'org.cloudfoundry:cloudfoundry-client-reactor:4.6.0.RELEASE'
+    compile 'org.cloudfoundry:cloudfoundry-operations:4.6.0.RELEASE'
     ...
 }
 ```
@@ -84,7 +76,7 @@ Snapshot artifacts can be found in the Spring snapshot repository:
 
 ```groovy
 repositories {
-    maven { url 'http://repo.spring.io/snapshot' }
+    maven { url 'https://repo.spring.io/snapshot' }
     ...
 }
 ```
@@ -215,7 +207,7 @@ Once you've got a reference to the `CloudFoundryOperations`, it's time to start 
 
 1. Requests a list of all organizations
 1. Extracts the name of each organization
-1. Prints the name of the each organization to `System.out`
+1. Prints the name of each organization to `System.out`
 
 ```java
 cloudFoundryOperations.organizations()
@@ -248,17 +240,19 @@ cloudFoundryClient.organizations()
 
 The above example is more complicated:
 
-1. `.list(...)` – Retrieves a page of Cloud Foundry organizations.
+1. `.list(...)` – Retrieves the first page of Cloud Foundry organizations.
 1. `.flatMapIterable(...)` – Substitutes the original `Mono` with a `Flux` of the `Resource`s returned by the requested page.
 1. `.map(...)` – Maps the `Resource` to an `OrganizationSummary` type.
 
 ## Development
-The project depends on Java 8.  To build from source and install to your local Maven cache, run the following:
+The project depends on Java 8. To build from source and install to your local Maven cache, run the following:
 
 ```shell
 $ git submodule update --init --recursive
 $ ./mvnw clean install
 ```
+
+It also depends on [Immutables][i] and won't compile in IDEs like Eclipse or IntelliJ unless you also have an enabled annotation processor. See [this guide][j] for instructions on how to configure your IDE.
 
 To run the integration tests, run the following:
 
@@ -269,7 +263,7 @@ $ ./mvnw -Pintegration-test clean test
 **IMPORTANT**
 Integration tests should be run against an empty Cloud Foundry instance. The integration tests are destructive, affecting nearly everything on an instance given the chance.
 
-The integration tests require a running instance of Cloud Foundry to test against.  We recommend using [PCF Dev][i] to start a local instance to test with.  To configure the integration tests with the appropriate connection information use the following environment variables:
+The integration tests require a running instance of Cloud Foundry to test against. To configure the integration tests with the appropriate connection information use the following environment variables:
 
 Name | Description
 ---- | -----------
@@ -292,10 +286,11 @@ This project is released under version 2.0 of the [Apache License][l].
 
 [a]: https://apidocs.cloudfoundry.org/latest-release/
 [c]: https://github.com/cloudfoundry/cli
-[e]: https://github.com/cloudfoundry/cf-java-client/issues
+[e]: https://github.com/cloudfoundry/java-client/issues
 [g]: https://gradle.org
-[h]: http://projectreactor.io/io/docs/api/reactor/io/netty/http/HttpClient.html
-[i]: https://github.com/pivotal-cf/pcfdev
+[h]: https://projectreactor.io/docs/netty/milestone/reference/index.html#http-client
+[i]: https://immutables.github.io/
+[j]: https://immutables.github.io/apt.html
 [l]: https://www.apache.org/licenses/LICENSE-2.0
 [m]: https://maven.apache.org
 [p]: https://projectreactor.io

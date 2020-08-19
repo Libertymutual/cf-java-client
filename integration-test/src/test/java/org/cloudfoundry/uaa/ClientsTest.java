@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,8 @@ package org.cloudfoundry.uaa;
 
 import io.netty.util.AsciiString;
 import org.cloudfoundry.AbstractIntegrationTest;
+import org.cloudfoundry.CloudFoundryVersion;
+import org.cloudfoundry.IfCloudFoundryVersion;
 import org.cloudfoundry.uaa.clients.BatchChangeSecretRequest;
 import org.cloudfoundry.uaa.clients.BatchChangeSecretResponse;
 import org.cloudfoundry.uaa.clients.BatchCreateClientsRequest;
@@ -38,7 +40,6 @@ import org.cloudfoundry.uaa.clients.GetClientRequest;
 import org.cloudfoundry.uaa.clients.GetMetadataRequest;
 import org.cloudfoundry.uaa.clients.GetMetadataResponse;
 import org.cloudfoundry.uaa.clients.ListClientsRequest;
-import org.cloudfoundry.uaa.clients.ListClientsResponse;
 import org.cloudfoundry.uaa.clients.ListMetadatasRequest;
 import org.cloudfoundry.uaa.clients.ListMetadatasResponse;
 import org.cloudfoundry.uaa.clients.MixedActionsRequest;
@@ -58,7 +59,6 @@ import reactor.test.StepVerifier;
 
 import java.time.Duration;
 import java.util.Base64;
-import java.util.concurrent.TimeoutException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.uaa.tokens.GrantType.CLIENT_CREDENTIALS;
@@ -75,7 +75,7 @@ public final class ClientsTest extends AbstractIntegrationTest {
     private UaaClient uaaClient;
 
     @Test
-    public void batchChangeSecret() throws TimeoutException, InterruptedException {
+    public void batchChangeSecret() {
         String clientId1 = this.nameFactory.getClientId();
         String clientId2 = this.nameFactory.getClientId();
         String clientSecret = this.nameFactory.getClientSecret();
@@ -86,7 +86,7 @@ public final class ClientsTest extends AbstractIntegrationTest {
             .then(requestCreateClient(this.uaaClient, clientId2, clientSecret))
             .then(this.uaaClient.clients()
                 .batchChangeSecret(BatchChangeSecretRequest.builder()
-                    .changeSecret(ChangeSecret.builder()
+                    .changeSecrets(ChangeSecret.builder()
                             .clientId(clientId1)
                             .oldSecret(clientSecret)
                             .secret(newClientSecret1)
@@ -105,7 +105,7 @@ public final class ClientsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void batchCreate() throws TimeoutException, InterruptedException {
+    public void batchCreate() {
         String clientId1 = this.nameFactory.getClientId();
         String clientId2 = this.nameFactory.getClientId();
         String clientSecret = this.nameFactory.getClientSecret();
@@ -117,12 +117,12 @@ public final class ClientsTest extends AbstractIntegrationTest {
                     .authorizedGrantType(PASSWORD)
                     .clientId(clientId1)
                     .clientSecret(clientSecret)
-                    .scope("client.read", "client.write")
+                    .scopes("client.read", "client.write")
                     .tokenSalt("test-token-salt")
                     .build())
                 .client(CreateClient.builder()
                     .approvalsDeleted(true)
-                    .authorizedGrantType(PASSWORD, REFRESH_TOKEN)
+                    .authorizedGrantTypes(PASSWORD, REFRESH_TOKEN)
                     .clientId(clientId2)
                     .clientSecret(clientSecret)
                     .scope("client.write")
@@ -143,7 +143,7 @@ public final class ClientsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void batchDelete() throws TimeoutException, InterruptedException {
+    public void batchDelete() {
         String clientId1 = this.nameFactory.getClientId();
         String clientId2 = this.nameFactory.getClientId();
         String clientSecret = this.nameFactory.getClientSecret();
@@ -164,7 +164,7 @@ public final class ClientsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void batchUpdate() throws TimeoutException, InterruptedException {
+    public void batchUpdate() {
         String clientId1 = this.nameFactory.getClientId();
         String clientId2 = this.nameFactory.getClientId();
         String clientSecret = this.nameFactory.getClientSecret();
@@ -173,11 +173,11 @@ public final class ClientsTest extends AbstractIntegrationTest {
             .then(requestCreateClient(this.uaaClient, clientId2, clientSecret))
             .then(this.uaaClient.clients()
                 .batchUpdate(BatchUpdateClientsRequest.builder()
-                    .client(UpdateClient.builder()
-                            .authorizedGrantType(CLIENT_CREDENTIALS, IMPLICIT)
+                    .clients(UpdateClient.builder()
+                            .authorizedGrantTypes(CLIENT_CREDENTIALS, IMPLICIT)
                             .clientId(clientId1)
                             .name("test-name")
-                            .scope("client.read", "client.write")
+                            .scopes("client.read", "client.write")
                             .redirectUriPattern("https://test.com/*")
                             .tokenSalt("test-token-salt")
                             .build(),
@@ -203,8 +203,9 @@ public final class ClientsTest extends AbstractIntegrationTest {
             .verify(Duration.ofMinutes(5));
     }
 
+    @IfCloudFoundryVersion(lessThan = CloudFoundryVersion.PCF_2_8)
     @Test
-    public void changeSecret() throws TimeoutException, InterruptedException {
+    public void changeSecret27() {
         String clientId = this.nameFactory.getClientId();
         String newClientSecret = this.nameFactory.getClientSecret();
         String oldClientSecret = this.nameFactory.getClientSecret();
@@ -217,18 +218,35 @@ public final class ClientsTest extends AbstractIntegrationTest {
                     .secret(newClientSecret)
                     .build()))
             .as(StepVerifier::create)
-//          TODO: Update test based on https://www.pivotaltracker.com/n/projects/997278/stories/130645469 to use the following
-//                .expectThat(response -> {
-//                    assertEquals("secret updated", response.getMessage());
-//                    assertEquals("ok", response.getStatus());
-//                }));
             .consumeErrorWith(t -> assertThat(t).isInstanceOf(UaaException.class).hasMessage("invalid_client: Only a client can change client secret"))
             .verify(Duration.ofMinutes(5));
+    }
 
+    @IfCloudFoundryVersion(greaterThanOrEqualTo = CloudFoundryVersion.PCF_2_8)
+    @Test
+    public void changeSecret28() {
+        String clientId = this.nameFactory.getClientId();
+        String newClientSecret = this.nameFactory.getClientSecret();
+        String oldClientSecret = this.nameFactory.getClientSecret();
+
+        requestCreateClient(this.uaaClient, clientId, oldClientSecret)
+            .then(this.uaaClient.clients()
+                .changeSecret(ChangeSecretRequest.builder()
+                    .clientId(clientId)
+                    .oldSecret(oldClientSecret)
+                    .secret(newClientSecret)
+                    .build()))
+            .as(StepVerifier::create)
+            .assertNext(response -> {
+                assertThat(response.getMessage()).isEqualTo("secret updated");
+                assertThat(response.getStatus()).isEqualTo("ok");
+            })
+            .expectComplete()
+            .verify(Duration.ofMinutes(5));
     }
 
     @Test
-    public void create() throws TimeoutException, InterruptedException {
+    public void create() {
         String clientId = this.nameFactory.getClientId();
         String clientSecret = this.nameFactory.getClientSecret();
 
@@ -238,7 +256,7 @@ public final class ClientsTest extends AbstractIntegrationTest {
                 .authorizedGrantType(PASSWORD)
                 .clientId(clientId)
                 .clientSecret(clientSecret)
-                .scope("client.read", "client.write")
+                .scopes("client.read", "client.write")
                 .tokenSalt("test-token-salt")
                 .build())
             .as(StepVerifier::create)
@@ -253,7 +271,7 @@ public final class ClientsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void delete() throws TimeoutException, InterruptedException {
+    public void delete() {
         String clientId = this.nameFactory.getClientId();
         String clientSecret = this.nameFactory.getClientSecret();
 
@@ -270,7 +288,7 @@ public final class ClientsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void get() throws TimeoutException, InterruptedException {
+    public void get() {
         String clientId = this.nameFactory.getClientId();
         String clientSecret = this.nameFactory.getClientSecret();
 
@@ -289,7 +307,7 @@ public final class ClientsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void getMetadata() throws TimeoutException, InterruptedException {
+    public void getMetadata() {
         requestUpdateMetadata(this.uaaClient, this.clientId, "http://test.get.url")
             .then(this.uaaClient.clients()
                 .getMetadata(GetMetadataRequest.builder()
@@ -305,15 +323,15 @@ public final class ClientsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void list() throws TimeoutException, InterruptedException {
+    public void list() {
         String clientId = this.nameFactory.getClientId();
         String clientSecret = this.nameFactory.getClientSecret();
 
         requestCreateClient(this.uaaClient, clientId, clientSecret)
-            .then(this.uaaClient.clients()
+            .thenMany(PaginationUtils.requestUaaResources(startIndex -> this.uaaClient.clients()
                 .list(ListClientsRequest.builder()
-                    .build()))
-            .flatMapIterable(ListClientsResponse::getResources)
+                    .startIndex(startIndex)
+                    .build())))
             .filter(client -> clientId.equals(client.getClientId()))
             .as(StepVerifier::create)
             .expectNextCount(1)
@@ -322,7 +340,7 @@ public final class ClientsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void listMetadatas() throws TimeoutException, InterruptedException {
+    public void listMetadatas() {
         requestUpdateMetadata(this.uaaClient, this.clientId, "http://test.list.url")
             .then(this.uaaClient.clients()
                 .listMetadatas(ListMetadatasRequest.builder()
@@ -340,7 +358,7 @@ public final class ClientsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void mixedActions() throws TimeoutException, InterruptedException {
+    public void mixedActions() {
         String clientId1 = this.nameFactory.getClientId();
         String clientId2 = this.nameFactory.getClientId();
         String clientSecret = this.nameFactory.getClientSecret();
@@ -387,7 +405,7 @@ public final class ClientsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void update() throws TimeoutException, InterruptedException {
+    public void update() {
         String clientId = this.nameFactory.getClientId();
         String clientSecret = this.nameFactory.getClientSecret();
 
@@ -411,7 +429,7 @@ public final class ClientsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void updateMetadata() throws TimeoutException, InterruptedException {
+    public void updateMetadata() {
         String appIcon = Base64.getEncoder().encodeToString(new AsciiString("test-image").toByteArray());
 
         this.uaaClient.clients()
@@ -443,12 +461,12 @@ public final class ClientsTest extends AbstractIntegrationTest {
                     .authorizedGrantType(PASSWORD)
                     .clientId(clientId1)
                     .clientSecret(clientSecret)
-                    .scope("client.read", "client.write")
+                    .scopes("client.read", "client.write")
                     .tokenSalt("test-token-salt")
                     .build())
                 .client(CreateClient.builder()
                     .approvalsDeleted(true)
-                    .authorizedGrantType(PASSWORD, REFRESH_TOKEN)
+                    .authorizedGrantTypes(PASSWORD, REFRESH_TOKEN)
                     .clientId(clientId2)
                     .clientSecret(clientSecret)
                     .scope("client.write")

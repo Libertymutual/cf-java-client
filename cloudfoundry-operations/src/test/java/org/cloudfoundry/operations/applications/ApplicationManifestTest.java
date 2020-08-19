@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,11 +23,35 @@ import java.nio.file.Paths;
 public final class ApplicationManifestTest {
 
     @Test(expected = IllegalStateException.class)
+    public void dockerAndBuildpack() {
+        ApplicationManifest.builder()
+            .name("test-name")
+            .buildpack("test-buildpack")
+            .docker(Docker.builder()
+                .image("test-docker-image")
+                .build())
+            .build();
+    }
+
+    @Test(expected = IllegalStateException.class)
     public void dockerAndPath() {
         ApplicationManifest.builder()
             .name("test-name")
-            .dockerImage("test-docker-image")
+            .docker(Docker.builder()
+                .image("test-docker-image")
+                .build())
             .path(Paths.get("test-application"))
+            .build();
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void dockerCredentialsNoImage() {
+        ApplicationManifest.builder()
+            .name("test-name")
+            .docker(Docker.builder()
+                .password("test-password")
+                .username("test-username")
+                .build())
             .build();
     }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,8 +27,8 @@ import org.cloudfoundry.client.v3.servicebindings.GetServiceBindingRequest;
 import org.cloudfoundry.client.v3.servicebindings.GetServiceBindingResponse;
 import org.cloudfoundry.client.v3.servicebindings.ListServiceBindingsRequest;
 import org.cloudfoundry.client.v3.servicebindings.ListServiceBindingsResponse;
-import org.cloudfoundry.client.v3.servicebindings.ServiceBindingRelationships;
 import org.cloudfoundry.client.v3.servicebindings.ServiceBindingData;
+import org.cloudfoundry.client.v3.servicebindings.ServiceBindingRelationships;
 import org.cloudfoundry.client.v3.servicebindings.ServiceBindingResource;
 import org.cloudfoundry.client.v3.servicebindings.ServiceBindingType;
 import org.cloudfoundry.reactor.InteractionContext;
@@ -39,6 +39,7 @@ import org.junit.Test;
 import reactor.test.StepVerifier;
 
 import java.time.Duration;
+import java.util.Collections;
 
 import static io.netty.handler.codec.http.HttpMethod.DELETE;
 import static io.netty.handler.codec.http.HttpMethod.GET;
@@ -49,13 +50,13 @@ import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 
 public final class ReactorServiceBindingsV3Test extends AbstractClientApiTest {
 
-    private final ReactorServiceBindingsV3 serviceBindings = new ReactorServiceBindingsV3(CONNECTION_CONTEXT, this.root, TOKEN_PROVIDER);
+    private final ReactorServiceBindingsV3 serviceBindings = new ReactorServiceBindingsV3(CONNECTION_CONTEXT, this.root, TOKEN_PROVIDER, Collections.emptyMap());
 
     @Test
     public void create() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(POST).path("/v3/service_bindings")
+                .method(POST).path("/service_bindings")
                 .payload("fixtures/client/v3/servicebindings/POST_request.json")
                 .build())
             .response(TestResponse.builder()
@@ -106,7 +107,7 @@ public final class ReactorServiceBindingsV3Test extends AbstractClientApiTest {
     public void delete() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(DELETE).path("/v3/service_bindings/test-service-binding-id")
+                .method(DELETE).path("/service_bindings/test-service-binding-id")
                 .build())
             .response(TestResponse.builder()
                 .status(NO_CONTENT)
@@ -126,7 +127,7 @@ public final class ReactorServiceBindingsV3Test extends AbstractClientApiTest {
     public void get() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(GET).path("/v3/service_bindings/test-service-binding-id")
+                .method(GET).path("/service_bindings/test-service-binding-id")
                 .build())
             .response(TestResponse.builder()
                 .status(OK)
@@ -165,7 +166,7 @@ public final class ReactorServiceBindingsV3Test extends AbstractClientApiTest {
     public void list() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(GET).path("/v3/service_bindings?app_guids=test-application-id&order_by=%2Bcreated_at&page=1")
+                .method(GET).path("/service_bindings?app_guids=test-application-id&order_by=%2Bcreated_at&page=1")
                 .build())
             .response(TestResponse.builder()
                 .status(OK)

@@ -1,4 +1,10 @@
 .idea/libraries
+.idea/jarRepositories.xml
 .idea/tasks.xml
 .idea/workspace.xml
-target
+target/
+bin/
+.project
+.classpath
+.settings/
+.factorypath

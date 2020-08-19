@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -51,7 +51,7 @@ public interface EnvironmentVariableGroups {
     Mono<UpdateRunningEnvironmentVariablesResponse> updateRunningEnvironmentVariables(UpdateRunningEnvironmentVariablesRequest request);
 
     /**
-     * Makes the <a href="apidocs.cloudfoundry.org/latest-releasehttp://apidocs.cloudfoundry.org/latest-release/environment_variable_groups/updating_the_contents_of_the_staging_environment_variable_group.html">Update
+     * Makes the <a href="apidocs.cloudfoundry.org/latest-releasehttps://apidocs.cloudfoundry.org/latest-release/environment_variable_groups/updating_the_contents_of_the_staging_environment_variable_group.html">Update
      * the Staging Environment Variables</a> request
      *
      * @param request the Update Staging Environment Variables request

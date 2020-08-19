@@ -2,30 +2,27 @@
 <project version="4">
   <component name="CompilerConfiguration">
     <annotationProcessing>
-      <profile default="true" name="Default" enabled="true" />
       <profile name="Maven default annotation processors profile" enabled="true">
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
         <module name="cloudfoundry-client" />
-        <module name="cloudfoundry-client-reactor" />
-        <module name="cloudfoundry-operations" />
         <module name="cloudfoundry-util" />
-        <module name="integration-test" />
+        <module name="cloudfoundry-client-reactor" />
         <module name="test-service-broker" />
+        <module name="integration-test" />
+        <module name="cloudfoundry-operations" />
       </profile>
     </annotationProcessing>
-    <bytecodeTargetLevel>
-      <module name="cloudfoundry-client" target="1.8" />
-      <module name="cloudfoundry-client-reactor" target="1.8" />
-      <module name="cloudfoundry-java-client" target="1.6" />
-      <module name="cloudfoundry-operations" target="1.8" />
-      <module name="cloudfoundry-util" target="1.8" />
-      <module name="integration-test" target="1.8" />
-      <module name="test-service-broker" target="1.8" />
-    </bytecodeTargetLevel>
   </component>
   <component name="JavacSettings">
-    <option name="ADDITIONAL_OPTIONS_STRING" value="-Werror -Xlint:all -Xlint:-options -Xlint:-processing -Xlint:-serial" />
+    <option name="ADDITIONAL_OPTIONS_OVERRIDE">
+      <module name="cloudfoundry-client" options="-Werror -Xlint:all -Xlint:-options -Xlint:-processing -Xlint:-serial" />
+      <module name="cloudfoundry-client-reactor" options="-Werror -Xlint:all -Xlint:-options -Xlint:-processing -Xlint:-serial" />
+      <module name="cloudfoundry-operations" options="-Werror -Xlint:all -Xlint:-options -Xlint:-processing -Xlint:-serial" />
+      <module name="cloudfoundry-util" options="-Werror -Xlint:all -Xlint:-options -Xlint:-processing -Xlint:-serial" />
+      <module name="integration-test" options="-Werror -Xlint:all -Xlint:-options -Xlint:-processing -Xlint:-serial" />
+      <module name="test-service-broker" options="-Werror -Xlint:all -Xlint:-options -Xlint:-processing -Xlint:-serial" />
+    </option>
   </component>
 </project>

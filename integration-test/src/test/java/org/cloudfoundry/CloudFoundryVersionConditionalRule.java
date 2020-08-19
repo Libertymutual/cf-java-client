@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@ import org.springframework.core.annotation.AnnotationUtils;
 
 import java.util.Optional;
 
-import static org.cloudfoundry.IfCloudFoundryVersion.CloudFoundryVersion.UNSPECIFIED;
+import static org.cloudfoundry.CloudFoundryVersion.UNSPECIFIED;
 
 final class CloudFoundryVersionConditionalRule implements MethodRule {
 

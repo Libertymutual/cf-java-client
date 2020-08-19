@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -65,11 +65,11 @@ abstract class _ApplicationUsageEventEntity {
     abstract Integer getInstanceCount();
 
     /**
-     * The memory in mb by instances
+     * The memory in mb by instance
      */
     @JsonProperty("memory_in_mb_per_instance")
     @Nullable
-    abstract Integer getMemoryInMbPerInstances();
+    abstract Integer getMemoryInMbPerInstance();
 
     /**
      * The organization id

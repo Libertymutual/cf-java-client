@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,11 +32,25 @@ import java.util.Map;
 abstract class _Branding {
 
     /**
+     * The banner configuration
+     */
+    @JsonProperty("banner")
+    @Nullable
+    abstract Banner getBanner();
+
+    /**
      * This name is used on the UAA Pages and in account management related communication in UAA
      */
     @JsonProperty("companyName")
     @Nullable
     abstract String getCompanyName();
+
+    /**
+     * The consent configuration
+     */
+    @JsonProperty("consent")
+    @Nullable
+    abstract Consent getConsent();
 
     /**
      * This text appears on the footer of all UAA pages

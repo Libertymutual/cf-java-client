@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -71,7 +71,7 @@ import static org.cloudfoundry.uaa.users.MembershipType.DIRECT;
 
 public final class ReactorUsersTest extends AbstractUaaApiTest {
 
-    private final ReactorUsers users = new ReactorUsers(CONNECTION_CONTEXT, this.root, TOKEN_PROVIDER);
+    private final ReactorUsers users = new ReactorUsers(CONNECTION_CONTEXT, this.root, TOKEN_PROVIDER, Collections.emptyMap());
 
     @Test
     public void changePassword() {
@@ -389,7 +389,7 @@ public final class ReactorUsersTest extends AbstractUaaApiTest {
     public void getVerificationLink() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(GET).path("/Users/1faa46a0-0c6f-4e13-8334-d1f6e5f2e1dd/verify-link?redirect_uri=http://redirect.to/app")
+                .method(GET).path("/Users/1faa46a0-0c6f-4e13-8334-d1f6e5f2e1dd/verify-link?redirect_uri=http%3A%2F%2Fredirect.to%2Fapp")
                 .build())
             .response(TestResponse.builder()
                 .status(OK)
@@ -426,7 +426,7 @@ public final class ReactorUsersTest extends AbstractUaaApiTest {
         this.users
             .invite(InviteUsersRequest.builder()
                 .clientId("u7ptqw")
-                .email("user1@pjy596.com", "user2@pjy596.com")
+                .emails("user1@pjy596.com", "user2@pjy596.com")
                 .redirectUri("example.com")
                 .build())
             .as(StepVerifier::create)
@@ -445,7 +445,6 @@ public final class ReactorUsersTest extends AbstractUaaApiTest {
                     .success(true)
                     .inviteLink("http://localhost/invitations/accept?code=n5X0hCsD3N")
                     .build())
-                .failedInvite()
                 .build())
             .expectComplete()
             .verify(Duration.ofSeconds(5));
@@ -456,7 +455,7 @@ public final class ReactorUsersTest extends AbstractUaaApiTest {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
                 .method(GET).path(
-                    "/Users?count=50&filter=id%2Beq%2B%22a94534d5-de08-41eb-8712-a51314e6a484%22%2Bor%2Bemail%2Beq%2B%22Da63pG@test.org%22&sortBy=email&sortOrder=ascending&startIndex=1")
+                    "/Users?count=50&filter=id%2Beq%2B%22a94534d5-de08-41eb-8712-a51314e6a484%22%2Bor%2Bemail%2Beq%2B%22Da63pG%40test.org%22&sortBy=email&sortOrder=ascending&startIndex=1")
                 .build())
             .response(TestResponse.builder()
                 .status(OK)
@@ -585,7 +584,7 @@ public final class ReactorUsersTest extends AbstractUaaApiTest {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
                 .method(GET).path(
-                    "/ids/Users?count=10&filter=userName%2Beq%2B%22bobOu38vE@test.org%22%2Bor%2Bid%2Beq%2B%22c1476587-5ec9-4b7e-9ed2-381e3133f07a%22" +
+                    "/ids/Users?count=10&filter=userName%2Beq%2B%22bobOu38vE%40test.org%22%2Bor%2Bid%2Beq%2B%22c1476587-5ec9-4b7e-9ed2-381e3133f07a%22" +
                         "&includeInactive=true&sortOrder=descending&startIndex=1")
                 .build())
             .response(TestResponse.builder()
@@ -738,15 +737,16 @@ public final class ReactorUsersTest extends AbstractUaaApiTest {
                 .build())
             .as(StepVerifier::create)
             .expectNext(UserInfoResponse.builder()
-                .email("yH9Avc@test.org")
+                .email("anO0Lv@test.org")
+                .emailVerified(true)
                 .familyName("PasswordResetUserLast")
                 .givenName("PasswordResetUserFirst")
                 .name("PasswordResetUserFirst PasswordResetUserLast")
                 .phoneNumber("+15558880000")
                 .previousLogonTime(null)
-                .sub("3587ef54-6361-44d2-b8a1-4937674aa2b5")
-                .userId("3587ef54-6361-44d2-b8a1-4937674aa2b5")
-                .userName("yH9Avc@test.org")
+                .sub("ab485a4f-168a-4de8-b3ac-ab501767bfc9")
+                .userId("ab485a4f-168a-4de8-b3ac-ab501767bfc9")
+                .userName("anO0Lv@test.org")
                 .build())
             .expectComplete()
             .verify(Duration.ofSeconds(5));

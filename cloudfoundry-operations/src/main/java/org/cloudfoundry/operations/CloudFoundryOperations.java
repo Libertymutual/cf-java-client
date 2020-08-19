@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ import org.cloudfoundry.operations.advanced.Advanced;
 import org.cloudfoundry.operations.applications.Applications;
 import org.cloudfoundry.operations.buildpacks.Buildpacks;
 import org.cloudfoundry.operations.domains.Domains;
+import org.cloudfoundry.operations.networkpolicies.NetworkPolicies;
 import org.cloudfoundry.operations.organizationadmin.OrganizationAdmin;
 import org.cloudfoundry.operations.organizations.Organizations;
 import org.cloudfoundry.operations.routes.Routes;
@@ -28,6 +29,7 @@ import org.cloudfoundry.operations.services.Services;
 import org.cloudfoundry.operations.spaceadmin.SpaceAdmin;
 import org.cloudfoundry.operations.spaces.Spaces;
 import org.cloudfoundry.operations.stacks.Stacks;
+import org.cloudfoundry.operations.useradmin.UserAdmin;
 
 /**
  * Main entry point to the Cloud Foundry Operations API
@@ -66,6 +68,13 @@ public interface CloudFoundryOperations {
      * @return the Cloud Foundry Domains Operations API
      */
     Domains domains();
+
+    /**
+     * Main entry point to the Cloud Foundry Networking Policies Operations API
+     *
+     * @return the Cloud Foundry Networking Policies Operations API
+     */
+    NetworkPolicies networkPolicies();
 
     /**
      * Main entry point to the Cloud Foundry Organization Admin Operations API
@@ -122,5 +131,12 @@ public interface CloudFoundryOperations {
      * @return the Cloud Foundry Stacks Operations API
      */
     Stacks stacks();
+
+    /**
+     * Main entry point to the Cloud Foundry User Admin Operations API
+     *
+     * @return the Cloud Foundry User Admin Operations API
+     */
+    UserAdmin userAdmin();
 
 }

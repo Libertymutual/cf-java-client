@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -39,6 +39,7 @@ import org.junit.Test;
 import reactor.test.StepVerifier;
 
 import java.time.Duration;
+import java.util.Collections;
 
 import static io.netty.handler.codec.http.HttpMethod.DELETE;
 import static io.netty.handler.codec.http.HttpMethod.GET;
@@ -49,16 +50,15 @@ import static io.netty.handler.codec.http.HttpResponseStatus.CREATED;
 import static io.netty.handler.codec.http.HttpResponseStatus.NO_CONTENT;
 import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 
-
 public final class ReactorServicePlanVisibilitiesTest extends AbstractClientApiTest {
 
-    private final ServicePlanVisibilities servicePlanVisibilities = new ReactorServicePlanVisibilities(CONNECTION_CONTEXT, this.root, TOKEN_PROVIDER);
+    private final ServicePlanVisibilities servicePlanVisibilities = new ReactorServicePlanVisibilities(CONNECTION_CONTEXT, this.root, TOKEN_PROVIDER, Collections.emptyMap());
 
     @Test
     public void create() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(POST).path("/v2/service_plan_visibilities")
+                .method(POST).path("/service_plan_visibilities")
                 .payload("fixtures/client/v2/service_plan_visibilities/POST_request.json")
                 .build())
             .response(TestResponse.builder()
@@ -94,7 +94,7 @@ public final class ReactorServicePlanVisibilitiesTest extends AbstractClientApiT
     public void delete() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(DELETE).path("/v2/service_plan_visibilities/test-service-plan-visibility-id")
+                .method(DELETE).path("/service_plan_visibilities/test-service-plan-visibility-id")
                 .build())
             .response(TestResponse.builder()
                 .status(NO_CONTENT)
@@ -114,7 +114,7 @@ public final class ReactorServicePlanVisibilitiesTest extends AbstractClientApiT
     public void deleteAsync() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(DELETE).path("/v2/service_plan_visibilities/test-service-plan-visibility-id?async=true")
+                .method(DELETE).path("/service_plan_visibilities/test-service-plan-visibility-id?async=true")
                 .build())
             .response(TestResponse.builder()
                 .status(ACCEPTED)
@@ -147,7 +147,7 @@ public final class ReactorServicePlanVisibilitiesTest extends AbstractClientApiT
     public void get() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(GET).path("/v2/service_plan_visibilities/test-service-plan-visibility-id")
+                .method(GET).path("/service_plan_visibilities/test-service-plan-visibility-id")
                 .build())
             .response(TestResponse.builder()
                 .status(OK)
@@ -181,7 +181,7 @@ public final class ReactorServicePlanVisibilitiesTest extends AbstractClientApiT
     public void list() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(GET).path("/v2/service_plan_visibilities?q=organization_guid:test-organization-id&page=-1")
+                .method(GET).path("/service_plan_visibilities?q=organization_guid%3Atest-organization-id&page=-1")
                 .build())
             .response(TestResponse.builder()
                 .status(OK)
@@ -220,7 +220,7 @@ public final class ReactorServicePlanVisibilitiesTest extends AbstractClientApiT
     public void update() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(PUT).path("/v2/service_plan_visibilities/test-service-plan-visibility-id")
+                .method(PUT).path("/service_plan_visibilities/test-service-plan-visibility-id")
                 .payload("fixtures/client/v2/service_plan_visibilities/PUT_{id}_request.json")
                 .build())
             .response(TestResponse.builder()

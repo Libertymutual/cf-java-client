@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -51,7 +51,7 @@ public final class TcpRoutesTest extends AbstractIntegrationTest {
     private RoutingClient routingClient;
 
     @Test
-    public void create() throws TimeoutException, InterruptedException {
+    public void create() {
         String backendIp = this.nameFactory.getIpAddress();
         Integer backendPort = this.nameFactory.getPort();
         Integer port = this.nameFactory.getPort();
@@ -79,7 +79,7 @@ public final class TcpRoutesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void delete() throws TimeoutException, InterruptedException {
+    public void delete() {
         String backendIp = this.nameFactory.getIpAddress();
         Integer backendPort = this.nameFactory.getPort();
         Integer port = this.nameFactory.getPort();
@@ -111,7 +111,7 @@ public final class TcpRoutesTest extends AbstractIntegrationTest {
         Integer backendPort = this.nameFactory.getPort();
         Integer port = this.nameFactory.getPort();
 
-        Flux.firstEmitting(
+        Flux.first(
             getRouterGroupId(this.routingClient, DEFAULT_ROUTER_GROUP)
                 .flatMapMany(routerGroupId -> Flux.interval(Duration.ofMillis(500))
                     .flatMap(i -> createTcpRoute(this.routingClient, backendIp, backendPort, port, routerGroupId)))
@@ -128,7 +128,7 @@ public final class TcpRoutesTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void list() throws TimeoutException, InterruptedException {
+    public void list() {
         String backendIp = this.nameFactory.getIpAddress();
         Integer backendPort = this.nameFactory.getPort();
         Integer port = this.nameFactory.getPort();

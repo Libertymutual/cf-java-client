@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 package org.cloudfoundry.reactor;
 
+import org.junit.After;
 import org.junit.Test;
 import reactor.test.StepVerifier;
 
@@ -26,14 +27,29 @@ import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 
 public final class DefaultConnectionContextTest extends AbstractRestTest {
 
-    private final ConnectionContext connectionContext = DefaultConnectionContext.builder()
+    private final DefaultConnectionContext connectionContext = DefaultConnectionContext.builder()
         .apiHost(this.mockWebServer.getHostName())
         .port(this.mockWebServer.getPort())
         .secure(false)
         .build();
 
+    @After
+    public void dispose() {
+        this.connectionContext.dispose();
+    }
+
     @Test
-    public void getInfo() throws Exception {
+    public void getInfo() {
+        mockRequest(InteractionContext.builder()
+            .request(TestRequest.builder()
+                .method(GET).path("/")
+                .build())
+            .response(TestResponse.builder()
+                .status(OK)
+                .payload("fixtures/GET_response.json")
+                .build())
+            .build());
+
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
                 .method(GET).path("/v2/info")
@@ -50,6 +66,23 @@ public final class DefaultConnectionContextTest extends AbstractRestTest {
             .expectNext("http://localhost:8080/uaa")
             .expectComplete()
             .verify(Duration.ofSeconds(5));
+    }
+
+    @Test
+    public void multipleInstances() {
+        DefaultConnectionContext first = DefaultConnectionContext.builder()
+            .apiHost("test-host")
+            .build();
+
+        DefaultConnectionContext second = DefaultConnectionContext.builder()
+            .apiHost("test-host")
+            .build();
+
+        first.monitorByteBufAllocator();
+        second.monitorByteBufAllocator();
+
+        first.dispose();
+        second.dispose();
     }
 
 }

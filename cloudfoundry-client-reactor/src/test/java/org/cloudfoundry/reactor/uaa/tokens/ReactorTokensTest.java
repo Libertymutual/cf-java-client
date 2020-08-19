@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -46,6 +46,7 @@ import reactor.test.StepVerifier;
 
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.Collections;
 
 import static io.netty.handler.codec.http.HttpMethod.GET;
 import static io.netty.handler.codec.http.HttpMethod.POST;
@@ -53,13 +54,13 @@ import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 
 public final class ReactorTokensTest extends AbstractUaaApiTest {
 
-    private final ReactorTokens tokens = new ReactorTokens(CONNECTION_CONTEXT, this.root, TOKEN_PROVIDER);
+    private final ReactorTokens tokens = new ReactorTokens(CONNECTION_CONTEXT, this.root, TOKEN_PROVIDER, Collections.emptyMap());
 
     @Test
     public void check() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(POST).path("/check_token?scopes=password.write,scim.userids&token=f9f2f98d88e04ff7bb1f69041d3c0346")
+                .method(POST).path("/check_token?scopes=password.write%2Cscim.userids&token=f9f2f98d88e04ff7bb1f69041d3c0346")
                 .header("Authorization", "Basic YXBwOmFwcGNsaWVudHNlY3JldA==")
                 .build())
             .response(TestResponse.builder()
@@ -145,7 +146,7 @@ public final class ReactorTokensTest extends AbstractUaaApiTest {
     public void getTokenByAuthorizationCode() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(POST).path("/oauth/token?code=zI6Z1X&client_id=login&client_secret=loginsecret&redirect_uri=https://uaa.cloudfoundry.com/redirect/cf" +
+                .method(POST).path("/oauth/token?code=zI6Z1X&client_id=login&client_secret=loginsecret&redirect_uri=https%3A%2F%2Fuaa.cloudfoundry.com%2Fredirect%2Fcf" +
                     "&token_format=opaque&grant_type=authorization_code&response_type=token")
                 .header("Authorization", null)
                 .header("Content-Type", "application/x-www-form-urlencoded")
@@ -247,7 +248,7 @@ public final class ReactorTokensTest extends AbstractUaaApiTest {
     public void getTokenByOpenId() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(POST).path("/oauth/token?code=NAlA1d&client_id=app&client_secret=appclientsecret&redirect_uri=https://uaa.cloudfoundry.com/redirect/cf&token_format=opaque" +
+                .method(POST).path("/oauth/token?code=NAlA1d&client_id=app&client_secret=appclientsecret&redirect_uri=https%3A%2F%2Fuaa.cloudfoundry.com%2Fredirect%2Fcf&token_format=opaque" +
                     "&grant_type=authorization_code&response_type=id_token")
                 .header("Authorization", null)
                 .header("Content-Type", "application/x-www-form-urlencoded")
@@ -285,7 +286,7 @@ public final class ReactorTokensTest extends AbstractUaaApiTest {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
                 .method(POST).path("/oauth/token?client_id=app&client_secret=appclientsecret&password=secr3T&token_format=opaque&" +
-                    "username=jENeJj@test.org&grant_type=password&response_type=token")
+                    "username=jENeJj%40test.org&grant_type=password&response_type=token")
                 .header("Authorization", null)
                 .header("Content-Type", "application/x-www-form-urlencoded")
                 .build())

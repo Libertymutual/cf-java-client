@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,6 +33,7 @@ import org.cloudfoundry.operations.AbstractOperationsTest;
 import org.junit.Test;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
+import reactor.test.scheduler.VirtualTimeScheduler;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -72,11 +73,11 @@ public final class DefaultBuildpacksTest extends AbstractOperationsTest {
         requestDeleteBuildpack(this.cloudFoundryClient, "test-buildpack-id");
         requestJobSuccess(this.cloudFoundryClient, "test-job-id");
 
-        this.buildpacks
+        StepVerifier.withVirtualTime(() -> this.buildpacks
             .delete(DeleteBuildpackRequest.builder()
                 .name("test-buildpack")
-                .build())
-            .as(StepVerifier::create)
+                .build()))
+            .then(() -> VirtualTimeScheduler.get().advanceTimeBy(Duration.ofSeconds(3)))
             .expectComplete()
             .verify(Duration.ofSeconds(5));
     }
@@ -95,6 +96,7 @@ public final class DefaultBuildpacksTest extends AbstractOperationsTest {
                 .locked(true)
                 .name("test-buildpack-name")
                 .position(1)
+                .stack("test-buildpack-stack")
                 .build())
             .expectComplete()
             .verify(Duration.ofSeconds(5));
@@ -119,6 +121,24 @@ public final class DefaultBuildpacksTest extends AbstractOperationsTest {
     public void update() {
         requestListBuildpacks(this.cloudFoundryClient, "test-buildpack");
         requestUpdateBuildpack(this.cloudFoundryClient, "test-buildpack-id", true, true, 5);
+
+        this.buildpacks
+            .update(UpdateBuildpackRequest.builder()
+                .enable(true)
+                .lock(true)
+                .name("test-buildpack")
+                .position(5)
+                .build())
+            .as(StepVerifier::create)
+            .expectComplete()
+            .verify(Duration.ofSeconds(5));
+    }
+
+    @Test
+    public void updateWithBits() {
+        requestListBuildpacks(this.cloudFoundryClient, "test-buildpack");
+        requestUpdateBuildpack(this.cloudFoundryClient, "test-buildpack-id", true, true, 5);
+        requestUploadBuildpack(this.cloudFoundryClient, "test-buildpack-id", Paths.get("test-buildpack"), "test-buildpack");
 
         this.buildpacks
             .update(UpdateBuildpackRequest.builder()

@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -54,6 +54,7 @@ import reactor.core.publisher.Mono;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.Optional;
 
 import static org.cloudfoundry.util.DelayUtils.exponentialBackOff;
 import static org.cloudfoundry.util.tuple.TupleUtils.function;
@@ -72,7 +73,10 @@ public final class ServiceBrokerUtils {
         return getSharedDomain(cloudFoundryClient)
             .flatMap(domain -> pushServiceBrokerApplication(cloudFoundryClient, application, domain, nameFactory, planName, serviceName, spaceId))
             .flatMap(applicationMetadata -> requestCreateServiceBroker(cloudFoundryClient, applicationMetadata, serviceBrokerName, spaceScoped)
-                .delayUntil(response -> makeServicePlanPubliclyVisible(cloudFoundryClient, serviceName, spaceScoped))
+                .delayUntil(response -> Mono.zip(
+                    makeServicePlanPubliclyVisible(cloudFoundryClient, serviceName, spaceScoped),
+                    makeServicePlanPubliclyVisible(cloudFoundryClient, serviceName + "-shareable", spaceScoped)
+                ))
                 .map(response -> new ServiceBrokerMetadata(applicationMetadata, ResourceUtils.getId(response))));
     }
 
@@ -83,18 +87,18 @@ public final class ServiceBrokerUtils {
                 .build());
     }
 
-    public static Mono<ApplicationMetadata> pushServiceBrokerApplication(CloudFoundryClient cloudFoundryClient, Path application, SharedDomainResource domain, NameFactory nameFactory,
-                                                                         String planName, String serviceName, String spaceId) {
+    public static Mono<ApplicationMetadata> pushServiceBrokerApplication(CloudFoundryClient cloudFoundryClient, Path application, SharedDomainResource domain, NameFactory nameFactory, String planName,
+                                                                         String serviceName, String spaceId) {
         String applicationName = nameFactory.getApplicationName();
         String hostName = nameFactory.getHostName();
 
         return Mono
-            .when(
+            .zip(
                 createApplicationId(cloudFoundryClient, spaceId, applicationName),
                 createRouteId(cloudFoundryClient, ResourceUtils.getId(domain), spaceId, hostName)
             )
             .flatMap(function((applicationId, routeId) -> requestAssociateApplicationRoute(cloudFoundryClient, applicationId, routeId)
-                .then(Mono.just(applicationId))))
+                .thenReturn(applicationId)))
             .flatMap(applicationId -> createRunningServiceBrokerApplication(cloudFoundryClient, application, applicationId, planName, serviceName)
                 .map(ignore -> new ApplicationMetadata(applicationId, spaceId, String.format("https://%s.%s", hostName, ResourceUtils.getEntity(domain).getName()))));
     }
@@ -148,6 +152,7 @@ public final class ServiceBrokerUtils {
 
     private static Mono<SharedDomainResource> getSharedDomain(CloudFoundryClient cloudFoundryClient) {
         return requestListSharedDomains(cloudFoundryClient)
+            .filter(resource -> !Optional.ofNullable(ResourceUtils.getEntity(resource).getInternal()).orElse(false))
             .next();
     }
 

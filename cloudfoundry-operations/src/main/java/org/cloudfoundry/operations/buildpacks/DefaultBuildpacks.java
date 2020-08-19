@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -50,7 +50,7 @@ public final class DefaultBuildpacks implements Buildpacks {
     @Override
     public Mono<Void> create(CreateBuildpackRequest request) {
         return this.cloudFoundryClient
-            .flatMap(cloudFoundryClient -> Mono.when(
+            .flatMap(cloudFoundryClient -> Mono.zip(
                 Mono.just(cloudFoundryClient),
                 requestCreateBuildpack(cloudFoundryClient, request.getName(), request.getPosition(), request.getEnable())
             ))
@@ -63,7 +63,7 @@ public final class DefaultBuildpacks implements Buildpacks {
     @Override
     public Mono<Void> delete(DeleteBuildpackRequest request) {
         return this.cloudFoundryClient
-            .flatMap(cloudFoundryClient -> Mono.when(
+            .flatMap(cloudFoundryClient -> Mono.zip(
                 getBuildPackId(cloudFoundryClient, request.getName()),
                 Mono.just(cloudFoundryClient)
             ))
@@ -85,7 +85,7 @@ public final class DefaultBuildpacks implements Buildpacks {
     @Override
     public Mono<Void> rename(RenameBuildpackRequest request) {
         return this.cloudFoundryClient
-            .flatMap(cloudFoundryClient -> Mono.when(
+            .flatMap(cloudFoundryClient -> Mono.zip(
                 getBuildPackId(cloudFoundryClient, request.getName()),
                 Mono.just(cloudFoundryClient)
             ))
@@ -98,7 +98,7 @@ public final class DefaultBuildpacks implements Buildpacks {
     @Override
     public Mono<Void> update(UpdateBuildpackRequest request) {
         return this.cloudFoundryClient
-            .flatMap(cloudFoundryClient -> Mono.when(
+            .flatMap(cloudFoundryClient -> Mono.zip(
                 getBuildPackId(cloudFoundryClient, request.getName()),
                 Mono.just(cloudFoundryClient)
             ))
@@ -195,12 +195,14 @@ public final class DefaultBuildpacks implements Buildpacks {
             .locked(entity.getLocked())
             .name(entity.getName())
             .position(entity.getPosition())
+            .stack(entity.getStack())
             .build();
     }
 
-    private static Mono<UploadBuildpackResponse> uploadBuildpackBits(CloudFoundryClient cloudFoundryClient, String buildpackId, UpdateBuildpackRequest request) {
+    private static Mono<Void> uploadBuildpackBits(CloudFoundryClient cloudFoundryClient, String buildpackId, UpdateBuildpackRequest request) {
         if (request.getBuildpack() != null) {
-            requestUploadBuildpackBits(cloudFoundryClient, buildpackId, request.getBuildpack());
+            return requestUploadBuildpackBits(cloudFoundryClient, buildpackId, request.getBuildpack())
+                .then(Mono.empty());
         }
 
         return Mono.empty();

@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -40,7 +40,6 @@ import reactor.test.StepVerifier;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Duration;
-import java.util.concurrent.TimeoutException;
 
 public final class BuildpacksTest extends AbstractIntegrationTest {
 
@@ -48,7 +47,7 @@ public final class BuildpacksTest extends AbstractIntegrationTest {
     private CloudFoundryClient cloudFoundryClient;
 
     @Test
-    public void create() throws TimeoutException, InterruptedException {
+    public void create() {
         String buildpackName = this.nameFactory.getBuildpackName();
 
         this.cloudFoundryClient.buildpacks()
@@ -71,7 +70,7 @@ public final class BuildpacksTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void delete() throws TimeoutException, InterruptedException {
+    public void delete() {
         String buildpackName = this.nameFactory.getBuildpackName();
 
         createBuildpackId(this.cloudFoundryClient, buildpackName)
@@ -87,7 +86,7 @@ public final class BuildpacksTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void deleteAsync() throws TimeoutException, InterruptedException {
+    public void deleteAsync() {
         String buildpackName = this.nameFactory.getBuildpackName();
 
         createBuildpackId(this.cloudFoundryClient, buildpackName)
@@ -104,7 +103,7 @@ public final class BuildpacksTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void get() throws TimeoutException, InterruptedException {
+    public void get() {
         String buildpackName = this.nameFactory.getBuildpackName();
 
         createBuildpackId(this.cloudFoundryClient, buildpackName)
@@ -125,7 +124,7 @@ public final class BuildpacksTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void list() throws TimeoutException, InterruptedException {
+    public void list() {
         String buildpackName = this.nameFactory.getBuildpackName();
 
         createBuildpackId(this.cloudFoundryClient, buildpackName)
@@ -147,7 +146,7 @@ public final class BuildpacksTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void listFilterByName() throws TimeoutException, InterruptedException {
+    public void listFilterByName() {
         String buildpackName = this.nameFactory.getBuildpackName();
 
         createBuildpackId(this.cloudFoundryClient, buildpackName)
@@ -169,7 +168,7 @@ public final class BuildpacksTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void update() throws TimeoutException, InterruptedException {
+    public void update() {
         String buildpackName = this.nameFactory.getBuildpackName();
 
         createBuildpackId(this.cloudFoundryClient, buildpackName)
@@ -193,22 +192,23 @@ public final class BuildpacksTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void upload() throws TimeoutException, InterruptedException, IOException {
+    public void upload() throws IOException {
         Path buildpack = new ClassPathResource("test-buildpack.zip").getFile().toPath();
         String buildpackName = this.nameFactory.getBuildpackName();
+        String filename = buildpack.getFileName().toString();
 
         createBuildpackId(this.cloudFoundryClient, buildpackName)
             .flatMap(buildpackId -> this.cloudFoundryClient.buildpacks()
                 .upload(UploadBuildpackRequest.builder()
                     .buildpack(buildpack)
                     .buildpackId(buildpackId)
-                    .filename(buildpack.getFileName().toString())
+                    .filename(filename)
                     .build()))
             .map(ResourceUtils::getEntity)
             .as(StepVerifier::create)
             .expectNext(BuildpackEntity.builder()
                 .enabled(false)
-                .filename(buildpack.getFileName().toString())
+                .filename(filename)
                 .locked(false)
                 .name(buildpackName)
                 .position(3)
@@ -218,7 +218,7 @@ public final class BuildpacksTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void uploadDirectory() throws TimeoutException, InterruptedException, IOException {
+    public void uploadDirectory() throws IOException {
         Path buildpack = new ClassPathResource("test-buildpack").getFile().toPath();
         String buildpackName = this.nameFactory.getBuildpackName();
         String filename = buildpack.getFileName().toString();

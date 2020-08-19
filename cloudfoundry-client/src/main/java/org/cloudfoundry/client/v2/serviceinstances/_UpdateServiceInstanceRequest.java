@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,9 +19,11 @@ package org.cloudfoundry.client.v2.serviceinstances;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.cloudfoundry.AllowNulls;
 import org.cloudfoundry.Nullable;
 import org.cloudfoundry.QueryParameter;
+import org.cloudfoundry.client.v2.MaintenanceInfo;
 import org.immutables.value.Value;
 
 import java.util.List;
@@ -30,6 +32,7 @@ import java.util.Map;
 /**
  * The request payload to Update a Service Instance
  */
+@JsonSerialize
 @Value.Immutable
 abstract class _UpdateServiceInstanceRequest {
 
@@ -39,6 +42,13 @@ abstract class _UpdateServiceInstanceRequest {
     @Nullable
     @QueryParameter("accepts_incomplete")
     abstract Boolean getAcceptsIncomplete();
+
+    /**
+     * The maintenance info
+     */
+    @JsonProperty("maintenance_info")
+    @Nullable
+    abstract MaintenanceInfo getMaintenanceInfo();
 
     /**
      * The name

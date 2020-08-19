@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,6 +32,7 @@ import org.junit.Test;
 import reactor.test.StepVerifier;
 
 import java.time.Duration;
+import java.util.Collections;
 
 import static io.netty.handler.codec.http.HttpMethod.GET;
 import static io.netty.handler.codec.http.HttpMethod.POST;
@@ -40,13 +41,13 @@ import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 
 public final class ReactorApplicationUsageEventsTest extends AbstractClientApiTest {
 
-    private final ReactorApplicationUsageEvents applicationUsageEvents = new ReactorApplicationUsageEvents(CONNECTION_CONTEXT, this.root, TOKEN_PROVIDER);
+    private final ReactorApplicationUsageEvents applicationUsageEvents = new ReactorApplicationUsageEvents(CONNECTION_CONTEXT, this.root, TOKEN_PROVIDER, Collections.emptyMap());
 
     @Test
     public void get() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(GET).path("/v2/app_usage_events/caac0ed4-febf-48a4-951f-c0a7fadf6a68")
+                .method(GET).path("/app_usage_events/caac0ed4-febf-48a4-951f-c0a7fadf6a68")
                 .build())
             .response(TestResponse.builder()
                 .status(OK)
@@ -71,7 +72,7 @@ public final class ReactorApplicationUsageEventsTest extends AbstractClientApiTe
                     .buildpackId("guid-1ffac859-4635-41fd-91bb-3ba07768a5ec")
                     .buildpackName("name-1105")
                     .instanceCount(1)
-                    .memoryInMbPerInstances(564)
+                    .memoryInMbPerInstance(564)
                     .organizationId("guid-1ed968f6-a9f7-469b-a04f-ed1ebc2df1e7")
                     .packageState("STAGED")
                     .processType("web")
@@ -88,7 +89,7 @@ public final class ReactorApplicationUsageEventsTest extends AbstractClientApiTe
     public void list() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(GET).path("/v2/app_usage_events?after_guid=f1d8ddec-d36a-4670-acb8-6082a1f1a95f&results-per-page=1")
+                .method(GET).path("/app_usage_events?after_guid=f1d8ddec-d36a-4670-acb8-6082a1f1a95f&results-per-page=1")
                 .build())
             .response(TestResponse.builder()
                 .status(OK)
@@ -118,7 +119,7 @@ public final class ReactorApplicationUsageEventsTest extends AbstractClientApiTe
                         .buildpackId("guid-c17e9ffa-a1f8-4140-9718-f627be3a3459")
                         .buildpackName("name-1785")
                         .instanceCount(1)
-                        .memoryInMbPerInstances(564)
+                        .memoryInMbPerInstance(564)
                         .organizationId("guid-7f111ae5-9017-49f6-afe7-3a175b9f7a79")
                         .packageState("STAGED")
                         .processType("web")
@@ -136,7 +137,7 @@ public final class ReactorApplicationUsageEventsTest extends AbstractClientApiTe
     public void purgeAndReseed() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(POST).path("/v2/app_usage_events/destructively_purge_all_and_reseed_started_apps")
+                .method(POST).path("/app_usage_events/destructively_purge_all_and_reseed_started_apps")
                 .build())
             .response(TestResponse.builder()
                 .status(NO_CONTENT)

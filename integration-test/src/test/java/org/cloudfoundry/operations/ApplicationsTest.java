@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,24 +17,44 @@
 package org.cloudfoundry.operations;
 
 import org.cloudfoundry.AbstractIntegrationTest;
+import org.cloudfoundry.CloudFoundryVersion;
+import org.cloudfoundry.IfCloudFoundryVersion;
+import org.cloudfoundry.doppler.LogMessage;
+import org.cloudfoundry.doppler.MessageType;
 import org.cloudfoundry.operations.applications.ApplicationDetail;
 import org.cloudfoundry.operations.applications.ApplicationEnvironments;
 import org.cloudfoundry.operations.applications.ApplicationEvent;
 import org.cloudfoundry.operations.applications.ApplicationHealthCheck;
 import org.cloudfoundry.operations.applications.ApplicationManifest;
+import org.cloudfoundry.operations.applications.ApplicationSshEnabledRequest;
 import org.cloudfoundry.operations.applications.ApplicationSummary;
+import org.cloudfoundry.operations.applications.CopySourceApplicationRequest;
 import org.cloudfoundry.operations.applications.DeleteApplicationRequest;
+import org.cloudfoundry.operations.applications.DisableApplicationSshRequest;
+import org.cloudfoundry.operations.applications.EnableApplicationSshRequest;
 import org.cloudfoundry.operations.applications.GetApplicationEnvironmentsRequest;
 import org.cloudfoundry.operations.applications.GetApplicationEventsRequest;
 import org.cloudfoundry.operations.applications.GetApplicationHealthCheckRequest;
 import org.cloudfoundry.operations.applications.GetApplicationManifestRequest;
 import org.cloudfoundry.operations.applications.GetApplicationRequest;
+import org.cloudfoundry.operations.applications.ListApplicationTasksRequest;
+import org.cloudfoundry.operations.applications.LogsRequest;
 import org.cloudfoundry.operations.applications.PushApplicationManifestRequest;
 import org.cloudfoundry.operations.applications.PushApplicationRequest;
+import org.cloudfoundry.operations.applications.RenameApplicationRequest;
+import org.cloudfoundry.operations.applications.RestageApplicationRequest;
+import org.cloudfoundry.operations.applications.RestartApplicationInstanceRequest;
 import org.cloudfoundry.operations.applications.RestartApplicationRequest;
 import org.cloudfoundry.operations.applications.Route;
+import org.cloudfoundry.operations.applications.RunApplicationTaskRequest;
+import org.cloudfoundry.operations.applications.ScaleApplicationRequest;
+import org.cloudfoundry.operations.applications.SetApplicationHealthCheckRequest;
 import org.cloudfoundry.operations.applications.SetEnvironmentVariableApplicationRequest;
 import org.cloudfoundry.operations.applications.StartApplicationRequest;
+import org.cloudfoundry.operations.applications.StopApplicationRequest;
+import org.cloudfoundry.operations.applications.Task;
+import org.cloudfoundry.operations.applications.TaskState;
+import org.cloudfoundry.operations.applications.TerminateApplicationTaskRequest;
 import org.cloudfoundry.operations.applications.UnsetEnvironmentVariableApplicationRequest;
 import org.cloudfoundry.operations.domains.CreateDomainRequest;
 import org.cloudfoundry.operations.domains.CreateSharedDomainRequest;
@@ -55,9 +75,10 @@ import reactor.test.StepVerifier;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeoutException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -78,7 +99,30 @@ public final class ApplicationsTest extends AbstractIntegrationTest {
     private String serviceName;
 
     @Test
-    public void deleteApplication() throws IOException, TimeoutException, InterruptedException {
+    public void copySource() throws IOException {
+        String sourceName = this.nameFactory.getApplicationName();
+        String targetName = this.nameFactory.getApplicationName();
+
+        Mono.when(
+            createApplication(this.cloudFoundryOperations, new ClassPathResource("test-application.zip").getFile().toPath(), sourceName, false),
+            createApplication(this.cloudFoundryOperations, new ClassPathResource("test-application.zip").getFile().toPath(), targetName, true)
+        )
+            .then(this.cloudFoundryOperations.applications()
+                .copySource(CopySourceApplicationRequest.builder()
+                    .name(sourceName)
+                    .restart(true)
+                    .targetName(targetName)
+                    .build()))
+            .then(requestGetApplication(this.cloudFoundryOperations, targetName))
+            .map(ApplicationDetail::getRequestedState)
+            .as(StepVerifier::create)
+            .expectNext("STARTED")
+            .expectComplete()
+            .verify(Duration.ofMinutes(5));
+    }
+
+    @Test
+    public void deleteApplication() throws IOException {
         String applicationName = this.nameFactory.getApplicationName();
 
         createApplication(this.cloudFoundryOperations, new ClassPathResource("test-application.zip").getFile().toPath(), applicationName, false)
@@ -94,7 +138,7 @@ public final class ApplicationsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void deleteApplicationAndRoutes() throws IOException, TimeoutException, InterruptedException {
+    public void deleteApplicationAndRoutes() throws IOException {
         String applicationName = this.nameFactory.getApplicationName();
 
         createApplication(this.cloudFoundryOperations, new ClassPathResource("test-application.zip").getFile().toPath(), applicationName, false)
@@ -112,7 +156,7 @@ public final class ApplicationsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void deleteApplicationWithServiceBindings() throws IOException, TimeoutException, InterruptedException {
+    public void deleteApplicationWithServiceBindings() throws IOException {
         String applicationName = this.nameFactory.getApplicationName();
         String serviceInstanceName = this.nameFactory.getServiceInstanceName();
 
@@ -128,7 +172,39 @@ public final class ApplicationsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void get() throws TimeoutException, InterruptedException, IOException {
+    public void disableSsh() throws IOException {
+        String applicationName = this.nameFactory.getApplicationName();
+
+        createApplication(this.cloudFoundryOperations, new ClassPathResource("test-application.zip").getFile().toPath(), applicationName, false)
+            .then(this.cloudFoundryOperations.applications()
+                .disableSsh(DisableApplicationSshRequest.builder()
+                    .name(applicationName)
+                    .build()))
+            .then(requestSshEnabled(this.cloudFoundryOperations, applicationName))
+            .as(StepVerifier::create)
+            .expectNext(false)
+            .expectComplete()
+            .verify(Duration.ofMinutes(5));
+    }
+
+    @Test
+    public void enableSsh() throws IOException {
+        String applicationName = this.nameFactory.getApplicationName();
+
+        createApplication(this.cloudFoundryOperations, new ClassPathResource("test-application.zip").getFile().toPath(), applicationName, false)
+            .then(this.cloudFoundryOperations.applications()
+                .enableSsh(EnableApplicationSshRequest.builder()
+                    .name(applicationName)
+                    .build()))
+            .then(requestSshEnabled(this.cloudFoundryOperations, applicationName))
+            .as(StepVerifier::create)
+            .expectNext(true)
+            .expectComplete()
+            .verify(Duration.ofMinutes(5));
+    }
+
+    @Test
+    public void get() throws IOException {
         String applicationName = this.nameFactory.getApplicationName();
 
         createApplication(this.cloudFoundryOperations, new ClassPathResource("test-application.zip").getFile().toPath(), applicationName, false)
@@ -144,7 +220,7 @@ public final class ApplicationsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void getEvents() throws TimeoutException, InterruptedException, IOException {
+    public void getEvents() throws IOException {
         String applicationName = this.nameFactory.getApplicationName();
 
         createApplication(this.cloudFoundryOperations, new ClassPathResource("test-application.zip").getFile().toPath(), applicationName, true)
@@ -161,7 +237,7 @@ public final class ApplicationsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void getHealthCheck() throws IOException, TimeoutException, InterruptedException {
+    public void getHealthCheck() throws IOException {
         String applicationName = this.nameFactory.getApplicationName();
 
         createApplication(this.cloudFoundryOperations, new ClassPathResource("test-application.zip").getFile().toPath(), applicationName, true)
@@ -170,13 +246,13 @@ public final class ApplicationsTest extends AbstractIntegrationTest {
                     .name(applicationName)
                     .build()))
             .as(StepVerifier::create)
-            .expectNext(ApplicationHealthCheck.PORT)
+            .expectNext(ApplicationHealthCheck.NONE)
             .expectComplete()
             .verify(Duration.ofMinutes(5));
     }
 
     @Test
-    public void getManifest() throws TimeoutException, InterruptedException, IOException {
+    public void getManifest() throws IOException {
         String applicationName = this.nameFactory.getApplicationName();
 
         createApplication(this.cloudFoundryOperations, new ClassPathResource("test-application.zip").getFile().toPath(), applicationName, true)
@@ -192,7 +268,7 @@ public final class ApplicationsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void getManifestForTcpRoute() throws TimeoutException, InterruptedException, IOException {
+    public void getManifestForTcpRoute() throws IOException {
         String applicationName = this.nameFactory.getApplicationName();
 
         createApplication(this.cloudFoundryOperations, new ClassPathResource("test-application.zip").getFile().toPath(), applicationName, true)
@@ -208,7 +284,39 @@ public final class ApplicationsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void getStopped() throws TimeoutException, InterruptedException, IOException {
+    public void getMultipleBuildpacks() throws IOException {
+        String applicationName = this.nameFactory.getApplicationName();
+
+        createApplicationPhp(this.cloudFoundryOperations, new ClassPathResource("test-php.zip").getFile().toPath(), applicationName, true)
+            .then(this.cloudFoundryOperations.applications()
+                .get(GetApplicationRequest.builder()
+                    .name(applicationName)
+                    .build()))
+            .map(ApplicationDetail::getBuildpacks)
+            .as(StepVerifier::create)
+            .expectNext(Arrays.asList("staticfile_buildpack", "php_buildpack"))
+            .expectComplete()
+            .verify(Duration.ofMinutes(5));
+    }
+
+    @Test
+    public void getMultipleBuildpacksManifest() throws IOException {
+        String applicationName = this.nameFactory.getApplicationName();
+
+        createApplicationPhp(this.cloudFoundryOperations, new ClassPathResource("test-php.zip").getFile().toPath(), applicationName, true)
+            .then(this.cloudFoundryOperations.applications()
+                .getApplicationManifest(GetApplicationManifestRequest.builder()
+                    .name(applicationName)
+                    .build()))
+            .map(ApplicationManifest::getBuildpacks)
+            .as(StepVerifier::create)
+            .expectNext(Arrays.asList("staticfile_buildpack", "php_buildpack"))
+            .expectComplete()
+            .verify(Duration.ofMinutes(5));
+    }
+
+    @Test
+    public void getStopped() throws IOException {
         String applicationName = this.nameFactory.getApplicationName();
 
         createApplication(this.cloudFoundryOperations, new ClassPathResource("test-application.zip").getFile().toPath(), applicationName, true)
@@ -224,7 +332,7 @@ public final class ApplicationsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void getTcp() throws TimeoutException, InterruptedException, IOException {
+    public void getTcp() throws IOException {
         String applicationName = this.nameFactory.getApplicationName();
         String domainName = this.nameFactory.getDomainName();
 
@@ -242,7 +350,58 @@ public final class ApplicationsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void pushBindServices() throws TimeoutException, InterruptedException, IOException {
+    public void list() throws IOException {
+        String applicationName = this.nameFactory.getApplicationName();
+
+        createApplication(this.cloudFoundryOperations, new ClassPathResource("test-application.zip").getFile().toPath(), applicationName, false)
+            .thenMany(this.cloudFoundryOperations.applications()
+                .list())
+            .filter(response -> applicationName.equals(response.getName()))
+            .as(StepVerifier::create)
+            .expectNextCount(1)
+            .expectComplete()
+            .verify(Duration.ofMinutes(5));
+    }
+
+    @IfCloudFoundryVersion(greaterThanOrEqualTo = CloudFoundryVersion.PCF_1_11)
+    @Test
+    public void listTasks() throws IOException {
+        String applicationName = this.nameFactory.getApplicationName();
+        String taskName = this.nameFactory.getTaskName();
+
+        createApplication(this.cloudFoundryOperations, new ClassPathResource("test-application.zip").getFile().toPath(), applicationName, false)
+            .then(requestCreateTask(this.cloudFoundryOperations, applicationName, taskName))
+            .thenMany(this.cloudFoundryOperations.applications()
+                .listTasks(ListApplicationTasksRequest.builder()
+                    .name(applicationName)
+                    .build()))
+            .map(Task::getName)
+            .as(StepVerifier::create)
+            .expectNext(taskName)
+            .expectComplete()
+            .verify(Duration.ofMinutes(5));
+    }
+
+    @Test
+    public void logs() throws IOException {
+        String applicationName = this.nameFactory.getApplicationName();
+
+        createApplication(this.cloudFoundryOperations, new ClassPathResource("test-application.zip").getFile().toPath(), applicationName, false)
+            .thenMany(this.cloudFoundryOperations.applications()
+                .logs(LogsRequest.builder()
+                    .name(applicationName)
+                    .recent(true)
+                    .build()))
+            .map(LogMessage::getMessageType)
+            .next()
+            .as(StepVerifier::create)
+            .expectNext(MessageType.OUT)
+            .expectComplete()
+            .verify(Duration.ofMinutes(5));
+    }
+
+    @Test
+    public void pushBindServices() throws IOException {
         String applicationName = this.nameFactory.getApplicationName();
         String serviceInstanceName = this.nameFactory.getServiceInstanceName();
 
@@ -271,7 +430,7 @@ public final class ApplicationsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void pushDirectory() throws TimeoutException, InterruptedException, IOException {
+    public void pushDirectory() throws IOException {
         String applicationName = this.nameFactory.getApplicationName();
 
         createApplication(this.cloudFoundryOperations, new ClassPathResource("test-application").getFile().toPath(), applicationName, false)
@@ -281,7 +440,7 @@ public final class ApplicationsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void pushDomainHostPathRoute() throws TimeoutException, InterruptedException, IOException {
+    public void pushDomainHostPathRoute() throws IOException {
         String applicationName = this.nameFactory.getApplicationName();
         String domainName = this.nameFactory.getDomainName();
         String routePath = this.nameFactory.getPath();
@@ -312,7 +471,7 @@ public final class ApplicationsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void pushDomainNotFound() throws TimeoutException, InterruptedException, IOException {
+    public void pushDomainNotFound() throws IOException {
         String applicationName = this.nameFactory.getApplicationName();
         String domainName = this.nameFactory.getDomainName();
 
@@ -331,7 +490,7 @@ public final class ApplicationsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void pushExisting() throws TimeoutException, InterruptedException, IOException {
+    public void pushExisting() throws IOException {
         String applicationName = this.nameFactory.getApplicationName();
 
         createApplication(this.cloudFoundryOperations, new ClassPathResource("test-application.zip").getFile().toPath(), applicationName, false)
@@ -349,7 +508,55 @@ public final class ApplicationsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void pushMultipleRoutes() throws TimeoutException, InterruptedException, IOException {
+    public void pushManifestMultipleBuildpacks() throws IOException {
+        String applicationName = this.nameFactory.getApplicationName();
+        List<String> buildpacks = Arrays.asList("staticfile_buildpack", "php_buildpack");
+
+        this.cloudFoundryOperations.applications()
+            .pushManifest(PushApplicationManifestRequest.builder()
+                .manifest(ApplicationManifest.builder()
+                    .buildpacks(buildpacks)
+                    .disk(512)
+                    .healthCheckType(ApplicationHealthCheck.PORT)
+                    .memory(64)
+                    .name(applicationName)
+                    .path(new ClassPathResource("test-php.zip").getFile().toPath())
+                    .build())
+                .noStart(true)
+                .build())
+            .then(requestGetManifest(this.cloudFoundryOperations, applicationName))
+            .map(ApplicationManifest::getBuildpacks)
+            .as(StepVerifier::create)
+            .expectNext(buildpacks)
+            .expectComplete()
+            .verify(Duration.ofMinutes(5));
+    }
+
+    @Test
+    public void pushMultipleBuildpacks() throws IOException {
+        String applicationName = this.nameFactory.getApplicationName();
+        List<String> buildpacks = Arrays.asList("staticfile_buildpack", "php_buildpack");
+
+        this.cloudFoundryOperations.applications()
+            .push(PushApplicationRequest.builder()
+                .buildpacks("staticfile_buildpack", "php_buildpack")
+                .diskQuota(512)
+                .healthCheckType(ApplicationHealthCheck.NONE)
+                .memory(64)
+                .name(applicationName)
+                .noStart(true)
+                .path(new ClassPathResource("test-php.zip").getFile().toPath())
+                .build())
+            .then(requestGetManifest(this.cloudFoundryOperations, applicationName))
+            .map(ApplicationManifest::getBuildpacks)
+            .as(StepVerifier::create)
+            .expectNext(buildpacks)
+            .expectComplete()
+            .verify(Duration.ofMinutes(5));
+    }
+
+    @Test
+    public void pushMultipleRoutes() throws IOException {
         String applicationName = this.nameFactory.getApplicationName();
         String domainName = this.nameFactory.getDomainName();
 
@@ -384,7 +591,7 @@ public final class ApplicationsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void pushNew() throws TimeoutException, InterruptedException, IOException {
+    public void pushNew() throws IOException {
         String applicationName = this.nameFactory.getApplicationName();
 
         createApplication(this.cloudFoundryOperations, new ClassPathResource("test-application.zip").getFile().toPath(), applicationName, false)
@@ -394,7 +601,7 @@ public final class ApplicationsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void pushNewDocker() throws TimeoutException, InterruptedException {
+    public void pushNewDocker() {
         String applicationName = this.nameFactory.getApplicationName();
 
         createDockerApplication(this.cloudFoundryOperations, applicationName, false)
@@ -404,7 +611,7 @@ public final class ApplicationsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void pushNoHostName() throws TimeoutException, InterruptedException, IOException {
+    public void pushNoHostName() throws IOException {
         String applicationName = this.nameFactory.getApplicationName();
         String domainName = this.nameFactory.getDomainName();
 
@@ -433,7 +640,7 @@ public final class ApplicationsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void pushNoRoute() throws TimeoutException, InterruptedException, IOException {
+    public void pushNoRoute() throws IOException {
         String applicationName = this.nameFactory.getApplicationName();
         String domainName = this.nameFactory.getDomainName();
 
@@ -467,7 +674,7 @@ public final class ApplicationsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void pushPrivateDomain() throws TimeoutException, InterruptedException, IOException {
+    public void pushPrivateDomain() throws IOException {
         String applicationName = this.nameFactory.getApplicationName();
         String domainName = this.nameFactory.getDomainName();
 
@@ -487,7 +694,7 @@ public final class ApplicationsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void pushRouteAndRoutePath() throws TimeoutException, InterruptedException, IOException {
+    public void pushRouteAndRoutePath() throws IOException {
         String applicationName = this.nameFactory.getApplicationName();
         String domainName = this.nameFactory.getDomainName();
         String routePath1 = this.nameFactory.getPath();
@@ -520,7 +727,7 @@ public final class ApplicationsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void pushRoutePath() throws TimeoutException, InterruptedException, IOException {
+    public void pushRoutePath() throws IOException {
         String applicationName = this.nameFactory.getApplicationName();
         String routePath = this.nameFactory.getPath();
 
@@ -529,6 +736,7 @@ public final class ApplicationsTest extends AbstractIntegrationTest {
                 .path(new ClassPathResource("test-application.zip").getFile().toPath())
                 .buildpack("staticfile_buildpack")
                 .diskQuota(512)
+                .healthCheckHttpEndpoint("/health")
                 .healthCheckType(ApplicationHealthCheck.PORT)
                 .memory(64)
                 .name(applicationName)
@@ -544,7 +752,7 @@ public final class ApplicationsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void pushTcpRoute() throws TimeoutException, InterruptedException, IOException {
+    public void pushTcpRoute() throws IOException {
         String applicationName = this.nameFactory.getApplicationName();
         String domainName = this.nameFactory.getDomainName();
 
@@ -565,10 +773,7 @@ public final class ApplicationsTest extends AbstractIntegrationTest {
                         .build())
                     .noStart(true)
                     .build()))
-            .then(this.cloudFoundryOperations.applications()
-                .getApplicationManifest(GetApplicationManifestRequest.builder()
-                    .name(applicationName)
-                    .build()))
+            .then(requestGetManifest(this.cloudFoundryOperations, applicationName))
             .map(manifest -> manifest.getRoutes().get(0).getRoute())
             .as(StepVerifier::create)
             .consumeNextWith(route -> assertThat(route).matches(domainName + "+?:\\d+$"))
@@ -577,7 +782,7 @@ public final class ApplicationsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void pushUpdateRoute() throws TimeoutException, InterruptedException, IOException {
+    public void pushUpdateRoute() throws IOException {
         String applicationName = this.nameFactory.getApplicationName();
         String domainName = this.nameFactory.getDomainName();
         String originalHostName = this.nameFactory.getHostName();
@@ -626,7 +831,7 @@ public final class ApplicationsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void pushUpdateTcpRoute() throws TimeoutException, InterruptedException, IOException {
+    public void pushUpdateTcpRoute() throws IOException {
         String applicationName = this.nameFactory.getApplicationName();
         String domainName = this.nameFactory.getDomainName();
 
@@ -663,10 +868,7 @@ public final class ApplicationsTest extends AbstractIntegrationTest {
                         .build())
                     .noStart(true)
                     .build()))
-            .then(this.cloudFoundryOperations.applications()
-                .get(GetApplicationRequest.builder()
-                    .name(applicationName)
-                    .build()))
+            .then(requestGetApplication(this.cloudFoundryOperations, applicationName))
             .map(ApplicationDetail::getUrls)
             .as(StepVerifier::create)
             .consumeNextWith(routes -> {
@@ -679,7 +881,7 @@ public final class ApplicationsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void pushWithHost() throws TimeoutException, InterruptedException, IOException {
+    public void pushWithHost() throws IOException {
         String applicationName = this.nameFactory.getApplicationName();
         String host = this.nameFactory.getHostName();
 
@@ -699,7 +901,54 @@ public final class ApplicationsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void restartNotStarted() throws IOException, TimeoutException, InterruptedException {
+    public void rename() throws IOException {
+        String applicationName = this.nameFactory.getApplicationName();
+        String newName = this.nameFactory.getApplicationName();
+
+        createApplication(this.cloudFoundryOperations, new ClassPathResource("test-application.zip").getFile().toPath(), applicationName, false)
+            .then(this.cloudFoundryOperations.applications()
+                .rename(RenameApplicationRequest.builder()
+                    .name(applicationName)
+                    .newName(newName)
+                    .build()))
+            .then(requestGetApplication(this.cloudFoundryOperations, newName))
+            .as(StepVerifier::create)
+            .expectNextCount(1)
+            .expectComplete()
+            .verify(Duration.ofMinutes(5));
+    }
+
+    @Test
+    public void restage() throws IOException {
+        String applicationName = this.nameFactory.getApplicationName();
+
+        createApplication(this.cloudFoundryOperations, new ClassPathResource("test-application.zip").getFile().toPath(), applicationName, false)
+            .then(this.cloudFoundryOperations.applications()
+                .restage(RestageApplicationRequest.builder()
+                    .name(applicationName)
+                    .build()))
+            .as(StepVerifier::create)
+            .expectComplete()
+            .verify(Duration.ofMinutes(5));
+    }
+
+    @Test
+    public void restartInstance() throws IOException {
+        String applicationName = this.nameFactory.getApplicationName();
+
+        createApplication(this.cloudFoundryOperations, new ClassPathResource("test-application.zip").getFile().toPath(), applicationName, false)
+            .then(this.cloudFoundryOperations.applications()
+                .restartInstance(RestartApplicationInstanceRequest.builder()
+                    .instanceIndex(0)
+                    .name(applicationName)
+                    .build()))
+            .as(StepVerifier::create)
+            .expectComplete()
+            .verify(Duration.ofMinutes(5));
+    }
+
+    @Test
+    public void restartNotStarted() throws IOException {
         String applicationName = this.nameFactory.getApplicationName();
 
         createApplication(this.cloudFoundryOperations, new ClassPathResource("test-application.zip").getFile().toPath(), applicationName, true)
@@ -713,7 +962,7 @@ public final class ApplicationsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void restartStarted() throws IOException, TimeoutException, InterruptedException {
+    public void restartStarted() throws IOException {
         String applicationName = this.nameFactory.getApplicationName();
 
         createApplication(this.cloudFoundryOperations, new ClassPathResource("test-application.zip").getFile().toPath(), applicationName, false)
@@ -726,9 +975,50 @@ public final class ApplicationsTest extends AbstractIntegrationTest {
             .verify(Duration.ofMinutes(5));
     }
 
+    @IfCloudFoundryVersion(greaterThanOrEqualTo = CloudFoundryVersion.PCF_1_11)
+    @Test
+    public void runTask() throws IOException {
+        String applicationName = this.nameFactory.getApplicationName();
+        String taskName = this.nameFactory.getTaskName();
+
+        createApplication(this.cloudFoundryOperations, new ClassPathResource("test-application.zip").getFile().toPath(), applicationName, false)
+            .then(this.cloudFoundryOperations.applications()
+                .runTask(RunApplicationTaskRequest.builder()
+                    .applicationName(applicationName)
+                    .command("ls")
+                    .disk(64)
+                    .memory(64)
+                    .taskName(taskName)
+                    .build()))
+            .map(Task::getName)
+            .as(StepVerifier::create)
+            .expectNext(taskName)
+            .expectComplete()
+            .verify(Duration.ofMinutes(5));
+    }
+
+    @Test
+    public void scale() throws IOException {
+        String applicationName = this.nameFactory.getApplicationName();
+
+        createApplication(this.cloudFoundryOperations, new ClassPathResource("test-application.zip").getFile().toPath(), applicationName, false)
+            .then(this.cloudFoundryOperations.applications()
+                .scale(ScaleApplicationRequest.builder()
+                    .instances(2)
+                    .memoryLimit(65)
+                    .name(applicationName)
+                    .build()))
+            .then(requestGetApplication(this.cloudFoundryOperations, applicationName))
+            .map(ApplicationDetail::getRunningInstances)
+            .as(StepVerifier::create)
+            .expectNext(2)
+            .expectComplete()
+            .verify(Duration.ofMinutes(5));
+    }
+
     @SuppressWarnings("unchecked")
     @Test
-    public void setEnvironmentVariable() throws IOException, TimeoutException, InterruptedException {
+    public void setEnvironmentVariable() throws IOException {
         String applicationName = this.nameFactory.getApplicationName();
         String variableName1 = this.nameFactory.getVariableName();
         String variableName2 = this.nameFactory.getVariableName();
@@ -765,7 +1055,39 @@ public final class ApplicationsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void startNotStarted() throws IOException, TimeoutException, InterruptedException {
+    public void setHealthCheck() throws IOException {
+        String applicationName = this.nameFactory.getApplicationName();
+
+        createApplication(this.cloudFoundryOperations, new ClassPathResource("test-application.zip").getFile().toPath(), applicationName, false)
+            .then(this.cloudFoundryOperations.applications()
+                .setHealthCheck(SetApplicationHealthCheckRequest.builder()
+                    .name(applicationName)
+                    .type(ApplicationHealthCheck.PROCESS)
+                    .build()))
+            .then(requestGetHealthCheck(this.cloudFoundryOperations, applicationName))
+            .as(StepVerifier::create)
+            .expectNext(ApplicationHealthCheck.PROCESS)
+            .expectComplete()
+            .verify(Duration.ofMinutes(5));
+    }
+
+    @Test
+    public void sshEnabled() throws IOException {
+        String applicationName = this.nameFactory.getApplicationName();
+
+        createApplication(this.cloudFoundryOperations, new ClassPathResource("test-application.zip").getFile().toPath(), applicationName, false)
+            .then(this.cloudFoundryOperations.applications()
+                .sshEnabled(ApplicationSshEnabledRequest.builder()
+                    .name(applicationName)
+                    .build()))
+            .as(StepVerifier::create)
+            .expectNext(true)
+            .expectComplete()
+            .verify(Duration.ofMinutes(5));
+    }
+
+    @Test
+    public void startNotStarted() throws IOException {
         String applicationName = this.nameFactory.getApplicationName();
 
         createApplication(this.cloudFoundryOperations, new ClassPathResource("test-application.zip").getFile().toPath(), applicationName, true)
@@ -779,7 +1101,7 @@ public final class ApplicationsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void startStarted() throws IOException, TimeoutException, InterruptedException {
+    public void startStarted() throws IOException {
         String applicationName = this.nameFactory.getApplicationName();
 
         createApplication(this.cloudFoundryOperations, new ClassPathResource("test-application.zip").getFile().toPath(), applicationName, false)
@@ -792,9 +1114,49 @@ public final class ApplicationsTest extends AbstractIntegrationTest {
             .verify(Duration.ofMinutes(5));
     }
 
+    @Test
+    public void stop() throws IOException {
+        String applicationName = this.nameFactory.getApplicationName();
+
+        createApplication(this.cloudFoundryOperations, new ClassPathResource("test-application.zip").getFile().toPath(), applicationName, false)
+            .then(this.cloudFoundryOperations.applications()
+                .stop(StopApplicationRequest.builder()
+                    .name(applicationName)
+                    .build()))
+            .then(requestGetApplication(this.cloudFoundryOperations, applicationName))
+            .map(ApplicationDetail::getRequestedState)
+            .as(StepVerifier::create)
+            .expectNext("STOPPED")
+            .expectComplete()
+            .verify(Duration.ofMinutes(5));
+    }
+
+    @IfCloudFoundryVersion(greaterThanOrEqualTo = CloudFoundryVersion.PCF_1_11)
+    @Test
+    public void terminateTask() throws IOException {
+        String applicationName = this.nameFactory.getApplicationName();
+        String taskName = this.nameFactory.getTaskName();
+
+        createApplication(this.cloudFoundryOperations, new ClassPathResource("test-application.zip").getFile().toPath(), applicationName, false)
+            .then(getLongLivedTaskId(this.cloudFoundryOperations, applicationName, taskName))
+            .flatMap(sequenceId -> this.cloudFoundryOperations.applications()
+                .terminateTask(TerminateApplicationTaskRequest.builder()
+                    .applicationName(applicationName)
+                    .sequenceId(sequenceId)
+                    .build())
+                .thenReturn(sequenceId))
+            .flatMapMany(sequenceId -> requestListTasks(this.cloudFoundryOperations, applicationName)
+                .filter(task -> sequenceId.equals(task.getSequenceId())))
+            .map(Task::getState)
+            .as(StepVerifier::create)
+            .expectNext(TaskState.FAILED)
+            .expectComplete()
+            .verify(Duration.ofMinutes(5));
+    }
+
     @SuppressWarnings("unchecked")
     @Test
-    public void unsetEnvironmentVariableComplete() throws IOException, TimeoutException, InterruptedException {
+    public void unsetEnvironmentVariableComplete() throws IOException {
         String applicationName = this.nameFactory.getApplicationName();
         String variableName1 = this.nameFactory.getVariableName();
         String variableName2 = this.nameFactory.getVariableName();
@@ -837,7 +1199,7 @@ public final class ApplicationsTest extends AbstractIntegrationTest {
 
     @SuppressWarnings("unchecked")
     @Test
-    public void unsetEnvironmentVariablePartial() throws IOException, TimeoutException, InterruptedException {
+    public void unsetEnvironmentVariablePartial() throws IOException {
         String applicationName = this.nameFactory.getApplicationName();
         String variableName1 = this.nameFactory.getVariableName();
         String variableName2 = this.nameFactory.getVariableName();
@@ -890,13 +1252,26 @@ public final class ApplicationsTest extends AbstractIntegrationTest {
     private static Mono<Void> createApplication(CloudFoundryOperations cloudFoundryOperations, Path application, String name, Boolean noStart) {
         return cloudFoundryOperations.applications()
             .push(PushApplicationRequest.builder()
-                .path(application)
                 .buildpack("staticfile_buildpack")
                 .diskQuota(512)
-                .healthCheckType(ApplicationHealthCheck.PORT)
+                .healthCheckType(ApplicationHealthCheck.NONE)
                 .memory(64)
                 .name(name)
                 .noStart(noStart)
+                .path(application)
+                .build());
+    }
+
+    private static Mono<Void> createApplicationPhp(CloudFoundryOperations cloudFoundryOperations, Path application, String name, Boolean noStart) {
+        return cloudFoundryOperations.applications()
+            .push(PushApplicationRequest.builder()
+                .buildpacks("staticfile_buildpack", "php_buildpack")
+                .diskQuota(512)
+                .healthCheckType(ApplicationHealthCheck.NONE)
+                .memory(64)
+                .name(name)
+                .noStart(noStart)
+                .path(application)
                 .build());
     }
 
@@ -904,12 +1279,12 @@ public final class ApplicationsTest extends AbstractIntegrationTest {
         return cloudFoundryOperations.applications()
             .pushManifest(PushApplicationManifestRequest.builder()
                 .manifest(ApplicationManifest.builder()
-                    .path(new ClassPathResource("test-application.zip").getFile().toPath())
                     .buildpack("staticfile_buildpack")
                     .disk(512)
                     .healthCheckType(ApplicationHealthCheck.PROCESS)
                     .memory(64)
                     .name(applicationName)
+                    .path(new ClassPathResource("test-application.zip").getFile().toPath())
                     .randomRoute(true)
                     .route(Route.builder()
                         .route(domainName)
@@ -948,6 +1323,11 @@ public final class ApplicationsTest extends AbstractIntegrationTest {
                 .build());
     }
 
+    private static Mono<Integer> getLongLivedTaskId(CloudFoundryOperations cloudFoundryOperations, String applicationName, String taskName) {
+        return requestCreateLongLivedTask(cloudFoundryOperations, applicationName, taskName)
+            .map(Task::getSequenceId);
+    }
+
     private static Mono<ServiceInstance> getServiceInstance(CloudFoundryOperations cloudFoundryOperations, String serviceInstanceName) {
         return cloudFoundryOperations.services()
             .getInstance(GetServiceInstanceRequest.builder()
@@ -963,11 +1343,54 @@ public final class ApplicationsTest extends AbstractIntegrationTest {
                 .build());
     }
 
+    private static Mono<Task> requestCreateLongLivedTask(CloudFoundryOperations cloudFoundryOperations, String applicationName, String taskName) {
+        return cloudFoundryOperations.applications()
+            .runTask(RunApplicationTaskRequest.builder()
+                .applicationName(applicationName)
+                .command("sleep 99")
+                .disk(64)
+                .memory(64)
+                .taskName(taskName)
+                .build());
+    }
+
+    private static Mono<Task> requestCreateTask(CloudFoundryOperations cloudFoundryOperations, String applicationName, String taskName) {
+        return cloudFoundryOperations.applications()
+            .runTask(RunApplicationTaskRequest.builder()
+                .applicationName(applicationName)
+                .command("ls")
+                .disk(64)
+                .memory(64)
+                .taskName(taskName)
+                .build());
+    }
+
     private static Mono<Void> requestCreateTcpDomain(CloudFoundryOperations cloudFoundryOperations, String domainName, String routerGroup) {
         return cloudFoundryOperations.domains()
             .createShared(CreateSharedDomainRequest.builder()
                 .domain(domainName)
                 .routerGroup(routerGroup)
+                .build());
+    }
+
+    private static Mono<ApplicationDetail> requestGetApplication(CloudFoundryOperations cloudFoundryOperations, String applicationName) {
+        return cloudFoundryOperations.applications()
+            .get(GetApplicationRequest.builder()
+                .name(applicationName)
+                .build());
+    }
+
+    private static Mono<ApplicationHealthCheck> requestGetHealthCheck(CloudFoundryOperations cloudFoundryOperations, String applicationName) {
+        return cloudFoundryOperations.applications()
+            .getHealthCheck(GetApplicationHealthCheckRequest.builder()
+                .name(applicationName)
+                .build());
+    }
+
+    private static Mono<ApplicationManifest> requestGetManifest(CloudFoundryOperations cloudFoundryOperations, String applicationName) {
+        return cloudFoundryOperations.applications()
+            .getApplicationManifest(GetApplicationManifestRequest.builder()
+                .name(applicationName)
                 .build());
     }
 
@@ -979,6 +1402,20 @@ public final class ApplicationsTest extends AbstractIntegrationTest {
     private static Flux<org.cloudfoundry.operations.routes.Route> requestListRoutes(CloudFoundryOperations cloudFoundryOperations) {
         return cloudFoundryOperations.routes()
             .list(ListRoutesRequest.builder()
+                .build());
+    }
+
+    private static Flux<Task> requestListTasks(CloudFoundryOperations cloudFoundryOperations, String applicationName) {
+        return cloudFoundryOperations.applications()
+            .listTasks(ListApplicationTasksRequest.builder()
+                .name(applicationName)
+                .build());
+    }
+
+    private static Mono<Boolean> requestSshEnabled(CloudFoundryOperations cloudFoundryOperations, String applicationName) {
+        return cloudFoundryOperations.applications()
+            .sshEnabled(ApplicationSshEnabledRequest.builder()
+                .name(applicationName)
                 .build());
     }
 

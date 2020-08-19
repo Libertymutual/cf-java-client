@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,34 +16,31 @@
 
 package org.cloudfoundry.operations.applications;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
 import org.cloudfoundry.util.tuple.Consumer2;
+import org.yaml.snakeyaml.DumperOptions;
+import org.yaml.snakeyaml.Yaml;
 import reactor.core.Exceptions;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Iterator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Spliterator;
-import java.util.Spliterators;
 import java.util.TreeMap;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 /**
  * Utilities for dealing with {@link ApplicationManifest}s.  Includes the functionality to transform to and from standard CLI YAML files.
@@ -52,9 +49,15 @@ public final class ApplicationManifestUtils {
 
     private static final int GIBI = 1_024;
 
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper(new YAMLFactory()
-        .enable(YAMLGenerator.Feature.MINIMIZE_QUOTES))
-        .setSerializationInclusion(JsonInclude.Include.NON_NULL);
+    private static final Yaml YAML;
+
+    static {
+        DumperOptions dumperOptions = new DumperOptions();
+        dumperOptions.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
+        dumperOptions.setExplicitStart(true);
+
+        YAML = new Yaml(dumperOptions);
+    }
 
     private ApplicationManifestUtils() {
     }
@@ -67,10 +70,7 @@ public final class ApplicationManifestUtils {
      * @return the resolved manifests
      */
     public static List<ApplicationManifest> read(Path path) {
-        return doRead(path.toAbsolutePath())
-            .values().stream()
-            .map(ApplicationManifest.Builder::build)
-            .collect(Collectors.toList());
+        return doRead(path.toAbsolutePath());
     }
 
     /**
@@ -114,59 +114,82 @@ public final class ApplicationManifestUtils {
      * @param applicationManifests the manifests to write
      */
     public static void write(OutputStream out, List<ApplicationManifest> applicationManifests) {
-        try {
-            OBJECT_MAPPER.writeValue(out, Collections.singletonMap("applications", applicationManifests));
+        try (Writer writer = new OutputStreamWriter(out)) {
+            YAML.dump(Collections.singletonMap("applications",
+                applicationManifests.stream()
+                    .map(ApplicationManifestUtils::toYaml)
+                    .collect(Collectors.toList())),
+                writer);
         } catch (IOException e) {
             throw Exceptions.propagate(e);
         }
     }
 
-    private static <T> void as(JsonNode payload, String key, Function<JsonNode, T> mapper, Consumer<T> consumer) {
+    private static <T> void as(Map<String, Object> payload, String key, Function<Object, T> mapper, Consumer<T> consumer) {
         Optional.ofNullable(payload.get(key))
             .map(mapper)
             .ifPresent(consumer);
     }
 
-    private static void asBoolean(JsonNode payload, String key, Consumer<Boolean> consumer) {
-        as(payload, key, JsonNode::asBoolean, consumer);
+    private static void asBoolean(Map<String, Object> payload, String key, Consumer<Boolean> consumer) {
+        as(payload, key, Boolean.class::cast, consumer);
     }
 
-    private static void asInteger(JsonNode payload, String key, Consumer<Integer> consumer) {
-        as(payload, key, JsonNode::asInt, consumer);
+    @SuppressWarnings("unchecked")
+    private static void asDocker(Map<String, Object> payload, String key, Consumer<Docker> consumer) {
+        as(payload, key, value -> {
+            Map<String, String> docker = ((Map<String, String>) value);
+
+            return Docker.builder()
+                .image(docker.get("image"))
+                .password(docker.get("password"))
+                .username(docker.get("username"))
+                .build();
+        }, consumer);
     }
 
-    private static <T> void asList(JsonNode payload, String key, Function<JsonNode, T> mapper, Consumer<T> consumer) {
-        as(payload, key, ApplicationManifestUtils::streamOf,
-            domains -> domains
+    private static void asInteger(Map<String, Object> payload, String key, Consumer<Integer> consumer) {
+        as(payload, key, Integer.class::cast, consumer);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T> void asList(Map<String, Object> payload, String key, Function<Object, T> mapper, Consumer<T> consumer) {
+        as(payload, key, value -> ((List<Object>) value).stream(),
+            values -> values
                 .map(mapper)
                 .forEach(consumer));
     }
 
-    private static void asListOfString(JsonNode payload, String key, Consumer<String> consumer) {
-        asList(payload, key, JsonNode::asText, consumer);
+    private static void asListOfString(Map<String, Object> payload, String key, Consumer<String> consumer) {
+        asList(payload, key, String.class::cast, consumer);
     }
 
-    private static <T> void asMap(JsonNode payload, String key, Function<JsonNode, T> valueMapper, Consumer2<String, T> consumer) {
-        as(payload, key, environmentVariables -> streamOf(environmentVariables.fields()),
-            environmentVariables -> environmentVariables
-                .forEach(entry -> consumer.accept(entry.getKey(), valueMapper.apply(entry.getValue()))));
+    @SuppressWarnings("unchecked")
+    private static <T> void asMap(Map<String, Object> payload, String key, Function<Object, T> valueMapper, Consumer2<String, T> consumer) {
+        as(payload, key, value -> ((Map<String, Object>) value),
+            values -> values.forEach((k, v) -> consumer.accept(k, valueMapper.apply(v))));
     }
 
-    private static void asMapOfStringString(JsonNode payload, String key, Consumer2<String, String> consumer) {
-        asMap(payload, key, JsonNode::asText, consumer);
+    private static void asMapOfStringString(Map<String, Object> payload, String key, Consumer2<String, String> consumer) {
+        asMap(payload, key, String::valueOf, consumer);
     }
 
-    private static void asMemoryInteger(JsonNode payload, String key, Consumer<Integer> consumer) {
+    @SuppressWarnings("unchecked")
+    private static void asMemoryInteger(Map<String, Object> payload, String key, Consumer<Integer> consumer) {
         as(payload, key, raw -> {
-            if (raw.isNumber()) {
-                return raw.asInt();
-            } else if (raw.isTextual()) {
-                String text = raw.asText();
+            if (raw instanceof Integer) {
+                return (Integer) raw;
+            } else if (raw instanceof String) {
+                String text = ((String) raw).toUpperCase();
 
                 if (text.endsWith("G")) {
                     return Integer.parseInt(text.substring(0, text.length() - 1)) * GIBI;
+                } else if (text.endsWith("GB")) {
+                    return Integer.parseInt(text.substring(0, text.length() - 2)) * GIBI;
                 } else if (text.endsWith("M")) {
                     return Integer.parseInt(text.substring(0, text.length() - 1));
+                } else if (text.endsWith("MB")) {
+                    return Integer.parseInt(text.substring(0, text.length() - 2));
                 } else {
                     return 0;
                 }
@@ -176,78 +199,135 @@ public final class ApplicationManifestUtils {
         }, consumer);
     }
 
-    private static void asString(JsonNode payload, String key, Consumer<String> consumer) {
-        as(payload, key, JsonNode::asText, consumer);
+    private static void asString(Map<String, Object> payload, String key, Consumer<String> consumer) {
+        as(payload, key, String.class::cast, consumer);
     }
 
-    private static JsonNode deserialize(Path path) {
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> deserialize(Path path) {
+        AtomicReference<Map<String, Object>> root = new AtomicReference<>();
+
         try (InputStream in = Files.newInputStream(path, StandardOpenOption.READ)) {
-            return OBJECT_MAPPER.readTree(in);
+            root.set((Map<String, Object>) YAML.load(in));
         } catch (IOException e) {
             throw Exceptions.propagate(e);
         }
+
+        asString(root.get(), "inherit", inherit -> {
+            Map<String, Object> inherited = deserialize(path.getParent().resolve(inherit));
+            merge(inherited, root.get());
+            root.set(inherited);
+        });
+
+        return root.get();
     }
 
-    private static Map<String, ApplicationManifest.Builder> doRead(Path path) {
-        Map<String, ApplicationManifest.Builder> applicationManifests = new TreeMap<>();
-
-        JsonNode root = deserialize(path);
-
-        asString(root, "inherit", inherit -> applicationManifests.putAll(doRead(path.getParent().resolve(inherit))));
-
-        applicationManifests
-            .forEach((name, builder) -> applicationManifests.put(name, toApplicationManifest(root, builder, path)));
+    @SuppressWarnings("unchecked")
+    private static List<ApplicationManifest> doRead(Path path) {
+        Map<String, Object> root = deserialize(path);
 
         ApplicationManifest template = getTemplate(path, root);
 
-        Optional.ofNullable(root.get("applications"))
-            .map(ApplicationManifestUtils::streamOf)
-            .ifPresent(applications -> applications
-                .forEach(application -> {
-                    String name = getName(application);
-                    ApplicationManifest.Builder builder = getBuilder(applicationManifests, template, name);
-
-                    applicationManifests.put(name, toApplicationManifest(application, builder, path));
-                }));
-
-        return applicationManifests;
+        return Optional.ofNullable(root.get("applications"))
+            .map(value -> ((List<Map<String, Object>>) value).stream())
+            .orElseGet(Stream::empty)
+            .map(application -> {
+                String name = getName(application);
+                return toApplicationManifest(application, ApplicationManifest.builder().from(template), path)
+                    .name(name)
+                    .build();
+            })
+            .collect(Collectors.toList());
     }
 
-    private static ApplicationManifest.Builder getBuilder(Map<String, ApplicationManifest.Builder> applicationManifests, ApplicationManifest template, String name) {
-        ApplicationManifest.Builder builder = applicationManifests.get(name);
-        if (builder == null) {
-            builder = ApplicationManifest.builder().from(template);
-        }
-        return builder;
+    private static Object getEmptyNamedObject(List<Object> array, String name) {
+        Map<String, Object> value = new HashMap<>();
+        value.put("name", name);
+        array.add(value);
+        return value;
     }
 
-    private static String getName(JsonNode raw) {
-        return Optional.ofNullable(raw.get("name")).map(JsonNode::asText).orElseThrow(() -> new IllegalStateException("Application does not contain required 'name' value"));
+    private static String getName(Map<String, Object> raw) {
+        return Optional.ofNullable(raw.get("name")).map(String.class::cast).orElseThrow(() -> new IllegalStateException("Application does not contain required 'name' value"));
     }
 
-    private static Route getRoute(JsonNode raw) {
-        String route = Optional.ofNullable(raw.get("route")).map(JsonNode::asText).orElseThrow(() -> new IllegalStateException("Route does not contain required 'route' value"));
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> getNamedObject(List<Object> array, String name) {
+        return (Map<String, Object>) array.stream()
+            .filter(value -> value instanceof Map && name.equals(((Map<String, String>) value).get("name")))
+            .findFirst()
+            .orElseGet(() -> getEmptyNamedObject(array, name));
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Route getRoute(Map<String, Object> raw) {
+        String route = Optional.ofNullable(raw.get("route")).map(String.class::cast).orElseThrow(() -> new IllegalStateException("Route does not contain required 'route' value"));
         return Route.builder().route(route).build();
     }
 
-    private static ApplicationManifest getTemplate(Path path, JsonNode root) {
+    private static ApplicationManifest getTemplate(Path path, Map<String, Object> root) {
         return toApplicationManifest(root, ApplicationManifest.builder(), path)
             .name("template")
             .build();
     }
 
-    private static <T> Stream<T> streamOf(Iterator<T> iterator) {
-        return StreamSupport.stream(Spliterators.spliteratorUnknownSize(iterator, Spliterator.ORDERED), false);
+    @SuppressWarnings("unchecked")
+    private static void merge(Map<String, Object> first, Map<String, Object> second) {
+        second.forEach((key, value) -> first.merge(key, value, (firstValue, secondValue) -> {
+            if (secondValue instanceof Map) {
+                merge((Map<String, Object>) firstValue, (Map<String, Object>) secondValue);
+                return firstValue;
+            } else if (secondValue instanceof List) {
+                merge((List<Object>) firstValue, (List<Object>) secondValue);
+                return firstValue;
+            } else {
+                return secondValue;
+            }
+        }));
     }
 
-    private static <T> Stream<T> streamOf(Iterable<T> iterable) {
-        return StreamSupport.stream(iterable.spliterator(), false);
+    @SuppressWarnings("unchecked")
+    private static void merge(List<Object> first, List<Object> second) {
+        second
+            .forEach(element -> {
+                if (element instanceof Map) {
+                    Object name = ((Map<String, Object>) element).get("name");
+
+                    if (name != null) {
+                        Map<String, Object> named = getNamedObject(first, (String) name);
+                        merge(named, (Map<String, Object>) element);
+                    } else {
+                        first.add(element);
+                    }
+                } else {
+                    first.add(element);
+                }
+            });
     }
 
-    private static ApplicationManifest.Builder toApplicationManifest(JsonNode application, ApplicationManifest.Builder builder, Path root) {
-        asString(application, "buildpack", builder::buildpack);
+    private static Function<Path, Object> pathToString() {
+        return path -> Optional.ofNullable(path).map(Path::toString).orElse(null);
+    }
+
+    private static Function<ApplicationHealthCheck, Object> protectApplicationHealthCheck() {
+        return applicationHealthCheck -> Optional.ofNullable(applicationHealthCheck).map(ApplicationHealthCheck::getValue).orElse(null);
+    }
+
+    private static void putIfPresent(Map<String, Object> yaml, String key, Object value) {
+        putIfPresent(yaml, key, value, Function.identity());
+    }
+
+    private static <T> void putIfPresent(Map<String, Object> yaml, String key, T value, Function<T, Object> valueMapper) {
+        Optional.ofNullable(value).map(valueMapper).ifPresent(v -> yaml.put(key, v));
+    }
+
+    @SuppressWarnings("unchecked")
+    private static ApplicationManifest.Builder toApplicationManifest(Map<String, Object> application, ApplicationManifest.Builder builder, Path root) {
+        asListOfString(application, "buildpacks", builder::buildpacks);
+        asString(application, "buildpack", builder::buildpacks);
         asString(application, "command", builder::command);
-        asInteger(application, "disk_quota", builder::disk);
+        asMemoryInteger(application, "disk_quota", builder::disk);
+        asDocker(application, "docker", builder::docker);
         asString(application, "domain", builder::domain);
         asListOfString(application, "domains", builder::domain);
         asMapOfStringString(application, "env", builder::environmentVariable);
@@ -262,12 +342,52 @@ public final class ApplicationManifestUtils {
         asBoolean(application, "no-route", builder::noRoute);
         asString(application, "path", path -> builder.path(root.getParent().resolve(path)));
         asBoolean(application, "random-route", builder::randomRoute);
-        asList(application, "routes", ApplicationManifestUtils::getRoute, builder::route);
+        asList(application, "routes", raw -> getRoute((Map<String, Object>) raw), builder::route);
         asListOfString(application, "services", builder::service);
         asString(application, "stack", builder::stack);
         asInteger(application, "timeout", builder::timeout);
 
         return builder;
+    }
+
+    private static List<Map<String, String>> toRoutesYaml(List<Route> routes) {
+        return routes.stream()
+            .map(route -> Collections.singletonMap("route", route.getRoute()))
+            .collect(Collectors.toList());
+    }
+
+    private static Map<String, Object> toYaml(ApplicationManifest applicationManifest) {
+        Map<String, Object> yaml = new TreeMap<>();
+
+        putIfPresent(yaml, "buildpacks", applicationManifest.getBuildpacks());
+        putIfPresent(yaml, "command", applicationManifest.getCommand());
+        Integer disk = applicationManifest.getDisk();
+        if (null != disk) {
+            putIfPresent(yaml, "disk_quota", applicationManifest.getDisk().toString() + "M");
+        }
+        putIfPresent(yaml, "docker", applicationManifest.getDocker());
+        putIfPresent(yaml, "domains", applicationManifest.getDomains());
+        putIfPresent(yaml, "env", applicationManifest.getEnvironmentVariables());
+        putIfPresent(yaml, "health-check-http-endpoint", applicationManifest.getHealthCheckHttpEndpoint());
+        putIfPresent(yaml, "health-check-type", applicationManifest.getHealthCheckType(), protectApplicationHealthCheck());
+        putIfPresent(yaml, "hosts", applicationManifest.getHosts());
+        putIfPresent(yaml, "instances", applicationManifest.getInstances());
+        Integer memory = applicationManifest.getMemory();
+        if (null != memory) {
+            putIfPresent(yaml, "memory", memory + "M");
+        }
+        putIfPresent(yaml, "name", applicationManifest.getName());
+        putIfPresent(yaml, "no-hostname", applicationManifest.getNoHostname());
+        putIfPresent(yaml, "no-route", applicationManifest.getNoRoute());
+        putIfPresent(yaml, "path", applicationManifest.getPath(), pathToString());
+        putIfPresent(yaml, "random-route", applicationManifest.getRandomRoute());
+        putIfPresent(yaml, "route-path", applicationManifest.getRoutePath());
+        putIfPresent(yaml, "routes", applicationManifest.getRoutes(), ApplicationManifestUtils::toRoutesYaml);
+        putIfPresent(yaml, "services", applicationManifest.getServices());
+        putIfPresent(yaml, "stack", applicationManifest.getStack());
+        putIfPresent(yaml, "timeout", applicationManifest.getTimeout());
+
+        return yaml;
     }
 
 }

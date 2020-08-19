@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -60,6 +60,7 @@ import reactor.test.StepVerifier;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.time.Duration;
+import java.util.Collections;
 
 import static io.netty.handler.codec.http.HttpMethod.DELETE;
 import static io.netty.handler.codec.http.HttpMethod.GET;
@@ -72,18 +73,18 @@ import static org.cloudfoundry.util.tuple.TupleUtils.consumer;
 
 public final class ReactorPackagesTest extends AbstractClientApiTest {
 
-    private final ReactorPackages packages = new ReactorPackages(CONNECTION_CONTEXT, this.root, TOKEN_PROVIDER);
+    private final ReactorPackages packages = new ReactorPackages(CONNECTION_CONTEXT, this.root, TOKEN_PROVIDER, Collections.emptyMap());
 
     @Test
     public void copy() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(POST).path("/v3/packages?source_guid=test-source-package-id")
-                .payload("fixtures/client/v3/packages/POST_?source_guid={id}_request.json")
+                .method(POST).path("/packages?source_guid=test-source-package-id")
+                .payload("fixtures/client/v3/packages/POST_source_guid={id}_request.json")
                 .build())
             .response(TestResponse.builder()
                 .status(CREATED)
-                .payload("fixtures/client/v3/packages/POST_?source_guid={id}_response.json")
+                .payload("fixtures/client/v3/packages/POST_source_guid={id}_response.json")
                 .build())
             .build());
 
@@ -135,7 +136,7 @@ public final class ReactorPackagesTest extends AbstractClientApiTest {
     public void create() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(POST).path("/v3/packages")
+                .method(POST).path("/packages")
                 .payload("fixtures/client/v3/packages/POST_request.json")
                 .build())
             .response(TestResponse.builder()
@@ -192,7 +193,7 @@ public final class ReactorPackagesTest extends AbstractClientApiTest {
     public void delete() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(DELETE).path("/v3/packages/test-package-id")
+                .method(DELETE).path("/packages/test-package-id")
                 .build())
             .response(TestResponse.builder()
                 .status(ACCEPTED)
@@ -214,7 +215,7 @@ public final class ReactorPackagesTest extends AbstractClientApiTest {
     public void download() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(GET).path("/v3/packages/test-package-id/download")
+                .method(GET).path("/packages/test-package-id/download")
                 .build())
             .response(TestResponse.builder()
                 .status(OK)
@@ -237,7 +238,7 @@ public final class ReactorPackagesTest extends AbstractClientApiTest {
     public void get() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(GET).path("/v3/packages/test-package-id")
+                .method(GET).path("/packages/test-package-id")
                 .build())
             .response(TestResponse.builder()
                 .status(OK)
@@ -286,7 +287,7 @@ public final class ReactorPackagesTest extends AbstractClientApiTest {
     public void list() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(GET).path("/v3/packages")
+                .method(GET).path("/packages")
                 .build())
             .response(TestResponse.builder()
                 .status(OK)
@@ -364,7 +365,7 @@ public final class ReactorPackagesTest extends AbstractClientApiTest {
     public void listDroplets() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(GET).path("/v3/packages/test-package-id/droplets")
+                .method(GET).path("/packages/test-package-id/droplets")
                 .build())
             .response(TestResponse.builder()
                 .status(OK)
@@ -438,7 +439,6 @@ public final class ReactorPackagesTest extends AbstractClientApiTest {
                     .processType("redacted_message", "[PRIVATE DATA HIDDEN IN LISTS]")
                     .image("cloudfoundry/diego-docker-app-custom:latest")
                     .checksum(null)
-                    .buildpacks(null)
                     .stack(null)
                     .createdAt("2016-03-17T00:00:01Z")
                     .updatedAt("2016-03-17T21:41:32Z")
@@ -465,19 +465,20 @@ public final class ReactorPackagesTest extends AbstractClientApiTest {
     public void upload() throws IOException {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(POST).path("/v3/packages/test-package-id/upload")
+                .method(POST).path("/packages/test-package-id/upload")
                 .contents(consumer((headers, body) -> {
                     String boundary = extractBoundary(headers);
 
                     assertThat(body.readString(Charset.defaultCharset()))
-                        .isEqualTo("\r\n--" + boundary + "\r\n" +
-                            "content-disposition: form-data; name=\"bits\"; filename=\"application.zip\"\r\n" +
-                            "content-length: 13\r\n" +
+                        .isEqualTo("--" + boundary + "\r\n" +
+                            "content-disposition: form-data; name=\"bits\"; filename=\"test-package.zip\"\r\n" +
+                            "content-length: 12\r\n" +
                             "content-type: application/zip\r\n" +
+                            "content-transfer-encoding: binary\r\n" +
                             "\r\n" +
-                            "test-content\n" +
+                            "test-content" +
                             "\r\n" +
-                            "--" + boundary + "--");
+                            "--" + boundary + "--\r\n");
                 }))
                 .build())
             .response(TestResponse.builder()

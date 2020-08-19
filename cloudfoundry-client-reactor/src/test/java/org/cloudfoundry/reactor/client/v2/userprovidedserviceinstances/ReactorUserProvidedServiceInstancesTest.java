@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,8 @@
 package org.cloudfoundry.reactor.client.v2.userprovidedserviceinstances;
 
 import org.cloudfoundry.client.v2.Metadata;
+import org.cloudfoundry.client.v2.routes.RouteEntity;
+import org.cloudfoundry.client.v2.routes.RouteResource;
 import org.cloudfoundry.client.v2.servicebindings.ServiceBindingEntity;
 import org.cloudfoundry.client.v2.servicebindings.ServiceBindingResource;
 import org.cloudfoundry.client.v2.userprovidedserviceinstances.AssociateUserProvidedServiceInstanceRouteRequest;
@@ -26,6 +28,8 @@ import org.cloudfoundry.client.v2.userprovidedserviceinstances.CreateUserProvide
 import org.cloudfoundry.client.v2.userprovidedserviceinstances.DeleteUserProvidedServiceInstanceRequest;
 import org.cloudfoundry.client.v2.userprovidedserviceinstances.GetUserProvidedServiceInstanceRequest;
 import org.cloudfoundry.client.v2.userprovidedserviceinstances.GetUserProvidedServiceInstanceResponse;
+import org.cloudfoundry.client.v2.userprovidedserviceinstances.ListUserProvidedServiceInstanceRoutesRequest;
+import org.cloudfoundry.client.v2.userprovidedserviceinstances.ListUserProvidedServiceInstanceRoutesResponse;
 import org.cloudfoundry.client.v2.userprovidedserviceinstances.ListUserProvidedServiceInstanceServiceBindingsRequest;
 import org.cloudfoundry.client.v2.userprovidedserviceinstances.ListUserProvidedServiceInstanceServiceBindingsResponse;
 import org.cloudfoundry.client.v2.userprovidedserviceinstances.ListUserProvidedServiceInstancesRequest;
@@ -56,13 +60,13 @@ import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 
 public final class ReactorUserProvidedServiceInstancesTest extends AbstractClientApiTest {
 
-    private final ReactorUserProvidedServiceInstances userProvidedServiceInstances = new ReactorUserProvidedServiceInstances(CONNECTION_CONTEXT, this.root, TOKEN_PROVIDER);
+    private final ReactorUserProvidedServiceInstances userProvidedServiceInstances = new ReactorUserProvidedServiceInstances(CONNECTION_CONTEXT, this.root, TOKEN_PROVIDER, Collections.emptyMap());
 
     @Test
     public void associateRoute() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(PUT).path("/v2/user_provided_service_instances/5badd282-6e07-4fc6-a8c4-78be99040774/routes/237d9236-7997-4b1a-be8d-2aaf2d85421a")
+                .method(PUT).path("/user_provided_service_instances/5badd282-6e07-4fc6-a8c4-78be99040774/routes/237d9236-7997-4b1a-be8d-2aaf2d85421a")
                 .payload("fixtures/client/v2/user_provided_service_instances/PUT_{id}_route_request.json")
                 .build())
             .response(TestResponse.builder()
@@ -103,7 +107,7 @@ public final class ReactorUserProvidedServiceInstancesTest extends AbstractClien
     public void create() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(POST).path("/v2/user_provided_service_instances")
+                .method(POST).path("/user_provided_service_instances")
                 .payload("fixtures/client/v2/user_provided_service_instances/POST_request.json")
                 .build())
             .response(TestResponse.builder()
@@ -119,6 +123,7 @@ public final class ReactorUserProvidedServiceInstancesTest extends AbstractClien
                 .credential("somekey", "somevalue")
                 .routeServiceUrl("https://logger.example.com")
                 .syslogDrainUrl("syslog://example.com")
+                .tags("tag1", "tag2")
                 .build())
             .as(StepVerifier::create)
             .expectNext(CreateUserProvidedServiceInstanceResponse.builder()
@@ -134,6 +139,7 @@ public final class ReactorUserProvidedServiceInstancesTest extends AbstractClien
                     .type("user_provided_service_instance")
                     .syslogDrainUrl("syslog://example.com")
                     .routeServiceUrl("https://logger.example.com")
+                    .tags("tag1", "tag2")
                     .spaceUrl("/v2/spaces/0d45d43f-7d50-43c6-9981-b32ce8d5a373")
                     .serviceBindingsUrl("/v2/user_provided_service_instances/34d5500e-712d-49ef-8bbe-c9ac349532da/service_bindings")
                     .routesUrl("/v2/user_provided_service_instances/34d5500e-712d-49ef-8bbe-c9ac349532da/routes")
@@ -147,7 +153,7 @@ public final class ReactorUserProvidedServiceInstancesTest extends AbstractClien
     public void delete() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(DELETE).path("/v2/user_provided_service_instances/5b6b45c8-89be-48d2-affd-f64346ad4d93")
+                .method(DELETE).path("/user_provided_service_instances/5b6b45c8-89be-48d2-affd-f64346ad4d93")
                 .build())
             .response(TestResponse.builder()
                 .status(NO_CONTENT)
@@ -167,7 +173,7 @@ public final class ReactorUserProvidedServiceInstancesTest extends AbstractClien
     public void get() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(GET).path("/v2/user_provided_service_instances/8c12fd06-6639-4844-b5e7-a6831cadbbcc")
+                .method(GET).path("/user_provided_service_instances/8c12fd06-6639-4844-b5e7-a6831cadbbcc")
                 .build())
             .response(TestResponse.builder()
                 .status(OK)
@@ -182,19 +188,21 @@ public final class ReactorUserProvidedServiceInstancesTest extends AbstractClien
             .as(StepVerifier::create)
             .expectNext(GetUserProvidedServiceInstanceResponse.builder()
                 .metadata(Metadata.builder()
-                    .createdAt("2015-07-27T22:43:34Z")
-                    .id("8c12fd06-6639-4844-b5e7-a6831cadbbcc")
-                    .url("/v2/user_provided_service_instances/8c12fd06-6639-4844-b5e7-a6831cadbbcc")
+                    .createdAt("2016-06-08T16:41:33Z")
+                    .id("e9358711-0ad9-4f2a-b3dc-289d47c17c87")
+                    .updatedAt("2016-06-08T16:41:26Z")
+                    .url("/v2/user_provided_service_instances/e9358711-0ad9-4f2a-b3dc-289d47c17c87")
                     .build())
                 .entity(UserProvidedServiceInstanceEntity.builder()
-                    .name("name-2361")
-                    .credential("creds-key-662", "creds-val-662")
-                    .spaceId("cebb3962-4e5b-4204-b117-3140ec4a62d9")
+                    .credential("creds-key-58", "creds-val-58")
+                    .name("name-1700")
+                    .routesUrl("/v2/user_provided_service_instances/e9358711-0ad9-4f2a-b3dc-289d47c17c87/routes")
+                    .serviceBindingsUrl("/v2/user_provided_service_instances/e9358711-0ad9-4f2a-b3dc-289d47c17c87/service_bindings")
+                    .spaceId("22236d1a-d9c7-44b7-bdad-2bb079a6c4a1")
+                    .spaceUrl("/v2/spaces/22236d1a-d9c7-44b7-bdad-2bb079a6c4a1")
+                    .syslogDrainUrl("https://foo.com/url-104")
+                    .tags("accounting", "mongodb")
                     .type("user_provided_service_instance")
-                    .syslogDrainUrl("https://foo.com/url-89")
-                    .spaceUrl("/v2/spaces/cebb3962-4e5b-4204-b117-3140ec4a62d9")
-                    .serviceBindingsUrl("/v2/user_provided_service_instances/8c12fd06-6639-4844-b5e7-a6831cadbbcc/service_bindings")
-                    .routesUrl("/v2/user_provided_service_instances/8c12fd06-6639-4844-b5e7-a6831cadbbcc/routes")
                     .build())
                 .build())
             .expectComplete()
@@ -205,7 +213,7 @@ public final class ReactorUserProvidedServiceInstancesTest extends AbstractClien
     public void list() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(GET).path("/v2/user_provided_service_instances?page=-1")
+                .method(GET).path("/user_provided_service_instances?page=-1")
                 .build())
             .response(TestResponse.builder()
                 .status(OK)
@@ -244,10 +252,55 @@ public final class ReactorUserProvidedServiceInstancesTest extends AbstractClien
     }
 
     @Test
+    public void listRoutes() {
+        mockRequest(InteractionContext.builder()
+            .request(TestRequest.builder()
+                .method(GET).path("/user_provided_service_instances/500e64c6-7f70-4e3b-ab7b-940a6303d79b/routes")
+                .build())
+            .response(TestResponse.builder()
+                .status(OK)
+                .payload("fixtures/client/v2/user_provided_service_instances/GET_{id}_routes_response.json")
+                .build())
+            .build());
+
+        this.userProvidedServiceInstances
+            .listRoutes(ListUserProvidedServiceInstanceRoutesRequest.builder()
+                .userProvidedServiceInstanceId("500e64c6-7f70-4e3b-ab7b-940a6303d79b")
+                .build())
+            .as(StepVerifier::create)
+            .expectNext(ListUserProvidedServiceInstanceRoutesResponse.builder()
+                .totalResults(1)
+                .totalPages(1)
+                .resource(RouteResource.builder()
+                    .metadata(Metadata.builder()
+                        .createdAt("2016-06-08T16:41:33Z")
+                        .id("d6e18af9-9d84-4a53-a301-ab9bef03a7b0")
+                        .updatedAt("2016-06-08T16:41:33Z")
+                        .url("/v2/routes/d6e18af9-9d84-4a53-a301-ab9bef03a7b0")
+                        .build())
+                    .entity(RouteEntity.builder()
+                        .applicationsUrl("/v2/routes/d6e18af9-9d84-4a53-a301-ab9bef03a7b0/apps")
+                        .domainId("428b9275-47a6-481b-97e3-d93ae18611ee")
+                        .domainUrl("/v2/private_domains/428b9275-47a6-481b-97e3-d93ae18611ee")
+                        .host("host-24")
+                        .path("")
+                        .routeMappingsUrl("/v2/routes/d6e18af9-9d84-4a53-a301-ab9bef03a7b0/route_mappings")
+                        .serviceInstanceId("500e64c6-7f70-4e3b-ab7b-940a6303d79b")
+                        .serviceInstanceUrl("/v2/user_provided_service_instances/500e64c6-7f70-4e3b-ab7b-940a6303d79b")
+                        .spaceId("dc7dd379-1ffb-4168-b2b4-773fe141dd2e")
+                        .spaceUrl("/v2/spaces/dc7dd379-1ffb-4168-b2b4-773fe141dd2e")
+                        .build())
+                    .build())
+                .build())
+            .expectComplete()
+            .verify(Duration.ofSeconds(5));
+    }
+
+    @Test
     public void listServiceBindings() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(GET).path("/v2/user_provided_service_instances/test-user-provided-service-instance-id/service_bindings?page=-1")
+                .method(GET).path("/user_provided_service_instances/test-user-provided-service-instance-id/service_bindings?page=-1")
                 .build())
             .response(TestResponse.builder()
                 .status(OK)
@@ -290,7 +343,7 @@ public final class ReactorUserProvidedServiceInstancesTest extends AbstractClien
     public void removeRoute() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(DELETE).path("/v2/user_provided_service_instances/fd195229-117c-4bbe-9418-c5df97131eae/routes/c3bc74b0-9465-413d-b5e6-3b305fb439cc")
+                .method(DELETE).path("/user_provided_service_instances/fd195229-117c-4bbe-9418-c5df97131eae/routes/c3bc74b0-9465-413d-b5e6-3b305fb439cc")
                 .build())
             .response(TestResponse.builder()
                 .status(NO_CONTENT)
@@ -311,7 +364,7 @@ public final class ReactorUserProvidedServiceInstancesTest extends AbstractClien
     public void update() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(PUT).path("/v2/user_provided_service_instances/e2c198b1-fa15-414e-a9a4-31537996b39d")
+                .method(PUT).path("/user_provided_service_instances/e2c198b1-fa15-414e-a9a4-31537996b39d")
                 .payload("fixtures/client/v2/user_provided_service_instances/PUT_{id}_request.json")
                 .build())
             .response(TestResponse.builder()
@@ -323,6 +376,7 @@ public final class ReactorUserProvidedServiceInstancesTest extends AbstractClien
         this.userProvidedServiceInstances
             .update(UpdateUserProvidedServiceInstanceRequest.builder()
                 .credential("somekey", "somenewvalue")
+                .tag("tag1")
                 .userProvidedServiceInstanceId("e2c198b1-fa15-414e-a9a4-31537996b39d")
                 .build())
             .as(StepVerifier::create)
@@ -337,6 +391,7 @@ public final class ReactorUserProvidedServiceInstancesTest extends AbstractClien
                     .name("name-2565")
                     .credential("somekey", "somenewvalue")
                     .spaceId("438b5923-fe7a-4459-bbcd-a7c27332bad3")
+                    .tag("tag1")
                     .type("user_provided_service_instance")
                     .syslogDrainUrl("https://foo.com/url-91")
                     .spaceUrl("/v2/spaces/438b5923-fe7a-4459-bbcd-a7c27332bad3")
@@ -352,7 +407,7 @@ public final class ReactorUserProvidedServiceInstancesTest extends AbstractClien
     public void updateWithEmptyCredentials() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(PUT).path("/v2/user_provided_service_instances/e2c198b1-fa15-414e-a9a4-31537996b39d")
+                .method(PUT).path("/user_provided_service_instances/e2c198b1-fa15-414e-a9a4-31537996b39d")
                 .payload("fixtures/client/v2/user_provided_service_instances/PUT_{id}_empty_creds_request.json")
                 .build())
             .response(TestResponse.builder()

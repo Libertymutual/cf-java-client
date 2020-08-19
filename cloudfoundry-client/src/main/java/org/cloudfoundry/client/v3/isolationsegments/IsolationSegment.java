@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,12 +17,21 @@
 package org.cloudfoundry.client.v3.isolationsegments;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.cloudfoundry.Nullable;
+import org.cloudfoundry.client.v3.Metadata;
 import org.cloudfoundry.client.v3.Resource;
 
 /**
  * Base class for responses that are isolation segments
  */
 public abstract class IsolationSegment extends Resource {
+
+    /**
+     * The metadata
+     */
+    @JsonProperty("metadata")
+    @Nullable
+    public abstract Metadata getMetadata();
 
     /**
      * The name

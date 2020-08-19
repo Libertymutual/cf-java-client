@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 package org.cloudfoundry.operations.services;
 
 import org.cloudfoundry.Nullable;
+import org.cloudfoundry.client.v2.MaintenanceInfo;
 
 import java.util.List;
 
@@ -42,6 +43,12 @@ public abstract class AbstractServiceInstanceSummary {
     abstract String getLastOperation();
 
     /**
+     * The maintenance info
+     */
+    @Nullable
+    abstract MaintenanceInfo getMaintenanceInfo();
+
+    /**
      * The service instance name
      */
     abstract String getName();
@@ -57,6 +64,12 @@ public abstract class AbstractServiceInstanceSummary {
      */
     @Nullable
     abstract String getService();
+
+    /**
+     * The tags
+     */
+    @Nullable
+    abstract List<String> getTags();
 
     /**
      * The type of the service instance

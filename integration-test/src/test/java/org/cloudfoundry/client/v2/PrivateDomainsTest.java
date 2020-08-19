@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -52,7 +52,6 @@ import reactor.test.StepVerifier;
 import reactor.util.function.Tuple2;
 
 import java.time.Duration;
-import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -71,11 +70,11 @@ public final class PrivateDomainsTest extends AbstractIntegrationTest {
     private Mono<String> userId;
 
     @Test
-    public void create() throws TimeoutException, InterruptedException {
+    public void create() {
         String privateDomainName = this.nameFactory.getDomainName();
 
         this.organizationId
-            .flatMap(organizationId -> Mono.when(
+            .flatMap(organizationId -> Mono.zip(
                 requestCreatePrivateDomain(this.cloudFoundryClient, privateDomainName, organizationId),
                 Mono.just(organizationId)
             ))
@@ -86,7 +85,7 @@ public final class PrivateDomainsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void delete() throws TimeoutException, InterruptedException {
+    public void delete() {
         String privateDomainName = this.nameFactory.getDomainName();
 
         this.organizationId
@@ -100,15 +99,15 @@ public final class PrivateDomainsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void get() throws TimeoutException, InterruptedException {
+    public void get() {
         String privateDomainName = this.nameFactory.getDomainName();
 
         this.organizationId
-            .flatMap(organizationId -> Mono.when(
+            .flatMap(organizationId -> Mono.zip(
                 Mono.just(organizationId),
                 requestCreatePrivateDomain(this.cloudFoundryClient, privateDomainName, organizationId)
             ))
-            .flatMap(function((organizationId, privateDomainResource) -> Mono.when(
+            .flatMap(function((organizationId, privateDomainResource) -> Mono.zip(
                 requestGetPrivateDomain(this.cloudFoundryClient, ResourceUtils.getId(privateDomainResource)),
                 Mono.just(organizationId)
             )))
@@ -119,15 +118,15 @@ public final class PrivateDomainsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void list() throws TimeoutException, InterruptedException {
+    public void list() {
         String privateDomainName = this.nameFactory.getDomainName();
 
         this.organizationId
-            .flatMap(organizationId -> Mono.when(
+            .flatMap(organizationId -> Mono.zip(
                 Mono.just(organizationId),
                 requestCreatePrivateDomain(this.cloudFoundryClient, privateDomainName, organizationId)
             ))
-            .flatMap(function((organizationId, privateDomainResource) -> Mono.when(
+            .flatMap(function((organizationId, privateDomainResource) -> Mono.zip(
                 listPrivateDomains(this.cloudFoundryClient)
                     .filter(resource -> ResourceUtils.getId(privateDomainResource).equals(ResourceUtils.getId(resource)))
                     .single(),
@@ -140,15 +139,15 @@ public final class PrivateDomainsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void listFilterByName() throws TimeoutException, InterruptedException {
+    public void listFilterByName() {
         String privateDomainName = this.nameFactory.getDomainName();
 
         this.organizationId
-            .flatMap(organizationId -> Mono.when(
+            .flatMap(organizationId -> Mono.zip(
                 Mono.just(organizationId),
                 requestCreatePrivateDomain(this.cloudFoundryClient, privateDomainName, organizationId)
             ))
-            .flatMap(function((organizationId, privateDomainResource) -> Mono.when(
+            .flatMap(function((organizationId, privateDomainResource) -> Mono.zip(
                 listPrivateDomains(this.cloudFoundryClient, privateDomainName)
                     .filter(resource -> ResourceUtils.getId(privateDomainResource).equals(ResourceUtils.getId(resource)))
                     .single(),
@@ -161,18 +160,17 @@ public final class PrivateDomainsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void listSharedOrganizations() throws TimeoutException, InterruptedException {
+    public void listSharedOrganizations() {
         String sharedOrganizationName = this.nameFactory.getOrganizationName();
         String privateDomainName = this.nameFactory.getDomainName();
 
         this.organizationId
-            .flatMap(organizationId -> Mono
-                .when(
-                    createPrivateDomainId(this.cloudFoundryClient, privateDomainName, organizationId),
-                    createOrganizationId(this.cloudFoundryClient, sharedOrganizationName)
-                ))
+            .flatMap(organizationId -> Mono.zip(
+                createPrivateDomainId(this.cloudFoundryClient, privateDomainName, organizationId),
+                createOrganizationId(this.cloudFoundryClient, sharedOrganizationName)
+            ))
             .flatMap(function((domainId, organizationId) -> requestAssociateOrganizationPrivateDomain(this.cloudFoundryClient, domainId, organizationId)
-                .then(Mono.just(domainId))))
+                .thenReturn(domainId)))
             .flatMapMany(domainId -> PaginationUtils
                 .requestClientV2Resources(page -> this.cloudFoundryClient.privateDomains()
                     .listSharedOrganizations(ListPrivateDomainSharedOrganizationsRequest.builder()
@@ -188,24 +186,22 @@ public final class PrivateDomainsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void listSharedOrganizationsFilterByAuditorId() throws TimeoutException, InterruptedException {
+    public void listSharedOrganizationsFilterByAuditorId() {
         String sharedOrganizationName = this.nameFactory.getOrganizationName();
         String privateDomainName = this.nameFactory.getDomainName();
 
         this.organizationId
-            .flatMap(organizationId -> Mono
-                .when(
-                    createPrivateDomainId(this.cloudFoundryClient, privateDomainName, organizationId),
-                    createOrganizationId(this.cloudFoundryClient, sharedOrganizationName),
-                    this.userId
-                ))
-            .flatMap(function((domainId, organizationId, userId) -> Mono
-                .when(
-                    requestAssociateOrganizationPrivateDomain(this.cloudFoundryClient, domainId, organizationId)
-                        .then(Mono.just(domainId)),
-                    requestAssociateOrganizationAuditor(this.cloudFoundryClient, organizationId, userId)
-                        .then(Mono.just(userId))
-                )))
+            .flatMap(organizationId -> Mono.zip(
+                createPrivateDomainId(this.cloudFoundryClient, privateDomainName, organizationId),
+                createOrganizationId(this.cloudFoundryClient, sharedOrganizationName),
+                this.userId
+            ))
+            .flatMap(function((domainId, organizationId, userId) -> Mono.zip(
+                requestAssociateOrganizationPrivateDomain(this.cloudFoundryClient, domainId, organizationId)
+                    .thenReturn(domainId),
+                requestAssociateOrganizationAuditor(this.cloudFoundryClient, organizationId, userId)
+                    .thenReturn(userId)
+            )))
             .flatMapMany(function((domainId, userId) -> PaginationUtils
                 .requestClientV2Resources(page -> this.cloudFoundryClient.privateDomains()
                     .listSharedOrganizations(ListPrivateDomainSharedOrganizationsRequest.builder()
@@ -221,24 +217,22 @@ public final class PrivateDomainsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void listSharedOrganizationsFilterByBillingManagerId() throws TimeoutException, InterruptedException {
+    public void listSharedOrganizationsFilterByBillingManagerId() {
         String sharedOrganizationName = this.nameFactory.getOrganizationName();
         String privateDomainName = this.nameFactory.getDomainName();
 
         this.organizationId
-            .flatMap(organizationId -> Mono
-                .when(
-                    createPrivateDomainId(this.cloudFoundryClient, privateDomainName, organizationId),
-                    createOrganizationId(this.cloudFoundryClient, sharedOrganizationName),
-                    this.userId
-                ))
-            .flatMap(function((domainId, organizationId, userId) -> Mono
-                .when(
-                    requestAssociateOrganizationPrivateDomain(this.cloudFoundryClient, domainId, organizationId)
-                        .then(Mono.just(domainId)),
-                    requestAssociateOrganizationBillingManager(this.cloudFoundryClient, organizationId, userId)
-                        .then(Mono.just(userId))
-                )))
+            .flatMap(organizationId -> Mono.zip(
+                createPrivateDomainId(this.cloudFoundryClient, privateDomainName, organizationId),
+                createOrganizationId(this.cloudFoundryClient, sharedOrganizationName),
+                this.userId
+            ))
+            .flatMap(function((domainId, organizationId, userId) -> Mono.zip(
+                requestAssociateOrganizationPrivateDomain(this.cloudFoundryClient, domainId, organizationId)
+                    .thenReturn(domainId),
+                requestAssociateOrganizationBillingManager(this.cloudFoundryClient, organizationId, userId)
+                    .thenReturn(userId)
+            )))
             .flatMapMany(function((domainId, userId) -> PaginationUtils
                 .requestClientV2Resources(page -> this.cloudFoundryClient.privateDomains()
                     .listSharedOrganizations(ListPrivateDomainSharedOrganizationsRequest.builder()
@@ -254,24 +248,22 @@ public final class PrivateDomainsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void listSharedOrganizationsFilterByManagerId() throws TimeoutException, InterruptedException {
+    public void listSharedOrganizationsFilterByManagerId() {
         String sharedOrganizationName = this.nameFactory.getOrganizationName();
         String privateDomainName = this.nameFactory.getDomainName();
 
         this.organizationId
-            .flatMap(organizationId -> Mono
-                .when(
-                    createPrivateDomainId(this.cloudFoundryClient, privateDomainName, organizationId),
-                    createOrganizationId(this.cloudFoundryClient, sharedOrganizationName),
-                    this.userId
-                ))
-            .flatMap(function((domainId, organizationId, userId) -> Mono
-                .when(
-                    requestAssociateOrganizationPrivateDomain(this.cloudFoundryClient, domainId, organizationId)
-                        .then(Mono.just(domainId)),
-                    requestAssociateOrganizationManager(this.cloudFoundryClient, organizationId, userId)
-                        .then(Mono.just(userId))
-                )))
+            .flatMap(organizationId -> Mono.zip(
+                createPrivateDomainId(this.cloudFoundryClient, privateDomainName, organizationId),
+                createOrganizationId(this.cloudFoundryClient, sharedOrganizationName),
+                this.userId
+            ))
+            .flatMap(function((domainId, organizationId, userId) -> Mono.zip(
+                requestAssociateOrganizationPrivateDomain(this.cloudFoundryClient, domainId, organizationId)
+                    .thenReturn(domainId),
+                requestAssociateOrganizationManager(this.cloudFoundryClient, organizationId, userId)
+                    .thenReturn(userId)
+            )))
             .flatMapMany(function((domainId, userId) -> PaginationUtils
                 .requestClientV2Resources(page -> this.cloudFoundryClient.privateDomains()
                     .listSharedOrganizations(ListPrivateDomainSharedOrganizationsRequest.builder()
@@ -287,18 +279,17 @@ public final class PrivateDomainsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void listSharedOrganizationsFilterByName() throws TimeoutException, InterruptedException {
+    public void listSharedOrganizationsFilterByName() {
         String sharedOrganizationName = this.nameFactory.getOrganizationName();
         String privateDomainName = this.nameFactory.getDomainName();
 
         this.organizationId
-            .flatMap(organizationId -> Mono
-                .when(
-                    createPrivateDomainId(this.cloudFoundryClient, privateDomainName, organizationId),
-                    createOrganizationId(this.cloudFoundryClient, sharedOrganizationName)
-                ))
+            .flatMap(organizationId -> Mono.zip(
+                createPrivateDomainId(this.cloudFoundryClient, privateDomainName, organizationId),
+                createOrganizationId(this.cloudFoundryClient, sharedOrganizationName)
+            ))
             .flatMap(function((domainId, organizationId) -> requestAssociateOrganizationPrivateDomain(this.cloudFoundryClient, domainId, organizationId)
-                .then(Mono.just(domainId))))
+                .thenReturn(domainId)))
             .flatMapMany(domainId -> PaginationUtils
                 .requestClientV2Resources(page -> this.cloudFoundryClient.privateDomains()
                     .listSharedOrganizations(ListPrivateDomainSharedOrganizationsRequest.builder()
@@ -314,23 +305,21 @@ public final class PrivateDomainsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void listSharedOrganizationsFilterBySpaceId() throws TimeoutException, InterruptedException {
+    public void listSharedOrganizationsFilterBySpaceId() {
         String sharedOrganizationName = this.nameFactory.getOrganizationName();
         String privateDomainName = this.nameFactory.getDomainName();
         String spaceName = this.nameFactory.getSpaceName();
 
         this.organizationId
-            .flatMap(organizationId -> Mono
-                .when(
-                    createPrivateDomainId(this.cloudFoundryClient, privateDomainName, organizationId),
-                    createOrganizationId(this.cloudFoundryClient, sharedOrganizationName)
-                ))
-            .flatMap(function((domainId, organizationId) -> Mono
-                .when(
-                    requestAssociateOrganizationPrivateDomain(this.cloudFoundryClient, domainId, organizationId)
-                        .then(Mono.just(domainId)),
-                    createSpaceId(this.cloudFoundryClient, organizationId, spaceName)
-                )))
+            .flatMap(organizationId -> Mono.zip(
+                createPrivateDomainId(this.cloudFoundryClient, privateDomainName, organizationId),
+                createOrganizationId(this.cloudFoundryClient, sharedOrganizationName)
+            ))
+            .flatMap(function((domainId, organizationId) -> Mono.zip(
+                requestAssociateOrganizationPrivateDomain(this.cloudFoundryClient, domainId, organizationId)
+                    .thenReturn(domainId),
+                createSpaceId(this.cloudFoundryClient, organizationId, spaceName)
+            )))
             .flatMapMany(function((domainId, spaceId) -> PaginationUtils
                 .requestClientV2Resources(page -> this.cloudFoundryClient.privateDomains()
                     .listSharedOrganizations(ListPrivateDomainSharedOrganizationsRequest.builder()
@@ -346,18 +335,17 @@ public final class PrivateDomainsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void listSharedOrganizationsFilterByStatus() throws TimeoutException, InterruptedException {
+    public void listSharedOrganizationsFilterByStatus() {
         String sharedOrganizationName = this.nameFactory.getOrganizationName();
         String privateDomainName = this.nameFactory.getDomainName();
 
         this.organizationId
-            .flatMap(organizationId -> Mono
-                .when(
-                    createPrivateDomainId(this.cloudFoundryClient, privateDomainName, organizationId),
-                    createOrganizationId(this.cloudFoundryClient, sharedOrganizationName)
-                ))
+            .flatMap(organizationId -> Mono.zip(
+                createPrivateDomainId(this.cloudFoundryClient, privateDomainName, organizationId),
+                createOrganizationId(this.cloudFoundryClient, sharedOrganizationName)
+            ))
             .flatMap(function((domainId, organizationId) -> requestAssociateOrganizationPrivateDomain(this.cloudFoundryClient, domainId, organizationId)
-                .then(Mono.just(domainId))))
+                .thenReturn(domainId)))
             .flatMapMany(domainId -> PaginationUtils
                 .requestClientV2Resources(page -> this.cloudFoundryClient.privateDomains()
                     .listSharedOrganizations(ListPrivateDomainSharedOrganizationsRequest.builder()
@@ -373,24 +361,22 @@ public final class PrivateDomainsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void listSharedOrganizationsFilterByUserId() throws TimeoutException, InterruptedException {
+    public void listSharedOrganizationsFilterByUserId() {
         String sharedOrganizationName = this.nameFactory.getOrganizationName();
         String privateDomainName = this.nameFactory.getDomainName();
 
         this.organizationId
-            .flatMap(organizationId -> Mono
-                .when(
-                    createPrivateDomainId(this.cloudFoundryClient, privateDomainName, organizationId),
-                    createOrganizationId(this.cloudFoundryClient, sharedOrganizationName),
-                    this.userId
-                ))
-            .flatMap(function((domainId, organizationId, userId) -> Mono
-                .when(
-                    requestAssociateOrganizationPrivateDomain(this.cloudFoundryClient, domainId, organizationId)
-                        .then(Mono.just(domainId)),
-                    requestAssociateOrganizationUser(this.cloudFoundryClient, organizationId, userId)
-                        .then(Mono.just(userId))
-                )))
+            .flatMap(organizationId -> Mono.zip(
+                createPrivateDomainId(this.cloudFoundryClient, privateDomainName, organizationId),
+                createOrganizationId(this.cloudFoundryClient, sharedOrganizationName),
+                this.userId
+            ))
+            .flatMap(function((domainId, organizationId, userId) -> Mono.zip(
+                requestAssociateOrganizationPrivateDomain(this.cloudFoundryClient, domainId, organizationId)
+                    .thenReturn(domainId),
+                requestAssociateOrganizationUser(this.cloudFoundryClient, organizationId, userId)
+                    .thenReturn(userId)
+            )))
             .flatMapMany(function((domainId, userId) -> PaginationUtils
                 .requestClientV2Resources(page -> this.cloudFoundryClient.privateDomains()
                     .listSharedOrganizations(ListPrivateDomainSharedOrganizationsRequest.builder()

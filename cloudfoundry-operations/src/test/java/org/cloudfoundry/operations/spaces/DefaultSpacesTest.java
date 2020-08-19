@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -74,6 +74,7 @@ import org.cloudfoundry.operations.spaceadmin.SpaceQuota;
 import org.junit.Test;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
+import reactor.test.scheduler.VirtualTimeScheduler;
 
 import java.time.Duration;
 import java.util.Arrays;
@@ -219,11 +220,11 @@ public final class DefaultSpacesTest extends AbstractOperationsTest {
         requestDeleteSpace(this.cloudFoundryClient, "test-space-id");
         requestJobSuccess(this.cloudFoundryClient, "test-job-entity-id");
 
-        this.spaces
+        StepVerifier.withVirtualTime(() -> this.spaces
             .delete(DeleteSpaceRequest.builder()
                 .name("test-space-name")
-                .build())
-            .as(StepVerifier::create)
+                .build()))
+            .then(() -> VirtualTimeScheduler.get().advanceTimeBy(Duration.ofSeconds(3)))
             .expectComplete()
             .verify(Duration.ofSeconds(5));
     }
@@ -234,11 +235,11 @@ public final class DefaultSpacesTest extends AbstractOperationsTest {
         requestDeleteSpace(this.cloudFoundryClient, "test-space-id");
         requestJobFailure(this.cloudFoundryClient, "test-job-entity-id");
 
-        this.spaces
+        StepVerifier.withVirtualTime(() -> this.spaces
             .delete(DeleteSpaceRequest.builder()
                 .name("test-space-name")
-                .build())
-            .as(StepVerifier::create)
+                .build()))
+            .then(() -> VirtualTimeScheduler.get().advanceTimeBy(Duration.ofSeconds(3)))
             .consumeErrorWith(t -> assertThat(t).isInstanceOf(ClientV2Exception.class).hasMessage("test-error-details-errorCode(1): test-error-details-description"))
             .verify(Duration.ofSeconds(5));
     }
@@ -315,7 +316,7 @@ public final class DefaultSpacesTest extends AbstractOperationsTest {
             .as(StepVerifier::create)
             .expectNext(SpaceDetail.builder()
                 .application("test-application-name")
-                .domain("test-private-domain-name", "test-shared-domain-name")
+                .domains("test-private-domain-name", "test-shared-domain-name")
                 .id(TEST_SPACE_ID)
                 .name(TEST_SPACE_NAME)
                 .organization("test-organization-name")
@@ -351,7 +352,7 @@ public final class DefaultSpacesTest extends AbstractOperationsTest {
             .as(StepVerifier::create)
             .expectNext(SpaceDetail.builder()
                 .application("test-application-name")
-                .domain("test-private-domain-name", "test-shared-domain-name")
+                .domains("test-private-domain-name", "test-shared-domain-name")
                 .id(TEST_SPACE_ID)
                 .name(TEST_SPACE_NAME)
                 .organization("test-organization-name")
@@ -385,7 +386,7 @@ public final class DefaultSpacesTest extends AbstractOperationsTest {
             .as(StepVerifier::create)
             .expectNext(SpaceDetail.builder()
                 .application("test-application-name")
-                .domain("test-private-domain-name", "test-shared-domain-name")
+                .domains("test-private-domain-name", "test-shared-domain-name")
                 .id(TEST_SPACE_ID)
                 .name(TEST_SPACE_NAME)
                 .organization("test-organization-name")

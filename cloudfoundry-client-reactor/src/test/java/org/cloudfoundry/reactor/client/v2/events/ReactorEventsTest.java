@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,13 +38,13 @@ import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 
 public final class ReactorEventsTest extends AbstractClientApiTest {
 
-    private final ReactorEvents events = new ReactorEvents(CONNECTION_CONTEXT, this.root, TOKEN_PROVIDER);
+    private final ReactorEvents events = new ReactorEvents(CONNECTION_CONTEXT, this.root, TOKEN_PROVIDER, Collections.emptyMap());
 
     @Test
     public void get() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(GET).path("/v2/events/test-event-id")
+                .method(GET).path("/events/test-event-id")
                 .build())
             .response(TestResponse.builder()
                 .status(OK)
@@ -85,7 +85,7 @@ public final class ReactorEventsTest extends AbstractClientApiTest {
     public void list() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(GET).path("/v2/events?q=actee:test-actee&page=-1")
+                .method(GET).path("/events?q=actee%3Atest-actee&page=-1")
                 .build())
             .response(TestResponse.builder()
                 .status(OK)

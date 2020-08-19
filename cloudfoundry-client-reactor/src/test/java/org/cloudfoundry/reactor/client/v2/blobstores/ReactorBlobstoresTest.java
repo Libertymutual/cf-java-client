@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,19 +28,20 @@ import org.junit.Test;
 import reactor.test.StepVerifier;
 
 import java.time.Duration;
+import java.util.Collections;
 
 import static io.netty.handler.codec.http.HttpMethod.DELETE;
 import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 
 public final class ReactorBlobstoresTest extends AbstractClientApiTest {
 
-    private ReactorBlobstores blobstores = new ReactorBlobstores(CONNECTION_CONTEXT, this.root, TOKEN_PROVIDER);
+    private ReactorBlobstores blobstores = new ReactorBlobstores(CONNECTION_CONTEXT, this.root, TOKEN_PROVIDER, Collections.emptyMap());
 
     @Test
     public void delete() {
         mockRequest(InteractionContext.builder()
             .request(TestRequest.builder()
-                .method(DELETE).path("/v2/blobstores/buildpack_cache")
+                .method(DELETE).path("/blobstores/buildpack_cache")
                 .build())
             .response(TestResponse.builder()
                 .status(OK)

@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -60,17 +60,16 @@ public final class ServiceBindingsTest extends AbstractIntegrationTest {
     private Mono<String> spaceId;
 
     @Test
-    public void create() throws TimeoutException, InterruptedException {
+    public void create() {
         String applicationName = this.nameFactory.getApplicationName();
         String serviceInstanceName = this.nameFactory.getServiceInstanceName();
 
         createServiceInstanceAndApplicationIds(this.spaceId, this.cloudFoundryClient, serviceInstanceName, applicationName)
-            .flatMap(function((serviceInstanceId, applicationId) -> Mono
-                .when(
-                    Mono.just(serviceInstanceId),
-                    Mono.just(applicationId),
-                    requestCreateServiceBinding(this.cloudFoundryClient, applicationId, serviceInstanceId)
-                )))
+            .flatMap(function((serviceInstanceId, applicationId) -> Mono.zip(
+                Mono.just(serviceInstanceId),
+                Mono.just(applicationId),
+                requestCreateServiceBinding(this.cloudFoundryClient, applicationId, serviceInstanceId)
+            )))
             .as(StepVerifier::create)
             .consumeNextWith(serviceBindingEquality())
             .expectComplete()
@@ -78,17 +77,16 @@ public final class ServiceBindingsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void delete() throws TimeoutException, InterruptedException {
+    public void delete() {
         String applicationName = this.nameFactory.getApplicationName();
         String serviceInstanceName = this.nameFactory.getServiceInstanceName();
 
         createServiceInstanceAndApplicationIds(this.spaceId, this.cloudFoundryClient, serviceInstanceName, applicationName)
-            .flatMap(function((serviceInstanceId, applicationId) -> Mono
-                .when(
-                    Mono.just(serviceInstanceId),
-                    Mono.just(applicationId),
-                    createServiceBindingId(this.cloudFoundryClient, applicationId, serviceInstanceId)
-                )))
+            .flatMap(function((serviceInstanceId, applicationId) -> Mono.zip(
+                Mono.just(serviceInstanceId),
+                Mono.just(applicationId),
+                createServiceBindingId(this.cloudFoundryClient, applicationId, serviceInstanceId)
+            )))
             .delayUntil(function((serviceInstanceId, applicationId, serviceBindingId) -> deleteServiceBinding(this.cloudFoundryClient, serviceBindingId)))
             .flatMap(function((serviceInstanceId, applicationId, serviceBindingId) -> requestGetServiceBinding(this.cloudFoundryClient, serviceBindingId)))
             .as(StepVerifier::create)
@@ -97,23 +95,21 @@ public final class ServiceBindingsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void get() throws TimeoutException, InterruptedException {
+    public void get() {
         String applicationName = this.nameFactory.getApplicationName();
         String serviceInstanceName = this.nameFactory.getServiceInstanceName();
 
         createServiceInstanceAndApplicationIds(this.spaceId, this.cloudFoundryClient, serviceInstanceName, applicationName)
-            .flatMap(function((serviceInstanceId, applicationId) -> Mono
-                .when(
-                    Mono.just(serviceInstanceId),
-                    Mono.just(applicationId),
-                    createServiceBindingId(this.cloudFoundryClient, applicationId, serviceInstanceId)
-                )))
-            .flatMap(function((serviceInstanceId, applicationId, serviceBindingId) -> Mono
-                .when(
-                    Mono.just(serviceInstanceId),
-                    Mono.just(applicationId),
-                    requestGetServiceBinding(this.cloudFoundryClient, serviceBindingId)
-                )))
+            .flatMap(function((serviceInstanceId, applicationId) -> Mono.zip(
+                Mono.just(serviceInstanceId),
+                Mono.just(applicationId),
+                createServiceBindingId(this.cloudFoundryClient, applicationId, serviceInstanceId)
+            )))
+            .flatMap(function((serviceInstanceId, applicationId, serviceBindingId) -> Mono.zip(
+                Mono.just(serviceInstanceId),
+                Mono.just(applicationId),
+                requestGetServiceBinding(this.cloudFoundryClient, serviceBindingId)
+            )))
             .as(StepVerifier::create)
             .consumeNextWith(serviceBindingEquality())
             .expectComplete()
@@ -121,25 +117,23 @@ public final class ServiceBindingsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void list() throws TimeoutException, InterruptedException {
+    public void list() {
         String applicationName = this.nameFactory.getApplicationName();
         String serviceInstanceName = this.nameFactory.getServiceInstanceName();
 
         createServiceInstanceAndApplicationIds(this.spaceId, this.cloudFoundryClient, serviceInstanceName, applicationName)
-            .flatMap(function((serviceInstanceId, applicationId) -> Mono
-                .when(
-                    Mono.just(serviceInstanceId),
-                    Mono.just(applicationId),
-                    createServiceBindingId(this.cloudFoundryClient, applicationId, serviceInstanceId)
-                )))
-            .flatMap(function((serviceInstanceId, applicationId, serviceBindingId) -> Mono
-                .when(
-                    Mono.just(serviceInstanceId),
-                    Mono.just(applicationId),
-                    requestListServiceBindings(this.cloudFoundryClient, null, null)
-                        .filter(resource -> serviceBindingId.equals(ResourceUtils.getId(resource)))
-                        .single()
-                )))
+            .flatMap(function((serviceInstanceId, applicationId) -> Mono.zip(
+                Mono.just(serviceInstanceId),
+                Mono.just(applicationId),
+                createServiceBindingId(this.cloudFoundryClient, applicationId, serviceInstanceId)
+            )))
+            .flatMap(function((serviceInstanceId, applicationId, serviceBindingId) -> Mono.zip(
+                Mono.just(serviceInstanceId),
+                Mono.just(applicationId),
+                requestListServiceBindings(this.cloudFoundryClient, null, null)
+                    .filter(resource -> serviceBindingId.equals(ResourceUtils.getId(resource)))
+                    .single()
+            )))
             .as(StepVerifier::create)
             .consumeNextWith(serviceBindingEquality())
             .expectComplete()
@@ -147,25 +141,23 @@ public final class ServiceBindingsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void listFilterByApplicationId() throws TimeoutException, InterruptedException {
+    public void listFilterByApplicationId() {
         String applicationName = this.nameFactory.getApplicationName();
         String serviceInstanceName = this.nameFactory.getServiceInstanceName();
 
         createServiceInstanceAndApplicationIds(this.spaceId, this.cloudFoundryClient, serviceInstanceName, applicationName)
-            .flatMap(function((serviceInstanceId, applicationId) -> Mono
-                .when(
-                    Mono.just(serviceInstanceId),
-                    Mono.just(applicationId),
-                    createServiceBindingId(this.cloudFoundryClient, applicationId, serviceInstanceId)
-                )))
-            .flatMap(function((serviceInstanceId, applicationId, serviceBindingId) -> Mono
-                .when(
-                    Mono.just(serviceInstanceId),
-                    Mono.just(applicationId),
-                    requestListServiceBindings(this.cloudFoundryClient, applicationId, null)
-                        .filter(resource -> serviceBindingId.equals(ResourceUtils.getId(resource)))
-                        .single()
-                )))
+            .flatMap(function((serviceInstanceId, applicationId) -> Mono.zip(
+                Mono.just(serviceInstanceId),
+                Mono.just(applicationId),
+                createServiceBindingId(this.cloudFoundryClient, applicationId, serviceInstanceId)
+            )))
+            .flatMap(function((serviceInstanceId, applicationId, serviceBindingId) -> Mono.zip(
+                Mono.just(serviceInstanceId),
+                Mono.just(applicationId),
+                requestListServiceBindings(this.cloudFoundryClient, applicationId, null)
+                    .filter(resource -> serviceBindingId.equals(ResourceUtils.getId(resource)))
+                    .single()
+            )))
             .as(StepVerifier::create)
             .consumeNextWith(serviceBindingEquality())
             .expectComplete()
@@ -173,25 +165,23 @@ public final class ServiceBindingsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void listFilterByServiceInstanceId() throws TimeoutException, InterruptedException {
+    public void listFilterByServiceInstanceId() {
         String applicationName = this.nameFactory.getApplicationName();
         String serviceInstanceName = this.nameFactory.getServiceInstanceName();
 
         createServiceInstanceAndApplicationIds(this.spaceId, this.cloudFoundryClient, serviceInstanceName, applicationName)
-            .flatMap(function((serviceInstanceId, applicationId) -> Mono
-                .when(
-                    Mono.just(serviceInstanceId),
-                    Mono.just(applicationId),
-                    createServiceBindingId(this.cloudFoundryClient, applicationId, serviceInstanceId)
-                )))
-            .flatMap(function((serviceInstanceId, applicationId, serviceBindingId) -> Mono
-                .when(
-                    Mono.just(serviceInstanceId),
-                    Mono.just(applicationId),
-                    requestListServiceBindings(this.cloudFoundryClient, null, serviceInstanceId)
-                        .filter(resource -> serviceBindingId.equals(ResourceUtils.getId(resource)))
-                        .single()
-                )))
+            .flatMap(function((serviceInstanceId, applicationId) -> Mono.zip(
+                Mono.just(serviceInstanceId),
+                Mono.just(applicationId),
+                createServiceBindingId(this.cloudFoundryClient, applicationId, serviceInstanceId)
+            )))
+            .flatMap(function((serviceInstanceId, applicationId, serviceBindingId) -> Mono.zip(
+                Mono.just(serviceInstanceId),
+                Mono.just(applicationId),
+                requestListServiceBindings(this.cloudFoundryClient, null, serviceInstanceId)
+                    .filter(resource -> serviceBindingId.equals(ResourceUtils.getId(resource)))
+                    .single()
+            )))
             .as(StepVerifier::create)
             .consumeNextWith(serviceBindingEquality())
             .expectComplete()
@@ -210,7 +200,7 @@ public final class ServiceBindingsTest extends AbstractIntegrationTest {
 
     private static Mono<Tuple2<String, String>> createServiceInstanceAndApplicationIds(Mono<String> spaceId, CloudFoundryClient cloudFoundryClient, String serviceInstance, String application) {
         return spaceId
-            .flatMap(spaceId1 -> Mono.when(
+            .flatMap(spaceId1 -> Mono.zip(
                 createUserServiceInstanceId(cloudFoundryClient, spaceId1, serviceInstance),
                 createApplicationId(cloudFoundryClient, spaceId1, application)
             ));

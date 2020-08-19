@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,23 +17,13 @@
 package org.cloudfoundry.client.v3.servicebindings;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import org.cloudfoundry.AllowNulls;
 import org.cloudfoundry.Nullable;
-import org.cloudfoundry.client.v3.Link;
-
-import java.util.Map;
+import org.cloudfoundry.client.v3.Resource;
 
 /**
  * Base class for responses that are service bindings
  */
-public abstract class ServiceBinding {
-
-    /**
-     * The created at
-     */
-    @JsonProperty("created_at")
-    @Nullable
-    public abstract String getCreatedAt();
+public abstract class ServiceBinding extends Resource {
 
     /**
      * The datas
@@ -43,32 +33,10 @@ public abstract class ServiceBinding {
     public abstract ServiceBindingData getData();
 
     /**
-     * The id
-     */
-    @JsonProperty("guid")
-    @Nullable
-    public abstract String getId();
-
-    /**
-     * The links
-     */
-    @AllowNulls
-    @JsonProperty("links")
-    @Nullable
-    public abstract Map<String, Link> getLinks();
-
-    /**
      * The type
      */
     @JsonProperty("type")
     @Nullable
     public abstract String getType();
-
-    /**
-     * The updated at
-     */
-    @JsonProperty("updated_at")
-    @Nullable
-    public abstract String getUpdatedAt();
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -41,6 +41,8 @@ import org.cloudfoundry.client.v2.spaces.Spaces;
 import org.cloudfoundry.client.v2.stacks.Stacks;
 import org.cloudfoundry.client.v2.userprovidedserviceinstances.UserProvidedServiceInstances;
 import org.cloudfoundry.client.v2.users.Users;
+import org.cloudfoundry.client.v3.applications.ApplicationsV3;
+import org.cloudfoundry.client.v3.tasks.Tasks;
 import org.cloudfoundry.doppler.DopplerClient;
 import org.cloudfoundry.routing.RoutingClient;
 import org.cloudfoundry.routing.v1.routergroups.RouterGroups;
@@ -75,6 +77,8 @@ public abstract class AbstractOperationsTest {
     protected static final String TEST_USERNAME = "test-username";
 
     protected final ApplicationsV2 applications = mock(ApplicationsV2.class, RETURNS_SMART_NULLS);
+
+    protected final ApplicationsV3 applicationsV3 = mock(ApplicationsV3.class, RETURNS_SMART_NULLS);
 
     protected final Authorizations authorizations = mock(Authorizations.class, RETURNS_SMART_NULLS);
 
@@ -128,9 +132,13 @@ public abstract class AbstractOperationsTest {
 
     protected final Stacks stacks = mock(Stacks.class, RETURNS_SMART_NULLS);
 
+    protected final Tasks tasks = mock(Tasks.class, RETURNS_SMART_NULLS);
+
     protected final Tokens tokens = mock(Tokens.class, RETURNS_SMART_NULLS);
 
     protected final UaaClient uaaClient = mock(UaaClient.class, RETURNS_SMART_NULLS);
+
+    protected final org.cloudfoundry.uaa.users.Users uaaUsers = mock(org.cloudfoundry.uaa.users.Users.class, RETURNS_SMART_NULLS);
 
     protected final UserProvidedServiceInstances userProvidedServiceInstances = mock(UserProvidedServiceInstances.class, RETURNS_SMART_NULLS);
 
@@ -139,6 +147,7 @@ public abstract class AbstractOperationsTest {
     @Before
     public final void mockClient() {
         when(this.cloudFoundryClient.applicationsV2()).thenReturn(this.applications);
+        when(this.cloudFoundryClient.applicationsV3()).thenReturn(this.applicationsV3);
         when(this.cloudFoundryClient.buildpacks()).thenReturn(this.buildpacks);
         when(this.cloudFoundryClient.domains()).thenReturn(this.domains);
         when(this.cloudFoundryClient.events()).thenReturn(this.events);
@@ -160,6 +169,7 @@ public abstract class AbstractOperationsTest {
         when(this.cloudFoundryClient.spaceQuotaDefinitions()).thenReturn(this.spaceQuotaDefinitions);
         when(this.cloudFoundryClient.spaces()).thenReturn(this.spaces);
         when(this.cloudFoundryClient.stacks()).thenReturn(this.stacks);
+        when(this.cloudFoundryClient.tasks()).thenReturn(this.tasks);
         when(this.cloudFoundryClient.userProvidedServiceInstances()).thenReturn(this.userProvidedServiceInstances);
         when(this.cloudFoundryClient.users()).thenReturn(this.users);
 
@@ -167,6 +177,7 @@ public abstract class AbstractOperationsTest {
 
         when(this.uaaClient.authorizations()).thenReturn(this.authorizations);
         when(this.uaaClient.tokens()).thenReturn(this.tokens);
+        when(this.uaaClient.users()).thenReturn(this.uaaUsers);
     }
 
 }

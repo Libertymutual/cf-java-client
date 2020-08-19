@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -83,6 +83,13 @@ abstract class _SpaceEntity {
     @JsonProperty("isolation_segment_guid")
     @Nullable
     abstract String getIsolationSegmentId();
+
+    /**
+     * The isolation segment url
+     */
+    @JsonProperty("isolation_segment_url")
+    @Nullable
+    abstract String getIsolationSegmentUrl();
 
     /**
      * The managers url

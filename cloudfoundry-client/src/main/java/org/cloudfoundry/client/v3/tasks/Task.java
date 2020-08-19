@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package org.cloudfoundry.client.v3.tasks;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.cloudfoundry.Nullable;
+import org.cloudfoundry.client.v3.Metadata;
 import org.cloudfoundry.client.v3.Resource;
 
 /**
@@ -51,7 +52,14 @@ public abstract class Task extends Resource {
     public abstract Integer getMemoryInMb();
 
     /**
-     * The tasks name
+     * The metadata
+     */
+    @JsonProperty("metadata")
+    @Nullable
+    public abstract Metadata getMetadata();
+
+    /**
+     * The task's name
      */
     @JsonProperty("name")
     public abstract String getName();
@@ -74,5 +82,12 @@ public abstract class Task extends Resource {
      */
     @JsonProperty("state")
     public abstract TaskState getState();
+
+    /**
+     * The task relationships
+     */
+    @JsonProperty("relationships")
+    @Nullable
+    public abstract TaskRelationships getTaskRelationships();
 
 }

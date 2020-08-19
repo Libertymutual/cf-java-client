@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,6 +30,12 @@ public enum HealthCheckType {
     HTTP("http"),
 
     /**
+     * No health check (deprecated, backwards compatibility only)
+     */
+    @Deprecated
+    NONE("none"),
+
+    /**
      * A port health check
      */
     PORT("port"),
@@ -50,6 +56,8 @@ public enum HealthCheckType {
         switch (s.toLowerCase()) {
             case "http":
                 return HTTP;
+            case "none":
+                return NONE;
             case "port":
                 return PORT;
             case "process":

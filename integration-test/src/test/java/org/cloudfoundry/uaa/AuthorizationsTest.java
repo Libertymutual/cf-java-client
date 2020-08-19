@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,13 +24,13 @@ import org.cloudfoundry.uaa.authorizations.AuthorizeByImplicitGrantBrowserReques
 import org.cloudfoundry.uaa.authorizations.AuthorizeByOpenIdWithAuthorizationCodeGrantRequest;
 import org.cloudfoundry.uaa.authorizations.AuthorizeByOpenIdWithIdTokenRequest;
 import org.cloudfoundry.uaa.authorizations.AuthorizeByOpenIdWithImplicitGrantRequest;
-import org.junit.Ignore;
+import org.cloudfoundry.uaa.authorizations.GetOpenIdProviderConfigurationRequest;
+import org.cloudfoundry.uaa.authorizations.GetOpenIdProviderConfigurationResponse;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import reactor.test.StepVerifier;
 
 import java.time.Duration;
-import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -44,7 +44,7 @@ public final class AuthorizationsTest extends AbstractIntegrationTest {
     private UaaClient uaaClient;
 
     @Test
-    public void authorizeByAuthorizationCodeGrantApi() throws TimeoutException, InterruptedException {
+    public void authorizeByAuthorizationCodeGrantApi() {
         this.uaaClient.authorizations()
             .authorizationCodeGrantApi(AuthorizeByAuthorizationCodeGrantApiRequest.builder()
                 .clientId(this.clientId)
@@ -56,7 +56,7 @@ public final class AuthorizationsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void authorizeByAuthorizationCodeGrantBrowser() throws TimeoutException, InterruptedException {
+    public void authorizeByAuthorizationCodeGrantBrowser() {
         this.uaaClient.authorizations()
             .authorizationCodeGrantBrowser(AuthorizeByAuthorizationCodeGrantBrowserRequest.builder()
                 .clientId(this.clientId)
@@ -69,7 +69,7 @@ public final class AuthorizationsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void authorizeByAuthorizationCodeGrantHybrid() throws TimeoutException, InterruptedException {
+    public void authorizeByAuthorizationCodeGrantHybrid() {
         this.uaaClient.authorizations()
             .authorizationCodeGrantHybrid(AuthorizeByAuthorizationCodeGrantHybridRequest.builder()
                 .clientId(this.clientId)
@@ -82,7 +82,7 @@ public final class AuthorizationsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void authorizeByImplicitGrantBrowser() throws TimeoutException, InterruptedException {
+    public void authorizeByImplicitGrantBrowser() {
         this.uaaClient.authorizations()
             .implicitGrantBrowser(AuthorizeByImplicitGrantBrowserRequest.builder()
                 .clientId(this.clientId)
@@ -95,7 +95,7 @@ public final class AuthorizationsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void authorizeByOpenIdWithAuthorizationCodeGrant() throws TimeoutException, InterruptedException {
+    public void authorizeByOpenIdWithAuthorizationCodeGrant() {
         this.uaaClient.authorizations()
             .openIdWithAuthorizationCodeAndIdToken(AuthorizeByOpenIdWithAuthorizationCodeGrantRequest.builder()
                 .clientId("app")
@@ -109,7 +109,7 @@ public final class AuthorizationsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void authorizeByOpenIdWithIdToken() throws TimeoutException, InterruptedException {
+    public void authorizeByOpenIdWithIdToken() {
         this.uaaClient.authorizations()
             .openIdWithIdToken(AuthorizeByOpenIdWithIdTokenRequest.builder()
                 .clientId("app")
@@ -123,7 +123,7 @@ public final class AuthorizationsTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void authorizeByOpenIdWithImplicitGrant() throws TimeoutException, InterruptedException {
+    public void authorizeByOpenIdWithImplicitGrant() {
         this.uaaClient.authorizations()
             .openIdWithTokenAndIdToken(AuthorizeByOpenIdWithImplicitGrantRequest.builder()
                 .clientId("app")
@@ -136,11 +136,16 @@ public final class AuthorizationsTest extends AbstractIntegrationTest {
             .verify(Duration.ofMinutes(5));
     }
 
-    //TODO: Await https://github.com/cloudfoundry/cf-java-client/issues/670
-    @Ignore("Await https://github.com/cloudfoundry/cf-java-client/issues/670")
     @Test
-    public void openIdProviderConfiguration() throws TimeoutException, InterruptedException {
-        //
+    public void openIdProviderConfiguration() {
+        this.uaaClient.authorizations()
+            .getOpenIdProviderConfiguration(GetOpenIdProviderConfigurationRequest.builder()
+                .build())
+            .map(GetOpenIdProviderConfigurationResponse::getServiceDocumentation)
+            .as(StepVerifier::create)
+            .expectNext("http://docs.cloudfoundry.org/api/uaa/")
+            .expectComplete()
+            .verify(Duration.ofMinutes(5));
     }
 
     private static Consumer<String> startsWithExpectation(String prefix) {
